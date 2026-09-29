@@ -1,8 +1,6 @@
-// src/services/api.js
-
-// Utiliza a variável de ambiente injetada pelo Vite (.env.development / .env.production)
-// Com fallback para a URL pública caso nenhuma esteja definida
-const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br/api';
+// Garante que o /api estará sempre presente no final da URL, independentemente do ambiente ou variáveis injetadas
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL.replace(/\/$/, '')}/api`;
 
 // LOG DE DEPURAÇÃO: Permite verificar na consola do navegador qual API está ativa
 console.log("🚀 URL da API ativa no Frontend:", API_URL);
