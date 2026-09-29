@@ -4,6 +4,9 @@
 // Com fallback para a URL pública caso nenhuma esteja definida
 const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br/api';
 
+// LOG DE DEPURAÇÃO: Permite verificar na consola do navegador qual API está ativa
+console.log("🚀 URL da API ativa no Frontend:", API_URL);
+
 const getHeaders = () => {
   const token = localStorage.getItem('token');
   return {
