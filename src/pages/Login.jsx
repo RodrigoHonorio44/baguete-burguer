@@ -18,12 +18,21 @@ export const Login = () => {
       // Utiliza a função de login centralizada no api.js
       const data = await api.login(telefone, senha);
 
-      // Salva as credenciais no localStorage que a Navbar e o restante do app lêem
-      localStorage.setItem('token', data.user?.id || data.token || 'ativo');
-      localStorage.setItem('role', data.user?.role || 'adm');
+      // Salva o token real e a role real retornada pelo backend
+      const userRole = data.user?.role || data.role || 'cliente';
+      localStorage.setItem('token', data.token || data.user?.id || 'ativo');
+      localStorage.setItem('role', userRole);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      toast.success(`Bem-vindo de volta, ${data.user?.nome || 'Administrador'}!`);
-      navigate('/');
+      toast.success(`Bem-vindo de volta, ${data.user?.nome || 'Utilizador'}!`);
+
+      // Redirecionamento inteligente com base no perfil (role)
+      if (userRole === 'admin' || userRole === 'adm') {
+        navigate('/comandas');
+      } else {
+        navigate('/');
+      }
+
       window.location.reload(); // Recarrega para atualizar a Navbar instantaneamente
     } catch (error) {
       toast.error(error.message || 'Erro ao realizar login');
@@ -39,8 +48,8 @@ export const Login = () => {
           <div className="inline-flex p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl mb-4">
             <Utensils className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Área Administrativa</h1>
-          <p className="text-sm text-slate-400 mt-1">Entre com as suas credenciais para aceder ao painel</p>
+          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Entrar na Conta</h1>
+          <p className="text-sm text-slate-400 mt-1">Introduza as suas credenciais para continuar</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
@@ -88,7 +97,7 @@ export const Login = () => {
             className="w-full mt-2 py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 disabled:opacity-50 text-sm cursor-pointer"
           >
             <LogIn className="w-5 h-5" />
-            {loading ? 'A entrar...' : 'Entrar na Administração'}
+            {loading ? 'A entrar...' : 'Entrar'}
           </button>
         </form>
 

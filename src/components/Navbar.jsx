@@ -10,14 +10,21 @@ export const Navbar = () => {
   const totalItens = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); 
     
-    if (token && (role === 'admin' || role === 'adm')) {
-      setIsAdmin(true);
+    if (token) {
+      setIsLoggedIn(true);
+      if (role === 'admin' || role === 'adm') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
     } else {
+      setIsLoggedIn(false);
       setIsAdmin(false);
     }
   }, []);
@@ -25,7 +32,9 @@ export const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('user');
     setIsAdmin(false);
+    setIsLoggedIn(false);
     toast.success('Sessão encerrada com sucesso!');
     navigate('/');
     window.location.reload();
@@ -39,11 +48,12 @@ export const Navbar = () => {
           <span>baguete burguer</span>
         </Link>
 
-        {/* Navegação condicional */}
+        {/* Navegação condicional baseada no perfil */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-slate-300 font-medium">
+          <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
+          
           {isAdmin ? (
             <>
-              <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
               <Link to="/comandas" className="hover:text-amber-400 transition flex items-center gap-1">
                 <ClipboardList className="w-4 h-4" /> comandas
               </Link>
@@ -55,12 +65,9 @@ export const Navbar = () => {
               </Link>
             </>
           ) : (
-            <>
-              <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
-              <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
-                <UserPlus className="w-4 h-4" /> cadastro
-              </Link>
-            </>
+            <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
+              <UserPlus className="w-4 h-4" /> cadastro
+            </Link>
           )}
         </nav>
 
@@ -79,8 +86,8 @@ export const Navbar = () => {
             )}
           </button>
 
-          {/* Botão Dinâmico: Sair (se logado) ou Entrar/Adm (se deslogado) */}
-          {isAdmin ? (
+          {/* Botão Dinâmico: Sair (se logado) ou Entrar (se deslogado) */}
+          {isLoggedIn ? (
             <button
               onClick={handleLogout}
               className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium"
@@ -93,10 +100,10 @@ export const Navbar = () => {
             <Link
               to="/login"
               className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-1 text-xs font-medium"
-              title="entrar na administração"
+              title="entrar na conta"
             >
               <LogIn className="w-4 h-4 text-amber-500" />
-              <span className="hidden sm:inline">adm</span>
+              <span className="hidden sm:inline">entrar</span>
             </Link>
           )}
         </div>

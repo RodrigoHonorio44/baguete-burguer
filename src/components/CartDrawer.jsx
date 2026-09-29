@@ -9,6 +9,15 @@ export const CartDrawer = () => {
 
   if (!isCartOpen) return null;
 
+  // Cálculo de segurança blindado contra NaN para o total
+  const totalGeral = typeof cartTotal === 'number' && !isNaN(cartTotal)
+    ? cartTotal
+    : cart.reduce((acc, item) => {
+        const preco = Number(item.preco || item.price || 0);
+        const qtd = Number(item.quantity || 1);
+        return acc + (preco * qtd);
+      }, 0);
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* fundo escuro com opacidade */}
@@ -27,7 +36,7 @@ export const CartDrawer = () => {
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -42,6 +51,8 @@ export const CartDrawer = () => {
                 {cart.map((item) => {
                   const id = item.id || item._id;
                   const preco = Number(item.preco || item.price || 0);
+                  const quantidade = Number(item.quantity || 1);
+                  const subtotalItem = preco * quantidade;
 
                   return (
                     <div
@@ -50,23 +61,28 @@ export const CartDrawer = () => {
                     >
                       <div className="flex-1 pr-2">
                         <h4 className="font-semibold text-sm capitalize">{item.nome || item.name}</h4>
-                        <span className="text-xs text-emerald-400 font-bold">
-                          r$ {preco.toFixed(2)}
+                        <span className="text-xs text-emerald-400 font-bold block">
+                          R$ {preco.toFixed(2)} un
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          Subtotal: R$ {subtotalItem.toFixed(2)}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <div className="flex items-center border border-slate-700 rounded-md bg-slate-800">
+                          {/* Botão Menos garantindo o cálculo correto */}
                           <button
-                            onClick={() => updateQuantity(id, item.quantity - 1)}
-                            className="px-2 py-0.5 text-slate-400 hover:text-slate-100"
+                            onClick={() => updateQuantity(id, quantidade - 1)}
+                            className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
                           >
                             -
                           </button>
-                          <span className="px-2 text-xs font-bold">{item.quantity}</span>
+                          <span className="px-2 text-xs font-bold text-slate-100">{quantidade}</span>
+                          {/* Botão Mais garantindo o cálculo correto */}
                           <button
-                            onClick={() => updateQuantity(id, item.quantity + 1)}
-                            className="px-2 py-0.5 text-slate-400 hover:text-slate-100"
+                            onClick={() => updateQuantity(id, quantidade + 1)}
+                            className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
                           >
                             +
                           </button>
@@ -74,7 +90,7 @@ export const CartDrawer = () => {
 
                         <button
                           onClick={() => removeFromCart(id)}
-                          className="text-rose-400 hover:text-rose-300 p-1"
+                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -90,14 +106,14 @@ export const CartDrawer = () => {
             <div className="border-t border-slate-800 pt-4 mt-auto">
               <div className="flex justify-between items-center mb-4 text-slate-100 font-bold">
                 <span>total:</span>
-                <span className="text-emerald-400 text-xl">r$ {cartTotal.toFixed(2)}</span>
+                <span className="text-emerald-400 text-xl">R$ {totalGeral.toFixed(2)}</span>
               </div>
               <button
                 onClick={() => {
                   setIsCartOpen(false);
                   navigate('/checkout');
                 }}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition cursor-pointer"
               >
                 finalizar pedido
               </button>
