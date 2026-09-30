@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const AdminProdutos = () => {
@@ -16,6 +16,55 @@ export const AdminProdutos = () => {
   });
 
   const [editandoId, setEditandoId] = useState(null);
+
+  // Função para comprimir, redimensionar a imagem e validar o padrão de píxeis
+  const comprimirImagem = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const larguraOriginal = img.width;
+          const alturaOriginal = img.height;
+          const MAX_WIDTH = 500;
+          const MAX_HEIGHT = 500;
+
+          // Validação opcional: se a imagem for excessivamente grande, podemos avisar
+          if (larguraOriginal > 4000 || alturaOriginal > 4000) {
+            toast.error(`foto fora do padrão! dimensões atuais: ${larguraOriginal}x${alturaOriginal}px. máximo permitido: 4000x4000px.`);
+          }
+
+          let width = larguraOriginal;
+          let height = alturaOriginal;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Converte para JPEG com 60% de qualidade para evitar erros de payload no servidor
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+        img.onerror = (error) => reject(error);
+      };
+    });
+  };
 
   const carregarProdutos = async () => {
     setLoading(true);
@@ -36,6 +85,20 @@ export const AdminProdutos = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const imagemOtimizada = await comprimirImagem(file);
+        setForm({ ...form, imagem: imagemOtimizada });
+        toast.success('foto carregada e otimizada com sucesso!');
+      } catch (error) {
+        console.error(error);
+        toast.error('erro ao processar a imagem.');
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +138,6 @@ export const AdminProdutos = () => {
   };
 
   const handleDelete = async (id) => {
-    // Para substituir o confirm do window, pode usar um toast interativo ou confirmação simples:
     if (!window.confirm('tem certeza que deseja excluir este item do cardápio?')) return;
 
     try {
@@ -173,15 +235,19 @@ export const AdminProdutos = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">url da imagem (opcional)</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">foto do produto (computador ou telemóvel)</label>
               <input
-                type="text"
-                name="imagem"
-                value={form.imagem}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer bg-slate-800 border border-slate-700 rounded-lg"
               />
+              
+              {form.imagem && (
+                <div className="mt-3 relative w-20 h-20 rounded-lg overflow-hidden border border-slate-700">
+                  <img src={form.imagem} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">
@@ -219,13 +285,22 @@ export const AdminProdutos = () => {
               {produtos.map((prod) => {
                 const id = prod._id || prod.id;
                 const preco = Number(prod.preco || prod.price || 0);
+                const imagemProd = prod.imagem || prod.image;
 
                 return (
                   <div
                     key={id}
-                    className="flex items-center justify-between bg-slate-800/40 border border-slate-800 p-3 rounded-lg"
+                    className="flex items-center justify-between bg-slate-800/40 border border-slate-800 p-3 rounded-lg gap-4"
                   >
-                    <div className="flex-1 pr-4">
+                    {imagemProd ? (
+                      <img src={imagemProd} alt={prod.nome} className="w-14 h-14 rounded-lg object-cover border border-slate-700 flex-shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 flex-shrink-0">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 pr-2">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-100 capitalize">{prod.nome || prod.name}</span>
                         <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">
