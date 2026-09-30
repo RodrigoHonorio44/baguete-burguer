@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodho
 const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL.replace(/\/$/, '')}/api`;
 
 // LOG DE DEPURAÇÃO: Permite verificar na consola do navegador qual API está ativa
-console.log("🚀 URL da API ativa no Frontend:", API_URL);
+//console.log("🚀 URL da API ativa no Frontend:", API_URL);
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
@@ -14,7 +14,7 @@ const getHeaders = () => {
 };
 
 export const api = {
-  // --- AUTENTICAÇÃO (Para Área Administrativa / Cozinha) ---
+  // --- AUTENTICAÇÃO (Para Área Administrativa / Cozinha e Cadastro) ---
   login: async (telefone, senha) => {
     const response = await fetch(`${API_URL}/users/login`, {
       method: 'POST',
@@ -24,6 +24,33 @@ export const api = {
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || data.message || 'Falha na autenticação');
+    return data;
+  },
+
+ register: async (userData) => {
+    const payloadFormatado = {
+      nome: userData.nome ? userData.nome.toLowerCase() : '',
+      sobrenome: userData.sobrenome ? userData.sobrenome.toLowerCase() : '',
+      telefone: userData.telefone ? userData.telefone.toLowerCase() : '',
+      senha: userData.senha,
+      role: userData.role || 'cliente',
+      endereco: {
+        rua: userData.rua ? userData.rua.toLowerCase() : '',
+        numero: userData.numero ? String(userData.numero) : '0',
+        bairro: userData.bairro ? userData.bairro.toLowerCase() : '',
+        latitude: userData.latitude || null,
+        longitude: userData.longitude || null
+      }
+    };
+
+    const response = await fetch(`${API_URL}/users/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadFormatado)
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.message || 'Erro ao realizar cadastro');
     return data;
   },
 

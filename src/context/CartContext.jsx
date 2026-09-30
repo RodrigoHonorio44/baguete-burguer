@@ -30,17 +30,19 @@ export const CartProvider = ({ children }) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
   };
 
-  const updateQuantity = (id, amount) => {
+  const updateQuantity = (id, novaQuantidade) => {
+    if (novaQuantidade <= 0) {
+      removeFromCart(id);
+      return;
+    }
     setCart((prevCart) =>
-      prevCart
-        .map((item) => {
-          if (item.id === id) {
-            const newQty = item.quantity + amount;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean)
+      prevCart.map((item) => {
+        const itemId = item.id || item._id;
+        if (itemId === id) {
+          return { ...item, quantity: novaQuantidade };
+        }
+        return item;
+      })
     );
   };
 
