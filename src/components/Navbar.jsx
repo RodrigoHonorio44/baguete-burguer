@@ -30,11 +30,15 @@ export const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
+    // Remove todas as chaves de autenticação e cache local
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user');
+    localStorage.removeItem('carrinho');
+    
     setIsAdmin(false);
     setIsLoggedIn(false);
+    
     toast.success('Sessão encerrada com sucesso!');
     navigate('/');
     window.location.reload();
@@ -90,7 +94,7 @@ export const Navbar = () => {
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
-              className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium"
+              className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium cursor-pointer"
               title="terminar sessão"
             >
               <LogOut className="w-4 h-4" />
