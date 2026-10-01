@@ -18,7 +18,10 @@ export const Navbar = () => {
     
     if (token) {
       setIsLoggedIn(true);
-      if (role === 'admin' || role === 'adm') {
+      const normalizedRole = role ? role.toLowerCase() : '';
+      
+      // Libera o menu administrativo para root, admin ou adm
+      if (['root', 'admin', 'adm'].includes(normalizedRole)) {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);

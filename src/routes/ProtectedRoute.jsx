@@ -7,7 +7,7 @@ export const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const role = localStorage.getItem('role');
   
   const isLoggedIn = !!token;
-  const isAdmin = role === 'admin' || role === 'adm';
+  const isAdmin = role === 'admin' || role === 'adm' || role === 'root';
 
   if (!isLoggedIn) {
     // Se não estiver logado, redireciona para a página de login

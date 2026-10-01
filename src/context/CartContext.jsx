@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // Tenta descobrir o utilizador logado no localStorage (ajuste a chave conforme o seu app, ex: 'user', 'usuario', etc.)
   const getStoredUser = () => {
     try {
       const userStr = localStorage.getItem('user') || localStorage.getItem('usuario');
@@ -17,35 +17,44 @@ export const CartProvider = ({ children }) => {
 
   const [cart, setCart] = useState(() => {
     const currentUser = getStoredUser();
-    if (currentUser && currentUser.id) {
-      const saved = localStorage.getItem(`baguete_burguer_cart_${currentUser.id}`);
+    if (currentUser && (currentUser.id || currentUser._id)) {
+      const userId = currentUser.id || currentUser._id;
+      const saved = localStorage.getItem(`baguete_burguer_cart_${userId}`);
       return saved ? JSON.parse(saved) : [];
     }
-    return []; // Se não houver utilizador logado, começa vazio para não misturar!
+    return [];
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Sempre que o carrinho muda e há um utilizador, guarda no localStorage específico dele e envia para o servidor
+  // Sincroniza com o backend utilizando fetch para a rota específica do carrinho
   useEffect(() => {
     const currentUser = getStoredUser();
-    if (currentUser && currentUser.id) {
-      localStorage.setItem(`baguete_burguer_cart_${currentUser.id}`, JSON.stringify(cart));
+    if (currentUser && (currentUser.id || currentUser._id)) {
+      const userId = currentUser.id || currentUser._id;
+      localStorage.setItem(`baguete_burguer_cart_${userId}`, JSON.stringify(cart));
       
-      // Sincroniza com o backend
-      fetch(`https://bagueteburguer.rodhonsystem.com.br/api/carrinho`, {
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+      const apiUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+
+      fetch(`${apiUrl}/carrinho`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id, itens: cart })
+        body: JSON.stringify({ userId, itens: cart })
       }).catch(err => console.error('Erro ao sincronizar carrinho:', err));
     }
   }, [cart]);
 
-  // Opcional: Se quiser carregar do servidor quando a página abre
+  // Carrega do servidor quando a aplicação abre
   useEffect(() => {
     const currentUser = getStoredUser();
-    if (currentUser && currentUser.id) {
-      fetch(`https://bagueteburguer.rodhonsystem.com.br/api/carrinho/${currentUser.id}`)
+    if (currentUser && (currentUser.id || currentUser._id)) {
+      const userId = currentUser.id || currentUser._id;
+      
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+      const apiUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+
+      fetch(`${apiUrl}/carrinho/${userId}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
@@ -98,22 +107,26 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = () => {
-    setCart();
+    setCart([]);
     const currentUser = getStoredUser();
-    if (currentUser && currentUser.id) {
-      localStorage.removeItem(`baguete_burguer_cart_${currentUser.id}`);
-      // Limpa também no servidor
-      fetch(`https://bagueteburguer.rodhonsystem.com.br/api/carrinho`, {
+    if (currentUser && (currentUser.id || currentUser._id)) {
+      const userId = currentUser.id || currentUser._id;
+      localStorage.removeItem(`baguete_burguer_cart_${userId}`);
+      
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+      const apiUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+
+      fetch(`${apiUrl}/carrinho`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id, itens: [] })
+        body: JSON.stringify({ userId, itens: [] })
       }).catch(err => console.error('Erro ao limpar carrinho:', err));
     }
   };
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price || 0) * item.quantity, 0);
+  const cartTotal = cart.reduce((acc, item) => acc + (item.price || item.preco || 0) * item.quantity, 0);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (

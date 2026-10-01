@@ -27,7 +27,7 @@ export const api = {
     return data;
   },
 
- register: async (userData) => {
+  register: async (userData) => {
     const payloadFormatado = {
       nome: userData.nome ? userData.nome.toLowerCase() : '',
       sobrenome: userData.sobrenome ? userData.sobrenome.toLowerCase() : '',

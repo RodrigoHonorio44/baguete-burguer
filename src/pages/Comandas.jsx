@@ -24,11 +24,8 @@ export const Comandas = () => {
 
   const alterarStatus = async (id, novoStatus, pedido) => {
     try {
-      await fetch(`/api/pedidos/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: novoStatus })
-      });
+      // Utiliza a função da API centralizada para evitar erros de CORS/URL incorreta
+      await api.atualizarStatusPedido(id, novoStatus);
       
       carregarPedidos();
 
