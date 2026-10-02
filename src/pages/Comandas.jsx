@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Clock, CheckCircle, Truck, XCircle, ChevronDown, ChevronUp, MapPin, Phone } from 'lucide-react';
-import { formatarMoeda, formatarDataHora, enviarParaMotoboy } from '../utils/whatsapp';
+import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, MapPin, Phone } from 'lucide-react';
+import { formatarMoeda, formatarDataHora } from '../utils/whatsapp';
 
-const TELEFONE_MOTOBOY_PADRAO = ''; 
+// Função auxiliar para lidar com datas que podem vir como string ou como objeto MongoDB {$date: '...'}
+const extrairData = (criadoEm, createdAt) => {
+  const dataBruta = criadoEm || createdAt;
+  if (!dataBruta) return null;
+  
+  if (typeof dataBruta === 'object' && dataBruta.$date) {
+    return dataBruta.$date;
+  }
+  return dataBruta;
+};
 
 export const Comandas = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -16,14 +25,19 @@ export const Comandas = () => {
       // 1. Filtrar apenas as comandas do DIA ATUAL
       const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
       const pedidosDoDia = (data || []).filter(pedido => {
-        const dataPedidoStr = pedido.createdAt || pedido.criadoEm;
+        const dataPedidoStr = extrairData(pedido.criadoEm, pedido.createdAt);
         if (!dataPedidoStr) return false;
         const dataPedido = new Date(dataPedidoStr).toISOString().split('T')[0];
         return dataPedido === hoje;
       });
 
       // 2. Ordenar por ordem de chegada (mais antigas primeiro)
-      const pedidosOrdenados = pedidosDoDia.sort((a, b) => new Date(a.createdAt || a.criadoEm) - new Date(b.createdAt || b.criadoEm));
+      const pedidosOrdenados = pedidosDoDia.sort((a, b) => {
+        const dataA = new Date(extrairData(a.criadoEm, a.createdAt) || 0);
+        const dataB = new Date(extrairData(b.criadoEm, b.createdAt) || 0);
+        return dataA - dataB;
+      });
+      
       setPedidos(pedidosOrdenados);
     } catch (err) {
       console.error(err);
@@ -50,20 +64,17 @@ export const Comandas = () => {
     }
   };
 
-  const handleEnviarMotoboy = async (e, pedido) => {
-    e.stopPropagation();
-    try {
-      enviarParaMotoboy(pedido, TELEFONE_MOTOBOY_PADRAO);
-      await api.atualizarStatusPedido(pedido._id || pedido.id, 'enviado');
-      carregarPedidos();
-    } catch (error) {
-      console.error('Erro ao enviar pedido para o motoboy:', error);
-    }
-  };
-
+  // Remove da tela comandas enviadas, concluídas, entregues ou recusadas/canceladas
   const pedidosAtivos = pedidos.filter(pedido => {
     const status = pedido.status || 'pendente';
-    return status !== 'enviado' && status !== 'concluido' && status !== 'recusado';
+    return (
+      status !== 'enviado' && 
+      status !== 'concluido' && 
+      status !== 'entregue' && 
+      status !== 'pronto' && 
+      status !== 'recusado' && 
+      status !== 'cancelado'
+    );
   });
 
   return (
@@ -80,6 +91,7 @@ export const Comandas = () => {
             const idPedido = pedido._id || pedido.id;
             const statusAtual = pedido.status || 'pendente';
             const estaExpandido = expandidos[idPedido];
+            const dataFormatada = extrairData(pedido.criadoEm, pedido.createdAt);
 
             return (
               <div 
@@ -99,7 +111,6 @@ export const Comandas = () => {
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                         statusAtual === 'pendente' ? 'bg-amber-500/20 text-amber-400' :
                         statusAtual === 'preparo' ? 'bg-blue-500/20 text-blue-400' :
-                        statusAtual === 'pronto' ? 'bg-emerald-500/20 text-emerald-400' :
                         'bg-rose-500/20 text-rose-400'
                       }`}>
                         {statusAtual}
@@ -110,7 +121,7 @@ export const Comandas = () => {
 
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span className="flex items-center gap-1">
-                      <Clock size={12} /> {formatarDataHora(pedido.createdAt)}
+                      <Clock size={12} /> {formatarDataHora(dataFormatada)}
                     </span>
                     <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] uppercase text-slate-300">
                       {pedido.forma_pagamento || pedido.pagamento || 'não inf.'}
@@ -122,7 +133,14 @@ export const Comandas = () => {
                     <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-3 animate-fadeIn">
                       <div className="space-y-1 text-xs text-slate-400">
                         <p className="flex items-center gap-1"><Phone size={12} /> {pedido.telefone || pedido.cliente_telefone || 'Sem telefone'}</p>
-                        <p className="flex items-center gap-1"><MapPin size={12} /> {pedido.rua || pedido.endereco?.rua ? `${pedido.rua || pedido.endereco?.rua}, ${pedido.numero || pedido.endereco?.numero} - ${pedido.bairro || pedido.endereco?.bairro}` : 'Endereço não informado'}</p>
+                        <p className="flex items-start gap-1">
+                          <MapPin size={12} className="mt-0.5 shrink-0" /> 
+                          <span>
+                            {pedido.rua || pedido.endereco?.rua 
+                              ? `${pedido.rua || pedido.endereco?.rua}, ${pedido.numero || pedido.endereco?.numero || 'S/N'} - ${pedido.bairro || pedido.endereco?.bairro || ''}` 
+                              : 'Endereço não informado'}
+                          </span>
+                        </p>
                       </div>
 
                       <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 space-y-1">
@@ -173,18 +191,9 @@ export const Comandas = () => {
                     {statusAtual === 'preparo' && (
                       <button 
                         onClick={(e) => alterarStatus(e, idPedido, 'pronto')}
-                        className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <CheckCircle size={14} /> Marcar como Pronto
-                      </button>
-                    )}
-
-                    {(statusAtual === 'pronto' || statusAtual === 'pendente' || statusAtual === 'preparo') && (
-                      <button 
-                        onClick={(e) => handleEnviarMotoboy(e, pedido)}
                         className="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                       >
-                        <Truck size={14} /> Enviar para Motoboy
+                        <CheckCircle size={14} /> Marcar como Pronto (Concluir Cozinha)
                       </button>
                     )}
                   </div>

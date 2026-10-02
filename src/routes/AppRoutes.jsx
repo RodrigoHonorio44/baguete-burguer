@@ -8,7 +8,9 @@ import { Comandas } from '../pages/Comandas';
 import { Caixa } from '../pages/Caixa';
 import { AdminProdutos } from '../pages/AdminProdutos';
 import { MeusPedidos } from '../pages/MeusPedidos';
-import { MapaRaioEntrega } from '../components/MapaRaioEntrega'; // <--- 1. Importação do componente de raio
+import { Motoboy } from '../pages/Motoboy'; // <--- Importação da tela do motoboy
+import { RastreioCliente } from '../pages/RastreioCliente'; // <--- Importação da tela de rastreio do cliente
+import { MapaRaioEntrega } from '../components/MapaRaioEntrega';
 import { ProtectedRoute } from '../routes/ProtectedRoute';
 
 export const AppRoutes = () => {
@@ -22,6 +24,19 @@ export const AppRoutes = () => {
       
       {/* Rota do Cliente para Acompanhar os Pedidos em Tempo Real */}
       <Route path="/meus-pedidos" element={<MeusPedidos />} />
+
+      {/* Rota de Rastreio ao Vivo do Cliente via Mapa */}
+      <Route path="/rastreio/:id" element={<RastreioCliente />} />
+
+      {/* Rota Exclusiva do Motoboy */}
+      <Route 
+        path="/motoboy" 
+        element={
+          <ProtectedRoute>
+            <Motoboy />
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Rotas Restritas/Protegidas (Apenas para administradores logados) */}
       <Route 

@@ -24,6 +24,11 @@ export const Login = () => {
       localStorage.setItem('role', userRole);
       localStorage.setItem('user', JSON.stringify(data.user));
 
+      // Também grava o nome do motoboy automaticamente no localStorage caso o role seja entregador
+      if (userRole === 'entregador' || userRole === 'motoboy') {
+        localStorage.setItem('motoboy_nome', data.user?.nome || 'Entregador');
+      }
+
       toast.success(`Bem-vindo de volta, ${data.user?.nome || 'Utilizador'}!`);
 
       // Verifica se há um fluxo pendente de carrinho/checkout guardado
@@ -41,6 +46,8 @@ export const Login = () => {
       // Redirecionamento inteligente com base no perfil (role)
       if (userRole === 'admin' || userRole === 'adm' || userRole === 'root') {
         navigate('/comandas');
+      } else if (userRole === 'entregador' || userRole === 'motoboy') {
+        navigate('/motoboy'); // Direciona direto para a tela do motoboy
       } else {
         navigate('/');
       }
