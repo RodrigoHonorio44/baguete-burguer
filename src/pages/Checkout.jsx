@@ -17,6 +17,8 @@ export const Checkout = () => {
     handleSubmit,
   } = useCheckout();
 
+  const totalPedido = calcularTotal();
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="text-center mb-6">
@@ -100,12 +102,43 @@ export const Checkout = () => {
           </select>
         </div>
 
+        {/* CAMPO CONDICIONAL DE TROCO (Exibido apenas se selecionar dinheiro) */}
+        {form.forma_pagamento === 'dinheiro' && (
+          <div className="bg-slate-950 border border-amber-500/30 p-4 rounded-xl space-y-2">
+            <label className="block text-xs font-medium text-amber-400">
+              Precisa de troco para quanto? (Informe o valor em dinheiro que vai entregar)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-slate-400 text-sm">R$</span>
+              <input
+                type="number"
+                step="0.01"
+                name="troco_para"
+                placeholder="Ex: 100.00"
+                value={form.troco_para || ''}
+                onChange={handleChange}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            {form.troco_para && Number(form.troco_para) > totalPedido && (
+              <p className="text-xs text-emerald-400 font-bold">
+                Troco a devolver: R$ {(Number(form.troco_para) - totalPedido).toFixed(2)}
+              </p>
+            )}
+            {form.troco_para && Number(form.troco_para) <= totalPedido && (
+              <p className="text-xs text-amber-400">
+                O valor informado é menor ou igual ao total. Não será necessário troco.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Resumo e Botões */}
         <div className="pt-4 border-t border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-400 block">Total a pagar:</span>
-              <span className="text-2xl font-bold text-amber-500">R$ {calcularTotal().toFixed(2)}</span>
+              <span className="text-2xl font-bold text-amber-500">R$ {totalPedido.toFixed(2)}</span>
             </div>
 
             <button
@@ -134,5 +167,4 @@ export const Checkout = () => {
   );
 };
 
-// Adicionado export default para resolver o erro no AppRoutes.jsx
 export default Checkout;

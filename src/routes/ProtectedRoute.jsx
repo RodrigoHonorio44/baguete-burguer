@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-//
+
 export const ProtectedRoute = ({ children, requireAdmin = false }) => {
   // Lê diretamente do localStorage, mantendo consistência com o Login e a Navbar
   const token = localStorage.getItem('token');

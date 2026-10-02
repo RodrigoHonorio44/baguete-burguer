@@ -158,5 +158,27 @@ export const api = {
     if (!response.ok) throw new Error('Erro ao buscar categorias');
     const data = await response.json();
     return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  // --- CONFIGURAÇÕES DA LOJA (RAIO, HORÁRIOS E STATUS) ---
+  getConfiguracoesLoja: async () => {
+    const response = await fetch(`${API_URL}/configuracoes-loja`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data;
+  },
+
+  updateConfiguracoesLoja: async (configData) => {
+    const response = await fetch(`${API_URL}/configuracoes-loja`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(configData)
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao salvar configurações da loja');
+    return data;
   }
 };

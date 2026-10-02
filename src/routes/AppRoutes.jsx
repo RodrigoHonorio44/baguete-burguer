@@ -7,7 +7,9 @@ import { Login } from '../pages/Login';
 import { Comandas } from '../pages/Comandas';
 import { Caixa } from '../pages/Caixa';
 import { AdminProdutos } from '../pages/AdminProdutos';
-import { ProtectedRoute } from '../routes/ProtectedRoute'; // <--- Importação da rota protegida
+import { MeusPedidos } from '../pages/MeusPedidos';
+import { MapaRaioEntrega } from '../components/MapaRaioEntrega'; // <--- 1. Importação do componente de raio
+import { ProtectedRoute } from '../routes/ProtectedRoute';
 
 export const AppRoutes = () => {
   return (
@@ -17,6 +19,9 @@ export const AppRoutes = () => {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/cadastro" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      
+      {/* Rota do Cliente para Acompanhar os Pedidos em Tempo Real */}
+      <Route path="/meus-pedidos" element={<MeusPedidos />} />
 
       {/* Rotas Restritas/Protegidas (Apenas para administradores logados) */}
       <Route 
@@ -42,6 +47,16 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute requireAdmin={true}>
             <AdminProdutos />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Rota de Configuração do Raio e Taxas de Entrega (Apenas Admin/Root) */}
+      <Route 
+        path="/configuracoes/entrega" 
+        element={
+          <ProtectedRoute requireAdmin={true}>
+            <MapaRaioEntrega />
           </ProtectedRoute>
         } 
       />

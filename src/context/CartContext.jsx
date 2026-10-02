@@ -68,7 +68,12 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product) => {
     const currentUser = getStoredUser();
     if (!currentUser) {
-      alert('Por favor, faça login para adicionar itens ao carrinho.');
+      // Guarda o item e define o destino pós-cadastro/login para o checkout
+      sessionStorage.setItem('pending_cart_item', JSON.stringify(product));
+      sessionStorage.setItem('redirect_after_auth', '/checkout'); // Ajuste a rota do checkout se necessário
+      
+      // Redireciona para a página de cadastro
+      window.location.href = '/cadastro'; 
       return;
     }
 

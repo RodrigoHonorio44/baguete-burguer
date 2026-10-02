@@ -26,8 +26,20 @@ export const Login = () => {
 
       toast.success(`Bem-vindo de volta, ${data.user?.nome || 'Utilizador'}!`);
 
+      // Verifica se há um fluxo pendente de carrinho/checkout guardado
+      const pendingItem = sessionStorage.getItem('pending_cart_item');
+      const redirectPath = sessionStorage.getItem('redirect_after_auth');
+
+      if (pendingItem && redirectPath) {
+        sessionStorage.removeItem('pending_cart_item');
+        sessionStorage.removeItem('redirect_after_auth');
+        navigate(redirectPath);
+        window.location.reload();
+        return;
+      }
+
       // Redirecionamento inteligente com base no perfil (role)
-      if (userRole === 'admin' || userRole === 'adm') {
+      if (userRole === 'admin' || userRole === 'adm' || userRole === 'root') {
         navigate('/comandas');
       } else {
         navigate('/');

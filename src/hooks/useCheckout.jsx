@@ -10,6 +10,8 @@ export const useCheckout = () => {
   const [loading, setLoading] = useState(false);
   const [loadingGeo, setLoadingGeo] = useState(false);
   const [loadingCancelamento, setLoadingCancelamento] = useState(false);
+  const [userDataId, setUserDataId] = useState('');
+  const [userDataEmail, setUserDataEmail] = useState('');
 
   const [form, setForm] = useState({
     cliente_nome: '',
@@ -18,7 +20,8 @@ export const useCheckout = () => {
     numero: '',
     bairro: '',
     observacoes: '',
-    forma_pagamento: 'pix',
+    forma_pagamento: 'dinheiro',
+    troco_para: '',
     latitude: '',
     longitude: ''
   });
@@ -35,15 +38,18 @@ export const useCheckout = () => {
 
     try {
       const userData = JSON.parse(savedUser);
+      setUserDataId(userData.id || userData._id || '');
+      setUserDataEmail(userData.email || '');
+
       setForm(prev => ({
         ...prev,
         cliente_nome: userData.nome || '',
         telefone: userData.telefone || '',
-        rua: userData.rua || '',
-        numero: userData.numero || '',
-        bairro: userData.bairro || '',
-        latitude: userData.latitude || '',
-        longitude: userData.longitude || ''
+        rua: userData.endereco?.rua || userData.rua || '',
+        numero: userData.endereco?.numero || userData.numero || '',
+        bairro: userData.endereco?.bairro || userData.bairro || '',
+        latitude: userData.endereco?.latitude || userData.latitude || '',
+        longitude: userData.endereco?.longitude || userData.longitude || ''
       }));
     } catch (e) {
       console.error('Erro ao carregar dados do utilizador:', e);
@@ -75,7 +81,8 @@ export const useCheckout = () => {
         console.error(error);
         setLoadingGeo(false);
         toast.error('Não foi possível obter a sua localização.');
-      }
+      },
+      { enableHighAccuracy: true }
     );
   };
 
@@ -135,7 +142,10 @@ export const useCheckout = () => {
     try {
       const pedidoData = {
         ...form,
+        userId: userDataId,
+        email: userDataEmail,
         total: calcularTotal(),
+        troco_para: form.forma_pagamento === 'dinheiro' ? form.troco_para : '',
         itens: cart.map(item => ({
           produtoId: item.id || item._id,
           nome: item.nome,
@@ -148,7 +158,7 @@ export const useCheckout = () => {
       
       toast.success('Pedido realizado com sucesso!');
       clearCart();
-      navigate('/');
+      navigate('/meus-pedidos');
     } catch (error) {
       toast.error(error.message || 'Erro ao finalizar o pedido.');
     } finally {
