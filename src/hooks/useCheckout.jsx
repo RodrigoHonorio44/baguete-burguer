@@ -13,6 +13,10 @@ export const useCheckout = () => {
   const [userDataId, setUserDataId] = useState('');
   const [userDataEmail, setUserDataEmail] = useState('');
 
+  // Estados de Entrega Dinâmicos
+  const [taxaEntrega, setTaxaEntrega] = useState(0);
+  const [configLoja, setConfigLoja] = useState(null);
+
   const [form, setForm] = useState({
     cliente_nome: '',
     telefone: '',
@@ -26,6 +30,7 @@ export const useCheckout = () => {
     longitude: ''
   });
 
+  // Carrega dados do usuário e configurações de entrega da loja
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -54,7 +59,110 @@ export const useCheckout = () => {
     } catch (e) {
       console.error('Erro ao carregar dados do utilizador:', e);
     }
+
+    // Carrega as configurações unificadas da loja (raios, taxas e zonas proibidas)
+    const carregarConfiguracoesLoja = async () => {
+      try {
+        let dadosServer = null;
+        if (typeof api.getConfiguracoesLoja === 'function') {
+          dadosServer = await api.getConfiguracoesLoja();
+        } else if (typeof api.getConfiguracoes === 'function') {
+          dadosServer = await api.getConfiguracoes();
+        }
+
+        if (dadosServer) {
+          setConfigLoja(dadosServer);
+          return;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar configurações no servidor:', err);
+      }
+
+      // Fallback para o localStorage
+      const configSalva = localStorage.getItem('configuracoes_loja');
+      if (configSalva) {
+        try {
+          setConfigLoja(JSON.parse(configSalva));
+        } catch (e) {
+          console.error('Erro ao analisar configurações locais:', e);
+        }
+      }
+    };
+
+    carregarConfiguracoesLoja();
   }, [navigate]);
+
+  // Função auxiliar para calcular a distância em quilómetros entre duas coordenadas (Fórmula de Haversine)
+  const calcularDistanciaKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Raio da Terra em km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Efeito para recalcular a taxa de entrega sempre que a latitude/longitude do cliente mudarem
+  useEffect(() => {
+    if (!configLoja || !form.latitude || !form.longitude) {
+      setTaxaEntrega(0);
+      return;
+    }
+
+    const { posicaoLoja, faixasRaio, zonasProibidas } = configLoja;
+
+    if (!posicaoLoja || !posicaoLoja[0] || !posicaoLoja[1]) return;
+
+    const clienteLat = parseFloat(form.latitude);
+    const clienteLon = parseFloat(form.longitude);
+
+    // 1. Verificar se o cliente está dentro de alguma zona proibida (bloqueada)
+    if (zonasProibidas && zonasProibidas.length > 0) {
+      for (const zona of zonasProibidas) {
+        const distanciaZona = calcularDistanciaKm(clienteLat, clienteLon, zona.lat, zona.lng);
+        if (distanciaZona <= (zona.raioKm || 1.5)) {
+          toast.error('Desculpe, a sua localização encontra-se numa zona de entrega proibida/bloqueada.');
+          setTaxaEntrega(0);
+          return;
+        }
+      }
+    }
+
+    // 2. Calcular distância da loja até o cliente
+    const distanciaLojaCliente = calcularDistanciaKm(posicaoLoja[0], posicaoLoja[1], clienteLat, clienteLon);
+
+    // 3. Avaliar faixas de raio ativas
+    const faixasAtivas = (faixasRaio || [])
+      .filter(f => f.ativo)
+      .sort((a, b) => a.km - b.km);
+
+    if (faixasAtivas.length === 0) {
+      toast.error('Nenhuma região de entrega ativa configurada na loja.');
+      setTaxaEntrega(0);
+      return;
+    }
+
+    const faixaEncontrada = faixasAtivas.find(f => {
+      // Se a faixa tiver um centro independente fixado, calcula a distância a partir dele, senão usa a loja principal
+      let centroRaio = posicaoLoja;
+      if (f.fixo && f.posicao) {
+        centroRaio = f.posicao;
+      }
+      const distanciaCentro = calcularDistanciaKm(centroRaio[0], centroRaio[1], clienteLat, clienteLon);
+      return distanciaCentro <= f.km;
+    });
+
+    if (!faixaEncontrada) {
+      toast.error('O seu endereço está fora da nossa área de atendimento.');
+      setTaxaEntrega(0);
+      return;
+    }
+
+    setTaxaEntrega(faixaEncontrada.taxa);
+  }, [form.latitude, form.longitude, configLoja]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -62,7 +170,7 @@ export const useCheckout = () => {
 
   const capturarLocalizacao = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocalização não é suportada pelo seu navegador.');
+      toast.error('A geolocalização não é suportada pelo seu navegador.');
       return;
     }
 
@@ -75,7 +183,7 @@ export const useCheckout = () => {
           longitude: position.coords.longitude
         }));
         setLoadingGeo(false);
-        toast.success('Localização atualizada com sucesso!');
+        toast.success('Localização e taxa de entrega calculadas com sucesso!');
       },
       (error) => {
         console.error(error);
@@ -86,8 +194,12 @@ export const useCheckout = () => {
     );
   };
 
-  const calcularTotal = () => {
+  const calcularSubtotal = () => {
     return cart.reduce((acc, item) => acc + (item.preco * item.quantity), 0);
+  };
+
+  const calcularTotal = () => {
+    return calcularSubtotal() + taxaEntrega;
   };
 
   const handleCancelarPedido = () => {
@@ -137,6 +249,11 @@ export const useCheckout = () => {
       return;
     }
 
+    if (taxaEntrega === 0 && configLoja) {
+      toast.error('Por favor, valide a sua localização/morada para calcular a entrega antes de finalizar.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -144,6 +261,8 @@ export const useCheckout = () => {
         ...form,
         userId: userDataId,
         email: userDataEmail,
+        subtotal: calcularSubtotal(),
+        taxa_entrega: taxaEntrega,
         total: calcularTotal(),
         troco_para: form.forma_pagamento === 'dinheiro' ? form.troco_para : '',
         itens: cart.map(item => ({
@@ -172,9 +291,11 @@ export const useCheckout = () => {
     loading,
     loadingGeo,
     loadingCancelamento,
+    taxaEntrega,
     navigate,
     handleChange,
     capturarLocalizacao,
+    calcularSubtotal,
     calcularTotal,
     handleCancelarPedido,
     handleSubmit,

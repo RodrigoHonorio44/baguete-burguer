@@ -9,15 +9,21 @@ export const Checkout = () => {
     loading,
     loadingGeo,
     loadingCancelamento,
+    taxaEntrega,
     navigate,
     handleChange,
     capturarLocalizacao,
+    calcularSubtotal,
     calcularTotal,
     handleCancelarPedido,
     handleSubmit,
   } = useCheckout();
 
-  const totalPedido = calcularTotal();
+  // Subtotal apenas dos produtos do carrinho
+  const subtotalProdutos = calcularSubtotal();
+
+  // Valor total final: Produtos + Taxa de Entrega calculada pelo hook
+  const totalGeral = calcularTotal();
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -55,6 +61,10 @@ export const Checkout = () => {
               <span className="text-slate-100 font-medium whitespace-pre-line">
                 {form.rua ? `${form.rua}, nº ${form.numero}\n${form.bairro}` : 'Endereço não informado'}
               </span>
+              {/* Alerta caso as coordenadas não estejam definidas ou a taxa seja zero fora da área */}
+              {!form.latitude && (
+                <p className="text-xs text-amber-400 mt-1">Clique em "Atualizar Localização Atual (GPS)" para calcular a taxa de entrega.</p>
+              )}
             </div>
           </div>
 
@@ -102,7 +112,7 @@ export const Checkout = () => {
           </select>
         </div>
 
-        {/* CAMPO CONDICIONAL DE TROCO (Exibido apenas se selecionar dinheiro) */}
+        {/* CAMPO CONDICIONAL DE TROCO */}
         {form.forma_pagamento === 'dinheiro' && (
           <div className="bg-slate-950 border border-amber-500/30 p-4 rounded-xl space-y-2">
             <label className="block text-xs font-medium text-amber-400">
@@ -120,30 +130,39 @@ export const Checkout = () => {
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500"
               />
             </div>
-            {form.troco_para && Number(form.troco_para) > totalPedido && (
+            {form.troco_para && Number(form.troco_para) > totalGeral && (
               <p className="text-xs text-emerald-400 font-bold">
-                Troco a devolver: R$ {(Number(form.troco_para) - totalPedido).toFixed(2)}
-              </p>
-            )}
-            {form.troco_para && Number(form.troco_para) <= totalPedido && (
-              <p className="text-xs text-amber-400">
-                O valor informado é menor ou igual ao total. Não será necessário troco.
+                Troco a devolver: R$ {(Number(form.troco_para) - totalGeral).toFixed(2)}
               </p>
             )}
           </div>
         )}
 
-        {/* Resumo e Botões */}
+        {/* Resumo de Valores (Produto + Frete) */}
+        <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2 text-sm">
+          <div className="flex justify-between text-slate-300">
+            <span>Subtotal dos produtos:</span>
+            <span>R$ {subtotalProdutos.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-slate-300">
+            <span>Taxa de entrega:</span>
+            <span className="text-amber-400">
+              {taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2)}` : 'R$ 0,00'}
+            </span>
+          </div>
+        </div>
+
+        {/* Resumo e Botões Finais */}
         <div className="pt-4 border-t border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-400 block">Total a pagar:</span>
-              <span className="text-2xl font-bold text-amber-500">R$ {totalPedido.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-amber-500">R$ {totalGeral.toFixed(2)}</span>
             </div>
 
             <button
               type="submit"
-              disabled={loading || cart.length === 0}
+              disabled={loading || cart.length === 0 || taxaEntrega === 0}
               className="py-3 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition text-sm shadow-lg shadow-amber-500/10 cursor-pointer disabled:opacity-50"
             >
               {loading ? 'A finalizar...' : 'Finalizar Pedido'}

@@ -68,31 +68,41 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product) => {
     const currentUser = getStoredUser();
     if (!currentUser) {
-      // Guarda o item e define o destino pós-cadastro/login para o checkout
       sessionStorage.setItem('pending_cart_item', JSON.stringify(product));
-      sessionStorage.setItem('redirect_after_auth', '/checkout'); // Ajuste a rota do checkout se necessário
-      
-      // Redireciona para a página de cadastro
+      sessionStorage.setItem('redirect_after_auth', '/checkout');
       window.location.href = '/cadastro'; 
       return;
     }
 
+    const productId = product.id || product._id;
+
     setCart((prevCart) => {
-      const existing = prevCart.find((item) => (item.id || item._id) === (product.id || product._id));
+      const existing = prevCart.find((item) => (item.id || item._id) === productId);
       if (existing) {
         return prevCart.map((item) =>
-          (item.id || item._id) === (product.id || product._id) 
+          (item.id || item._id) === productId 
             ? { ...item, quantity: item.quantity + 1 } 
             : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      return [...prevCart, { ...product, id: productId, quantity: 1 }];
     });
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => (item.id || item._id) !== id));
+  // Atualizado para diminuir 1 unidade ou remover se chegar a 0 (compatível com os botões + e -)
+  const removeFromCart = (productId) => {
+    setCart((prevCart) =>
+      prevCart
+        .map((item) => {
+          const itemId = item.id || item._id;
+          if (itemId === productId) {
+            return { ...item, quantity: item.quantity - 1 };
+          }
+          return item;
+        })
+        .filter((item) => item.quantity > 0)
+    );
   };
 
   const updateQuantity = (id, novaQuantidade) => {
