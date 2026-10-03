@@ -6,7 +6,12 @@ import 'leaflet/dist/leaflet.css';
 import io from 'socket.io-client';
 import { Truck, MapPin, CheckCircle2 } from 'lucide-react';
 
-const socket = io('http://localhost:3001');
+const SOCKET_URL = 'https://api-hamburgueria.rodhonsystem.com.br';
+
+const socket = io(SOCKET_URL, {
+  withCredentials: true,
+  transports: ['polling', 'websocket']
+});
 
 export const RastreioCliente = () => {
   const { id } = useParams(); // ID do pedido na URL

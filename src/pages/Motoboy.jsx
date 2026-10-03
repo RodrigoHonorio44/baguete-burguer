@@ -5,7 +5,12 @@ import { Truck, MapPin, Phone, Navigation, Clock, User, CheckCircle2, LogIn, Log
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3001');
+const SOCKET_URL = 'https://api-hamburgueria.rodhonsystem.com.br';
+
+const socket = io(SOCKET_URL, {
+  withCredentials: true,
+  transports: ['polling', 'websocket']
+});
 
 export const Motoboy = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -95,7 +100,7 @@ export const Motoboy = () => {
     const rua = pedido.rua || pedido.endereco?.rua || '';
     const numero = pedido.numero || pedido.endereco?.numero || '';
     const bairro = pedido.bairro || pedido.endereco?.bairro || '';
-    const queryMorada = encodeURIComponent(`${rua}, ${numero} - ${bairro}, Maricá - RJ`);
+    const queryMorada = encodeURIComponent(`${rua}, ${numero}\n\n${bairro}, Maricá - RJ`);
 
     api.atualizarStatusPedido(id, 'enviado').then(() => {
       toast.success('Entrega aceite! A transmitir GPS e abrir o Google Maps...');
@@ -220,7 +225,7 @@ export const Motoboy = () => {
                       <span className="font-semibold block text-slate-200">Endereço de Entrega:</span>
                       <span>
                         {pedido.rua || pedido.endereco?.rua 
-                          ? `${pedido.rua || pedido.endereco?.rua}, ${pedido.numero || pedido.endereco?.numero || 'S/N'} - ${pedido.bairro || pedido.endereco?.bairro || ''}` 
+                          ? `${pedido.rua || pedido.endereco?.rua}, ${pedido.numero || pedido.endereco?.numero || 'S/N'}\n\n${pedido.bairro || pedido.endereco?.bairro || ''}` 
                           : 'Morada não informada'}
                       </span>
                     </div>
@@ -256,7 +261,7 @@ export const Motoboy = () => {
                           const rua = pedido.rua || pedido.endereco?.rua || '';
                           const numero = pedido.numero || pedido.endereco?.numero || '';
                           const bairro = pedido.bairro || pedido.endereco?.bairro || '';
-                          const queryMorada = encodeURIComponent(`${rua}, ${numero} - ${bairro}, Maricá - RJ`);
+                          const queryMorada = encodeURIComponent(`${rua}, ${numero}\n\n${bairro}, Maricá - RJ`);
                           window.open(`https://www.google.com/maps/search/?api=1&query=${queryMorada}`, '_blank');
                         }}
                         className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer border border-slate-700"

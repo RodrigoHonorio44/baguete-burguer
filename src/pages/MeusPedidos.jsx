@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, ChefHat, Bike, XCircle, PackageCheck, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, CheckCircle2, ChefHat, Bike, XCircle, PackageCheck, ShoppingBag, Navigation } from 'lucide-react';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
 
 export const MeusPedidos = () => {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const carregarMeusPedidos = async () => {
     try {
@@ -146,7 +148,7 @@ export const MeusPedidos = () => {
                 )}
 
                 {status === 'enviado' && (
-                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-purple-400 bg-purple-950/20 border-purple-900/40">
+                  <div className="bg-purple-500/10 border border-purple-900/40 rounded-xl p-4 flex flex-col gap-4 text-purple-400 bg-purple-950/20">
                     <div className="flex items-center gap-3">
                       <Bike className="w-6 h-6 shrink-0 animate-pulse text-purple-400" />
                       <div>
@@ -154,14 +156,25 @@ export const MeusPedidos = () => {
                         <p className="text-[11px] text-slate-300">O motoboy está a caminho do seu endereço.</p>
                       </div>
                     </div>
-                    {/* Botão para o cliente confirmar o recebimento */}
-                    <button
-                      onClick={() => handleConfirmarRecebimento(pedidoId)}
-                      className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                    >
-                      <PackageCheck className="w-4 h-4" />
-                      já recebi meu pedido
-                    </button>
+
+                    {/* Botões de Ação do Cliente: Rastrear ao Vivo e Confirmar Recebimento */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-purple-900/30">
+                      <button
+                        onClick={() => navigate(`/rastreio/${pedidoId}`)}
+                        className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-purple-600/30 animate-pulse"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Rastrear Motoboy ao Vivo
+                      </button>
+
+                      <button
+                        onClick={() => handleConfirmarRecebimento(pedidoId)}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                      >
+                        <PackageCheck className="w-4 h-4" />
+                        Já recebi meu pedido
+                      </button>
+                    </div>
                   </div>
                 )}
 
