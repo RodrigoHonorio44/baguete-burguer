@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { formatarMoeda } from '../utils/whatsapp';
-import { Truck, MapPin, Phone, Navigation, Clock, User, CheckCircle2, LogIn, LogOut } from 'lucide-react';
+import { Truck, MapPin, Phone, Navigation, Clock, User, CheckCircle2, LogIn, LogOut, DollarSign, Award, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 
@@ -16,11 +16,15 @@ export const Motoboy = () => {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [entregaAtivaId, setEntregaAtivaId] = useState(null);
+  const audioRef = useRef(null);
   
   const [motoboyLogado, setMotoboyLogado] = useState(() => {
     return localStorage.getItem('motoboy_nome') || '';
   });
   const [nomeInput, setNomeInput] = useState('');
+
+  // Mantém registada a quantidade de pedidos prontos anterior para detetar novos pedidos
+  const totalProntosAnteriorRef = useRef(0);
 
   const fazerLoginMotoboy = (e) => {
     e.preventDefault();
@@ -51,8 +55,17 @@ export const Motoboy = () => {
         const dataFormatada = new Date(dataPedido).toISOString().split('T')[0];
         const status = p.status || 'pendente';
         
-        return dataFormatada === hoje && (status === 'pronto' || status === 'enviado');
+        return dataFormatada === hoje && (status === 'pronto' || status === 'enviado' || status === 'concluido');
       });
+
+      // Contar quantos estão com status 'pronto' atualmente
+      const prontosAgora = pedidosFiltrados.filter(p => p.status === 'pronto').length;
+
+      // Se houver mais pedidos prontos do que na verificação anterior, toca o alarme!
+      if (totalProntosAnteriorRef.current > 0 && prontosAgora > totalProntosAnteriorRef.current) {
+        tocarAlarmeNovoPedido();
+      }
+      totalProntosAnteriorRef.current = prontosAgora;
 
       setPedidos(pedidosFiltrados);
     } catch (err) {
@@ -63,10 +76,26 @@ export const Motoboy = () => {
     }
   };
 
+  const tocarAlarmeNovoPedido = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(e => console.log("Erro ao reproduzir áudio automaticamente:", e));
+    }
+    toast('🔔 Nova comanda pronta para entrega!', {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: '#f59e0b',
+        color: '#0f172a',
+        fontWeight: 'bold',
+      },
+    });
+  };
+
   useEffect(() => {
     if (motoboyLogado) {
       carregarPedidosMotoboy();
-      const interval = setInterval(carregarPedidosMotoboy, 10000);
+      const interval = setInterval(carregarPedidosMotoboy, 8000); // Polling a cada 8s para sincronizar com a cozinha
       return () => clearInterval(interval);
     }
   }, [motoboyLogado]);
@@ -124,20 +153,32 @@ export const Motoboy = () => {
     }
   };
 
+  // Cálculos de métricas do dia para o motoboy
+  const entregasConcluidasLista = pedidos.filter(p => p.status === 'concluido');
+  const totalEntregasFeitas = entregasConcluidasLista.length;
+  
+  const valorTaxaPorEntrega = 8.00; 
+  const valorTotalFretes = entregasConcluidasLista.reduce((acc, p) => {
+    const taxaPedido = Number(p.taxa_entrega || p.frete) || valorTaxaPorEntrega;
+    return acc + taxaPedido;
+  }, 0);
+
+  const pedidosAtivos = pedidos.filter(p => p.status === 'pronto' || p.status === 'enviado');
+
   if (!motoboyLogado) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-slate-100 min-h-screen flex items-center justify-center">
+      <div className="max-w-md mx-auto px-4 py-16 text-slate-100 min-h-screen flex items-center justify-center bg-slate-950">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full text-center">
           <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
             <Truck className="w-8 h-8" />
           </div>
-          <h1 className="text-xl font-bold mb-2">acesso do entregador</h1>
+          <h1 className="text-xl font-bold mb-2 text-slate-100">Acesso do Entregador</h1>
           <p className="text-xs text-slate-400 mb-6">
-            insere o teu nome ou identificação para começar a receber as entregas do dia.
+            Insere o teu nome ou identificação para gerir as entregas e taxas do dia.
           </p>
           <form onSubmit={fazerLoginMotoboy} className="space-y-4 text-left">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">nome do motoboy</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Nome do Motoboy</label>
               <input
                 type="text"
                 placeholder="Ex: João Motoboy"
@@ -160,37 +201,82 @@ export const Motoboy = () => {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6 text-slate-100 min-h-screen">
-      <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
-            <Truck className="w-6 h-6" />
+    <div className="max-w-md mx-auto px-4 py-6 text-slate-100 min-h-screen bg-slate-950">
+      {/* Elemento de áudio escondido para tocar a notificação sonora */}
+      <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto" />
+
+      {/* NAVBAR EXCLUSIVA DO MOTOBOY */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-5 shadow-lg flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 relative">
+            <Truck className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
           </div>
           <div>
-            <h1 className="text-base font-bold">olá, {motoboyLogado}</h1>
-            <p className="text-xs text-slate-400">painel de entregas ativo</p>
+            <h1 className="text-sm font-bold text-slate-100">Painel do Entregador</h1>
+            <p className="text-xs text-amber-400 font-medium">Driver: {motoboyLogado}</p>
           </div>
         </div>
-        <button 
-          onClick={fazerLogoutMotoboy}
-          title="Sair da sessão"
-          className="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl border border-slate-700 transition cursor-pointer"
-        >
-          <LogOut size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão de teste manual de som caso o navegador bloqueie o autoplay */}
+          <button 
+            onClick={tocarAlarmeNovoPedido}
+            title="Testar som de alerta"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 transition cursor-pointer"
+          >
+            <Bell size={16} />
+          </button>
+          <button 
+            onClick={fazerLogoutMotoboy}
+            title="Sair da sessão"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl border border-slate-700 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <LogOut size={15} /> Sair
+          </button>
+        </div>
+      </div>
+
+      {/* PAINEL DE MÉTRICAS E GANHOS DO DIA */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md flex items-center gap-3">
+          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+            <Award size={20} />
+          </div>
+          <div>
+            <span className="text-[11px] text-slate-400 font-medium block">Concluídas</span>
+            <span className="text-lg font-extrabold text-slate-100">{totalEntregasFeitas}</span>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-md flex items-center gap-3">
+          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+            <DollarSign size={20} />
+          </div>
+          <div>
+            <span className="text-[11px] text-slate-400 font-medium block">Total Fretes</span>
+            <span className="text-base font-extrabold text-amber-400">{formatarMoeda(valorTotalFretes)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Entregas Disponíveis / Em Rota</h2>
+        <span className="text-[11px] bg-slate-900 text-amber-400 px-2.5 py-1 rounded-lg border border-slate-800 font-semibold">
+          {pedidosAtivos.length} ativa(s)
+        </span>
       </div>
 
       {loading ? (
-        <p className="text-center text-slate-500 py-12 text-sm">a carregar entregas...</p>
-      ) : pedidos.length === 0 ? (
+        <p className="text-center text-slate-500 py-12 text-sm">A carregar entregas...</p>
+      ) : pedidosAtivos.length === 0 ? (
         <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-inner">
-          <Truck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 text-sm font-medium">nenhuma entrega pendente no momento.</p>
-          <span className="text-xs text-slate-500 mt-1 block">assim que a cozinha marcar um pedido como pronto, ele aparecerá aqui.</span>
+          <Truck className="w-12 h-12 text-slate-600 mx-auto mb-3 animate-bounce" />
+          <p className="text-slate-300 text-sm font-medium">Nenhuma entrega pendente no momento.</p>
+          <span className="text-xs text-slate-500 mt-1 block">O som tocará automaticamente quando a cozinha finalizar uma nova comanda.</span>
         </div>
       ) : (
         <div className="space-y-4">
-          {pedidos.map((pedido) => {
+          {pedidosAtivos.map((pedido) => {
             const id = pedido._id || pedido.id;
             const status = pedido.status || 'pronto';
             const emRota = entregaAtivaId === id || status === 'enviado';
@@ -199,18 +285,22 @@ export const Motoboy = () => {
               <div 
                 key={id} 
                 className={`bg-slate-900 border rounded-2xl p-5 shadow-xl transition relative overflow-hidden ${
-                  emRota ? 'border-purple-500/50 shadow-purple-950/20' : 'border-slate-800'
+                  emRota ? 'border-purple-500/50 shadow-purple-950/20' : 'border-amber-500/40 animate-pulse'
                 }`}
               >
-                {emRota && (
+                {emRota ? (
                   <div className="absolute top-0 right-0 bg-purple-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-                    em rota / ativo
+                    Em Rota / Ativo
+                  </div>
+                ) : (
+                  <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-[10px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm">
+                    Pronto na Cozinha! 🚀
                   </div>
                 )}
 
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <span className="text-xs font-mono text-amber-500 font-bold">#{id.slice(-4)}</span>
+                    <span className="text-xs font-mono text-amber-500 font-bold">Pedido #{id.slice(-4)}</span>
                     <h2 className="text-base font-bold text-slate-100 flex items-center gap-1.5 mt-0.5">
                       <User size={15} className="text-slate-400" /> {pedido.cliente_nome || 'Cliente'}
                     </h2>
@@ -250,7 +340,7 @@ export const Motoboy = () => {
                   {!emRota ? (
                     <button
                       onClick={() => aceitarEIniciarRota(pedido)}
-                      className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-amber-500/10"
+                      className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-amber-500/20"
                     >
                       <Navigation size={16} /> Aceitar e Abrir Maps
                     </button>
