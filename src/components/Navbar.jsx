@@ -82,7 +82,6 @@ export const Navbar = () => {
             return matchId || matchEmail || matchNome;
           });
 
-          // Apenas exibe o alerta se houver pedidos ativos em andamento do dia (exclui entregue, concluído e recusado)
           const temAtivosEmAndamento = meusPedidosDoDia.some(p => {
             const status = (p.status || 'pendente').toLowerCase();
             return ['pendente', 'preparo', 'pronto', 'enviado'].includes(status);
@@ -172,7 +171,7 @@ export const Navbar = () => {
                   )}
                 </Link>
               )}
-              {/* Só exibe o link de cadastro se o usuário NÃO estiver logado */}
+              {/* O link de cadastro aparece sempre que o usuário não estiver logado */}
               {!isLoggedIn && (
                 <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
                   <UserPlus className="w-4 h-4" /> cadastro

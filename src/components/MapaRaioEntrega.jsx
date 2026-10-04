@@ -38,7 +38,7 @@ export const MapaRaioEntrega = () => {
   const [lojaNome, setLojaNome] = useState('Baguete Burguer');
   const [endereco, setEndereco] = useState('Maricá, RJ');
   const [posicaoLoja, setPosicaoLoja] = useState([-22.9194, -42.8186]); 
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(true); // Botão manual de abrir/fechar
   
   const [modoMapa, setModoMapa] = useState('loja');
 
@@ -58,30 +58,47 @@ export const MapaRaioEntrega = () => {
 
   const [loading, setLoading] = useState(false);
 
+  // Função auxiliar para verificar se a loja deveria estar aberta com base no dia e hora atuais
+  const verificarStatusAutomatico = (abertura, fechamento, dias) => {
+    const agora = new Date();
+    const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diaAtualStr = diasSemanaMap[agora.getDay()];
+
+    // Valida se o dia atual está ativo
+    if (!dias[diaAtualStr]) return false;
+
+    // Valida o horário
+    const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
+    
+    const [hAb, mAb] = abertura.split(':').map(Number);
+    const minAbertura = hAb * 60 + mAb;
+
+    const [hFech, mFech] = fechamento.split(':').map(Number);
+    const minFechamento = hFech * 60 + mFech;
+
+    // Se o fechamento for no dia seguinte (ex: 02:00), a lógica pode ser adaptada, 
+    // mas considerando o intervalo normal do mesmo dia:
+    return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
+  };
+
   useEffect(() => {
-    // Carrega dados da coleção 'configuracoes_loja' na API
     const carregarConfiguracoes = async () => {
       try {
+        let dadosServer = null;
         if (typeof api.getConfiguracoesLoja === 'function') {
-          const dadosServer = await api.getConfiguracoesLoja();
-          if (dadosServer) {
-            preencherEstados(dadosServer);
-            return;
-          }
+          dadosServer = await api.getConfiguracoesLoja();
+        } else if (typeof api.getConfiguracoes === 'function') {
+          dadosServer = await api.getConfiguracoes();
         }
-        // Fallback genérico caso o método na api tenha outro nome
-        if (typeof api.getConfiguracoes === 'function') {
-          const dadosServer = await api.getConfiguracoes();
-          if (dadosServer) {
-            preencherEstados(dadosServer);
-            return;
-          }
+
+        if (dadosServer) {
+          preencherEstados(dadosServer);
+          return;
         }
       } catch (err) {
         console.error('Erro ao buscar configurações da coleção no servidor:', err);
       }
 
-      // Fallback para localStorage caso a API falhe
       const configSalva = localStorage.getItem('configuracoes_loja');
       if (configSalva) {
         try {
@@ -100,10 +117,14 @@ export const MapaRaioEntrega = () => {
     if (dados.faixasRaio) setFaixasRaio(dados.faixasRaio);
     if (dados.zonasProibidas) setZonasProibidas(dados.zonasProibidas);
     if (dados.endereco) setEndereco(dados.endereco);
-    if (dados.isOnline !== undefined) setIsOnline(dados.isOnline);
     if (dados.horarioAbertura) setHorarioAbertura(dados.horarioAbertura);
     if (dados.horarioFechamento) setHorarioFechamento(dados.horarioFechamento);
     if (dados.diasFuncionamento) setDiasFuncionamento(dados.diasFuncionamento);
+    
+    // Se o status manual estiver salvo, respeita ele; caso contrário, calcula pelo horário
+    if (dados.isOnline !== undefined) {
+      setIsOnline(dados.isOnline);
+    }
   };
 
   const handleSalvar = async (e) => {
@@ -116,7 +137,6 @@ export const MapaRaioEntrega = () => {
     };
 
     try {
-      // Salva na coleção 'configuracoes_loja' via API
       if (typeof api.updateConfiguracoesLoja === 'function') {
         await api.updateConfiguracoesLoja(config);
       } else if (typeof api.updateConfiguracoes === 'function') {
@@ -149,7 +169,7 @@ export const MapaRaioEntrega = () => {
         await api.updateConfiguracoes(config);
       }
       localStorage.setItem('configuracoes_loja', JSON.stringify(config));
-      toast.success(novoStatus ? 'Loja aberta com sucesso!' : 'Loja fechada com sucesso!');
+      toast.success(novoStatus ? 'Loja aberta manualmente!' : 'Loja fechada manualmente!');
     } catch (error) {
       console.error('Erro ao alterar status:', error);
       toast.error('Erro ao alterar status da loja.');
@@ -226,7 +246,7 @@ export const MapaRaioEntrega = () => {
           }`}
         >
           <Power size={16} />
-          {isOnline ? 'LOJA ONLINE (Aceitando Pedidos)' : 'LOJA OFFLINE (Fechada)'}
+          {isOnline ? 'LOJA ONLINE (Forçado / Aberto)' : 'LOJA OFFLINE (Fechada Manualmente)'}
         </button>
       </div>
 
@@ -426,7 +446,7 @@ export const MapaRaioEntrega = () => {
               <button
                 type="button"
                 onClick={() => setModoMapa('bloqueio')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                className={`px-3 py-1 nested-btn px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
                   modoMapa === 'bloqueio' ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-slate-400 border-slate-800'
                 }`}
               >

@@ -39,27 +39,49 @@ export const Home = () => {
     carregarConfiguracoesLoja();
   }, []);
 
+  const calcularStatusAutomatico = () => {
+    const agora = new Date();
+    const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diaAtualStr = diasSemanaMap[agora.getDay()];
+
+    const diasFuncionamento = configLoja.diasFuncionamento || {};
+    
+    if (diasFuncionamento[diaAtualStr] === false) {
+      return false;
+    }
+
+    const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
+
+    const [hAb, mAb] = (configLoja.horarioAbertura || '18:00').split(':').map(Number);
+    const minAbertura = hAb * 60 + mAb;
+
+    const [hFech, mFech] = (configLoja.horarioFechamento || '23:30').split(':').map(Number);
+    const minFechamento = hFech * 60 + mFech;
+
+    return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
+  };
+
+  const lojaAberta = calcularStatusAutomatico();
   const diasAtivosObj = Object.entries(configLoja.diasFuncionamento || {}).filter(([_, ativo]) => ativo);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-16 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden w-full max-w-full">
       
-      {/* BANNER PRINCIPAL (HERO SECTION) */}
-      <div className="relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border-b border-slate-800/80 overflow-hidden mb-8 w-full box-border">
+      {/* BANNER PRINCIPAL (HERO SECTION - Continua com fundo escuro elegante) */}
+      <div className="relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border-b border-slate-800/80 overflow-hidden w-full box-border">
         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center pointer-events-none" />
         
         <div className="relative max-w-6xl mx-auto px-4 py-8 md:py-14 flex flex-col items-center text-center w-full box-border">
           
-          {/* PAINEL DE STATUS DA LOJA - Ajustado com max-w-full e box-border */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-slate-900/90 border border-slate-800 px-3 py-2.5 rounded-2xl shadow-lg mb-4 text-xs w-full max-w-md box-border">
-            
+          {/* PAINEL DE STATUS DA LOJA */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-slate-900/90 border border-slate-800 px-3 py-2.5 rounded-2xl shadow-lg mb-4 text-xs w-full max-w-md box-border text-slate-100">
             <div className="flex items-center gap-2">
               <span className="relative flex h-3 w-3">
-                {configLoja.isOnline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${configLoja.isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
               </span>
-              <span className={`font-bold ${configLoja.isOnline ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {configLoja.isOnline ? 'ABERTO AGORA' : 'FECHADO'}
+              <span className={`font-bold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {lojaAberta ? 'ABERTO AGORA' : 'FECHADO'}
               </span>
             </div>
 
@@ -83,8 +105,7 @@ export const Home = () => {
             )}
           </div>
 
-          {/* AVISO DE LOJA FECHADA */}
-          {!configLoja.isOnline && (
+          {!lojaAberta && (
             <div className="w-full max-w-md bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-2 rounded-xl mb-4 flex items-center justify-center gap-2 text-xs font-medium box-border">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>Loja fechada no momento. Volte no horário de funcionamento!</span>
@@ -99,12 +120,11 @@ export const Home = () => {
             O Melhor Sabor da <span className="text-amber-500">Baguete & Burger</span>
           </h1>
           
-          <p className="text-slate-400 text-xs md:text-sm max-w-xl mb-6 leading-relaxed px-2">
+          <p className="text-slate-300 text-xs md:text-sm max-w-xl mb-6 leading-relaxed px-2">
             Ingredientes selecionados, carnes suculentas grelhadas na brasa e pães fresquinhos preparados diariamente para si.
           </p>
 
-          {/* SELOS / VANTAGENS - Ajustados para grid flexível */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 w-full max-w-xl text-xs text-slate-300 box-border">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 w-full max-w-xl text-xs text-slate-200 box-border">
             <div className="flex items-center justify-center gap-2 bg-slate-900/80 border border-slate-800 py-2 px-2 rounded-xl shadow-md">
               <Clock className="w-4 h-4 text-amber-500 shrink-0" /> Entrega Rápida
             </div>
@@ -118,7 +138,7 @@ export const Home = () => {
         </div>
       </div>
 
-      {/* COMPONENTE DE CARDÁPIO */}
+      {/* COMPONENTE DE CARDÁPIO (Agora o fundo branco ocupa toda a extensão abaixo do banner) */}
       <Menu />
 
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const AdminProdutos = () => {
@@ -13,6 +13,7 @@ export const AdminProdutos = () => {
     preco: '',
     categoria: 'hamburgueres',
     imagem: '',
+    disponivel: true,
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -31,7 +32,6 @@ export const AdminProdutos = () => {
           const MAX_WIDTH = 500;
           const MAX_HEIGHT = 500;
 
-          // Validação opcional: se a imagem for excessivamente grande, podemos avisar
           if (larguraOriginal > 4000 || alturaOriginal > 4000) {
             toast.error(`foto fora do padrão! dimensões atuais: ${larguraOriginal}x${alturaOriginal}px. máximo permitido: 4000x4000px.`);
           }
@@ -57,7 +57,6 @@ export const AdminProdutos = () => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Converte para JPEG com 60% de qualidade para evitar erros de payload no servidor
           const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
           resolve(dataUrl);
         };
@@ -116,7 +115,7 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '' });
+        setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '', disponivel: true });
         setEditandoId(null);
         carregarProdutos();
         return editandoId ? 'produto atualizado com sucesso!' : 'produto cadastrado com sucesso!';
@@ -133,8 +132,32 @@ export const AdminProdutos = () => {
       preco: prod.preco || prod.price || '',
       categoria: prod.categoria || 'hamburgueres',
       imagem: prod.imagem || prod.image || '',
+      disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
     });
-    toast('modo de edição ativado', { icon: '✏️' });
+    toast('modo de edição ativado', { icon: '✏️️' });
+  };
+
+  const handleToggleDisponibilidadeRapida = async (prod) => {
+    const id = prod._id || prod.id;
+    const novoStatus = prod.disponivel === false ? true : false;
+
+    try {
+      const payload = {
+        nome: prod.nome || prod.name,
+        descricao: prod.descricao || prod.description,
+        preco: Number(prod.preco || prod.price),
+        categoria: prod.categoria || 'hamburgueres',
+        imagem: prod.imagem || prod.image,
+        disponivel: novoStatus,
+      };
+
+      await api.atualizarProduto(id, payload);
+      toast.success(novoStatus ? 'produto agora está disponível!' : 'produto marcado como esgotado!');
+      carregarProdutos();
+    } catch (err) {
+      console.error(err);
+      toast.error('erro ao atualizar status do produto.');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -152,7 +175,7 @@ export const AdminProdutos = () => {
 
   const cancelarEdicao = () => {
     setEditandoId(null);
-    setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '' });
+    setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '', disponivel: true });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
@@ -286,11 +309,14 @@ export const AdminProdutos = () => {
                 const id = prod._id || prod.id;
                 const preco = Number(prod.preco || prod.price || 0);
                 const imagemProd = prod.imagem || prod.image;
+                const disponivel = prod.disponivel !== false; // padrão true se não definido
 
                 return (
                   <div
                     key={id}
-                    className="flex items-center justify-between bg-slate-800/40 border border-slate-800 p-3 rounded-lg gap-4"
+                    className={`flex items-center justify-between bg-slate-800/40 border p-3 rounded-lg gap-4 transition ${
+                      disponivel ? 'border-slate-800' : 'border-rose-900/50 opacity-60'
+                    }`}
                   >
                     {imagemProd ? (
                       <img src={imagemProd} alt={prod.nome} className="w-14 h-14 rounded-lg object-cover border border-slate-700 flex-shrink-0" />
@@ -306,6 +332,11 @@ export const AdminProdutos = () => {
                         <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">
                           {prod.categoria || 'hamburgueres'}
                         </span>
+                        {!disponivel && (
+                          <span className="text-[10px] bg-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded uppercase">
+                            esgotado
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
                         {prod.descricao || prod.description || 'sem descrição'}
@@ -313,7 +344,20 @@ export const AdminProdutos = () => {
                       <span className="text-xs font-bold text-emerald-400">r$ {preco.toFixed(2)}</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      {/* Botão rápido para ligar/desligar disponibilidade */}
+                      <button
+                        onClick={() => handleToggleDisponibilidadeRapida(prod)}
+                        className={`p-2 rounded-lg transition ${
+                          disponivel 
+                            ? 'text-emerald-400 hover:bg-emerald-500/10' 
+                            : 'text-rose-400 hover:bg-rose-500/10'
+                        }`}
+                        title={disponivel ? 'marcar como indisponível (esgotado)' : 'marcar como disponível'}
+                      >
+                        {disponivel ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+
                       <button
                         onClick={() => handleEdit(prod)}
                         className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"

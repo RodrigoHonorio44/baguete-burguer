@@ -15,23 +15,19 @@ export const Login = () => {
     setLoading(true);
 
     try {
-      // Utiliza a função de login centralizada no api.js
       const data = await api.login(telefone, senha);
 
-      // Salva o token real e a role real retornada pelo backend
       const userRole = data.user?.role || data.role || 'cliente';
       localStorage.setItem('token', data.token || data.user?.id || 'ativo');
       localStorage.setItem('role', userRole);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Também grava o nome do motoboy automaticamente no localStorage caso o role seja entregador
       if (userRole === 'entregador' || userRole === 'motoboy') {
         localStorage.setItem('motoboy_nome', data.user?.nome || 'Entregador');
       }
 
       toast.success(`Bem-vindo de volta, ${data.user?.nome || 'Utilizador'}!`);
 
-      // Verifica se há um fluxo pendente de carrinho/checkout guardado
       const pendingItem = sessionStorage.getItem('pending_cart_item');
       const redirectPath = sessionStorage.getItem('redirect_after_auth');
 
@@ -43,16 +39,15 @@ export const Login = () => {
         return;
       }
 
-      // Redirecionamento inteligente com base no perfil (role)
       if (userRole === 'admin' || userRole === 'adm' || userRole === 'root') {
         navigate('/comandas');
       } else if (userRole === 'entregador' || userRole === 'motoboy') {
-        navigate('/motoboy'); // Direciona direto para a tela do motoboy
+        navigate('/motoboy');
       } else {
         navigate('/');
       }
 
-      window.location.reload(); // Recarrega para atualizar a Navbar instantaneamente
+      window.location.reload();
     } catch (error) {
       toast.error(error.message || 'Erro ao realizar login');
     } finally {
@@ -120,7 +115,17 @@ export const Login = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        {/* Links de Acesso Rápido para Cadastro e Esqueceu a Senha */}
+        <div className="mt-6 flex items-center justify-between text-xs">
+          <Link to="/cadastro" className="text-slate-400 hover:text-amber-400 transition">
+            Não tem uma conta? <span className="font-bold text-amber-500">Cadastre-se</span>
+          </Link>
+          <Link to="/recuperar-senha" className="text-slate-400 hover:text-amber-400 transition">
+            Esqueceu a senha?
+          </Link>
+        </div>
+
+        <div className="mt-6 text-center border-t border-slate-800 pt-4">
           <Link to="/" className="text-xs text-slate-400 hover:text-amber-400 transition">
             ← Voltar para o cardápio principal
           </Link>
@@ -129,3 +134,5 @@ export const Login = () => {
     </div>
   );
 };
+
+export default Login;
