@@ -106,14 +106,15 @@ export const Checkout = () => {
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
           >
             <option value="pix">Pix</option>
-            <option value="dinheiro">Dinheiro (com troco)</option>
+            <option value="dinheiro_certo">Dinheiro (sem troco)</option>
+            <option value="dinheiro_troco">Dinheiro (com troco)</option>
             <option value="cartao_credito">Cartão de Crédito (na entrega)</option>
             <option value="cartao_debito">Cartão de Débito (na entrega)</option>
           </select>
         </div>
 
-        {/* CAMPO CONDICIONAL DE TROCO */}
-        {form.forma_pagamento === 'dinheiro' && (
+        {/* CAMPO CONDICIONAL DE TROCO (Apenas se escolher dinheiro com troco) */}
+        {form.forma_pagamento === 'dinheiro_troco' && (
           <div className="bg-slate-950 border border-amber-500/30 p-4 rounded-xl space-y-2">
             <label className="block text-xs font-medium text-amber-400">
               Precisa de troco para quanto? (Informe o valor em dinheiro que vai entregar)
@@ -133,6 +134,11 @@ export const Checkout = () => {
             {form.troco_para && Number(form.troco_para) > totalGeral && (
               <p className="text-xs text-emerald-400 font-bold">
                 Troco a devolver: R$ {(Number(form.troco_para) - totalGeral).toFixed(2)}
+              </p>
+            )}
+            {form.troco_para && Number(form.troco_para) <= totalGeral && (
+              <p className="text-xs text-rose-400 font-bold">
+                O valor informado deve ser maior que o total do pedido.
               </p>
             )}
           </div>
@@ -162,7 +168,12 @@ export const Checkout = () => {
 
             <button
               type="submit"
-              disabled={loading || cart.length === 0 || taxaEntrega === 0}
+              disabled={
+                loading || 
+                cart.length === 0 || 
+                taxaEntrega === 0 || 
+                (form.forma_pagamento === 'dinheiro_troco' && (!form.troco_para || Number(form.troco_para) <= totalGeral))
+              }
               className="py-3 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition text-sm shadow-lg shadow-amber-500/10 cursor-pointer disabled:opacity-50"
             >
               {loading ? 'A finalizar...' : 'Finalizar Pedido'}

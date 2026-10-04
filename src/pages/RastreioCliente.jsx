@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import io from 'socket.io-client';
 import { Navigation } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const SOCKET_URL = 'https://api-hamburgueria.rodhonsystem.com.br';
 
@@ -80,14 +81,31 @@ const RecenterMap = ({ center }) => {
 
 export const RastreioCliente = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [pedido, setPedido] = useState(null);
   const [posicaoMotoboy, setPosicaoMotoboy] = useState(null);
 
   useEffect(() => {
-    api.getPedidos().then(data => {
-      const atual = (data || []).find(p => (p._id || p.id) === id);
-      if (atual) setPedido(atual);
-    });
+    const verificarStatusPedido = async () => {
+      try {
+        const data = await api.getPedidos();
+        const atual = (data || []).find(p => (p._id || p.id) === id);
+        if (atual) {
+          setPedido(atual);
+          const status = (atual.status || '').toLowerCase();
+          // Se foi concluído, entregue ou cancelado, avisa e redireciona para meus pedidos
+          if (['concluido', 'entregue', 'cancelado', 'recusado'].includes(status)) {
+            toast.success('Entrega finalizada com sucesso! Bom apetite! 🍔');
+            navigate('/meus-pedidos');
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar status do pedido:', err);
+      }
+    };
+
+    verificarStatusPedido();
+    const interval = setInterval(verificarStatusPedido, 5000); // Checa a cada 5 segundos
 
     socket.on(`posicao_motoboy_${id}`, (coords) => {
       if (coords && coords.latitude && coords.longitude) {
@@ -96,9 +114,10 @@ export const RastreioCliente = () => {
     });
 
     return () => {
+      clearInterval(interval);
       socket.off(`posicao_motoboy_${id}`);
     };
-  }, [id]);
+  }, [id, navigate]);
 
   if (!pedido) {
     return <div className="text-center text-slate-400 py-20 text-sm">A carregar dados do rastreio...</div>;

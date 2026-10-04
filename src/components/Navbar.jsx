@@ -13,6 +13,7 @@ export const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [temAlertaPedidos, setTemAlertaPedidos] = useState(false);
+  const [pedidosPendentesCount, setPedidosPendentesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -34,46 +35,68 @@ export const Navbar = () => {
     }
   }, []);
 
+  // Verificação de alertas para Cliente ou Administrador
   useEffect(() => {
-    if (isAdmin || !isLoggedIn) return;
-
-    const verificarPedidosDoCliente = async () => {
+    const verificarPedidos = async () => {
       try {
-        const savedUser = localStorage.getItem('user');
-        if (!savedUser) return;
-        const user = JSON.parse(savedUser);
-        const userId = user.id || user._id;
-        const userEmail = (user.email || '').toLowerCase().trim();
-        const userNome = (user.nome || '').toLowerCase().trim();
-
         const response = await api.getPedidos();
         const todosPedidos = Array.isArray(response) ? response : response?.data || [];
 
-        const meusPedidos = todosPedidos.filter((p) => {
-          const pUserId = p.userId || p.cliente_id;
-          const pEmail = (p.email || p.cliente_email || '').toLowerCase().trim();
-          const pNome = (p.cliente_nome || p.nome || '').toLowerCase().trim();
+        // Filtra apenas pedidos do DIA ATUAL
+        const hoje = new Date().toISOString().split('T')[0];
 
-          const matchId = userId && pUserId && String(pUserId) === String(userId);
-          const matchEmail = userEmail && pEmail && pEmail === userEmail;
-          const matchNome = userNome && pNome && pNome === userNome;
+        if (isAdmin) {
+          const ativos = todosPedidos.filter(p => {
+            const dataBruta = p.criadoEm || p.createdAt;
+            if (!dataBruta) return false;
+            const dataPedido = new Date(typeof dataBruta === 'object' && dataBruta.$date ? dataBruta.$date : dataBruta).toISOString().split('T')[0];
+            if (dataPedido !== hoje) return false;
 
-          return matchId || matchEmail || matchNome;
-        });
+            const status = (p.status || 'pendente').toLowerCase();
+            return status === 'pendente';
+          });
 
-        const ativosOuAtualizados = meusPedidos.some(p => {
-          const status = (p.status || '').toLowerCase();
-          return ['pendente', 'preparo', 'pronto', 'enviado', 'recusado'].includes(status);
-        });
+          setPedidosPendentesCount(ativos.length);
+        } else if (isLoggedIn) {
+          const savedUser = localStorage.getItem('user');
+          if (!savedUser) return;
+          const user = JSON.parse(savedUser);
+          const userId = user.id || user._id;
+          const userEmail = (user.email || '').toLowerCase().trim();
+          const userNome = (user.nome || '').toLowerCase().trim();
 
-        setTemAlertaPedidos(ativosOuAtualizados);
+          const meusPedidosDoDia = todosPedidos.filter((p) => {
+            const dataBruta = p.criadoEm || p.createdAt;
+            if (!dataBruta) return false;
+            const dataPedido = new Date(typeof dataBruta === 'object' && dataBruta.$date ? dataBruta.$date : dataBruta).toISOString().split('T')[0];
+            if (dataPedido !== hoje) return false;
+
+            const pUserId = p.userId || p.cliente_id;
+            const pEmail = (p.email || p.cliente_email || '').toLowerCase().trim();
+            const pNome = (p.cliente_nome || p.nome || '').toLowerCase().trim();
+
+            const matchId = userId && pUserId && String(pUserId) === String(userId);
+            const matchEmail = userEmail && pEmail && pEmail === userEmail;
+            const matchNome = userNome && pNome && pNome === userNome;
+
+            return matchId || matchEmail || matchNome;
+          });
+
+          // Apenas exibe o alerta se houver pedidos ativos em andamento do dia (exclui entregue, concluído e recusado)
+          const temAtivosEmAndamento = meusPedidosDoDia.some(p => {
+            const status = (p.status || 'pendente').toLowerCase();
+            return ['pendente', 'preparo', 'pronto', 'enviado'].includes(status);
+          });
+
+          setTemAlertaPedidos(temAtivosEmAndamento);
+        }
       } catch (error) {
         console.error('Erro ao verificar pedidos para alerta na Navbar:', error);
       }
     };
 
-    verificarPedidosDoCliente();
-    const intervalo = setInterval(verificarPedidosDoCliente, 10000);
+    verificarPedidos();
+    const intervalo = setInterval(verificarPedidos, 6000);
     return () => clearInterval(intervalo);
   }, [isAdmin, isLoggedIn]);
 
@@ -117,8 +140,13 @@ export const Navbar = () => {
           
           {isAdmin ? (
             <>
-              <Link to="/comandas" className="hover:text-amber-400 transition flex items-center gap-1">
+              <Link to="/comandas" className="relative hover:text-amber-400 transition flex items-center gap-1">
                 <ClipboardList className="w-4 h-4" /> comandas
+                {pedidosPendentesCount > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
+                    {pedidosPendentesCount}
+                  </span>
+                )}
               </Link>
               <Link to="/caixa" className="hover:text-amber-400 transition flex items-center gap-1">
                 <DollarSign className="w-4 h-4" /> caixa
@@ -144,30 +172,47 @@ export const Navbar = () => {
                   )}
                 </Link>
               )}
-              <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
-                <UserPlus className="w-4 h-4" /> cadastro
-              </Link>
+              {/* Só exibe o link de cadastro se o usuário NÃO estiver logado */}
+              {!isLoggedIn && (
+                <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
+                  <UserPlus className="w-4 h-4" /> cadastro
+                </Link>
+              )}
             </>
           )}
         </nav>
 
         {/* Ações à Direita (Carrinho e Sessão) */}
         <div className="flex items-center gap-3">
-          {/* Link Rápido de Meus Pedidos visível também no mobile caso esteja logado */}
-          {isLoggedIn && !isAdmin && (
+          {isAdmin ? (
             <Link 
-              to="/meus-pedidos" 
+              to="/comandas" 
               className="md:hidden relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center justify-center"
-              title="Meus Pedidos"
+              title="Comandas"
             >
-              <Clock className="w-5 h-5 text-amber-500" />
-              {temAlertaPedidos && (
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              <ClipboardList className="w-5 h-5 text-amber-500" />
+              {pedidosPendentesCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  {pedidosPendentesCount}
                 </span>
               )}
             </Link>
+          ) : (
+            isLoggedIn && (
+              <Link 
+                to="/meus-pedidos" 
+                className="md:hidden relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center justify-center"
+                title="Meus Pedidos"
+              >
+                <Clock className="w-5 h-5 text-amber-500" />
+                {temAlertaPedidos && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                  </span>
+                )}
+              </Link>
+            )
           )}
 
           <button
@@ -221,9 +266,16 @@ export const Navbar = () => {
               <Link 
                 to="/comandas" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
+                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
               >
-                <ClipboardList className="w-4 h-4 text-amber-500" /> comandas
+                <span className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-amber-500" /> comandas
+                </span>
+                {pedidosPendentesCount > 0 && (
+                  <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                    {pedidosPendentesCount} novos
+                  </span>
+                )}
               </Link>
               <Link 
                 to="/caixa" 
@@ -265,13 +317,15 @@ export const Navbar = () => {
                   )}
                 </Link>
               )}
-              <Link 
-                to="/cadastro" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-              >
-                <UserPlus className="w-4 h-4 text-amber-500" /> cadastro
-              </Link>
+              {!isLoggedIn && (
+                <Link 
+                  to="/cadastro" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
+                >
+                  <UserPlus className="w-4 h-4 text-amber-500" /> cadastro
+                </Link>
+              )}
             </>
           )}
         </div>
@@ -279,3 +333,5 @@ export const Navbar = () => {
     </header>
   );
 };
+
+export default Navbar;

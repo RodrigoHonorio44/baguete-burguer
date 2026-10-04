@@ -134,6 +134,23 @@ export const Motoboy = () => {
     api.atualizarStatusPedido(id, 'enviado').then(() => {
       toast.success('Entrega aceite! A transmitir GPS e abrir o Google Maps...');
       carregarPedidosMotoboy();
+
+      // Envia a localização atual imediatamente ao aceitar a rota
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            socket.emit('atualizar_posicao', {
+              pedidoId: id,
+              latitude,
+              longitude
+            });
+          },
+          (error) => console.error('Erro ao obter GPS imediato:', error),
+          { enableHighAccuracy: true }
+        );
+      }
+
       window.open(`https://www.google.com/maps/search/?api=1&query=${queryMorada}`, '_blank');
     }).catch(err => {
       console.error(err);

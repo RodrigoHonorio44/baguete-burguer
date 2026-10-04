@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, MapPin, Phone } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, MapPin, Phone, Volume2, BellRing } from 'lucide-react';
 import { formatarMoeda, formatarDataHora } from '../utils/whatsapp';
 
 // Função auxiliar para lidar com datas que podem vir como string ou como objeto MongoDB {$date: '...'}
@@ -17,13 +17,63 @@ const extrairData = (criadoEm, createdAt) => {
 export const Comandas = () => {
   const [pedidos, setPedidos] = useState([]);
   const [expandidos, setExpandidos] = useState({});
+  const [somAtivado, setSomAtivado] = useState(false);
+  const alarmeIntervalRef = useRef(null);
+
+  // Som contínuo estilo iFood (bipe duplo repetitivo)
+  const tocarSomIfood = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      // Primeiro bipe
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota A5
+      gain1.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start();
+      osc1.stop(audioCtx.currentTime + 0.15);
+
+      // Segundo bipe logo em seguida
+      setTimeout(() => {
+        try {
+          const osc2 = audioCtx.createOscillator();
+          const gain2 = audioCtx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(1174.66, audioCtx.currentTime); // Nota D6
+          gain2.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc2.connect(gain2);
+          gain2.connect(audioCtx.destination);
+          osc2.start();
+          osc2.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {
+          // Ignora se o contexto for fechado
+        }
+      }, 200);
+
+    } catch (e) {
+      console.error('Erro ao reproduzir alarme:', e);
+    }
+  };
+
+  const ativarAudioPorInteracao = () => {
+    tocarSomIfood();
+    setSomAtivado(true);
+  };
 
   const carregarPedidos = async () => {
     try {
       const data = await api.getPedidos();
       
-      // 1. Filtrar apenas as comandas do DIA ATUAL
-      const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      // Filtrar apenas as comandas do DIA ATUAL
+      const hoje = new Date().toISOString().split('T')[0];
       const pedidosDoDia = (data || []).filter(pedido => {
         const dataPedidoStr = extrairData(pedido.criadoEm, pedido.createdAt);
         if (!dataPedidoStr) return false;
@@ -31,7 +81,7 @@ export const Comandas = () => {
         return dataPedido === hoje;
       });
 
-      // 2. Ordenar por ordem de chegada (mais antigas primeiro)
+      // Ordenar por ordem de chegada (mais antigas primeiro)
       const pedidosOrdenados = pedidosDoDia.sort((a, b) => {
         const dataA = new Date(extrairData(a.criadoEm, a.createdAt) || 0);
         const dataB = new Date(extrairData(b.criadoEm, b.createdAt) || 0);
@@ -46,23 +96,9 @@ export const Comandas = () => {
 
   useEffect(() => {
     carregarPedidos();
-    const interval = setInterval(carregarPedidos, 10000); // Atualiza a cada 10 segundos
+    const interval = setInterval(carregarPedidos, 10000);
     return () => clearInterval(interval);
   }, []);
-
-  const toggleExpand = (id) => {
-    setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const alterarStatus = async (e, id, novoStatus) => {
-    e.stopPropagation(); // Evita que o clique feche o card ao apertar os botões
-    try {
-      await api.atualizarStatusPedido(id, novoStatus);
-      carregarPedidos();
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-    }
-  };
 
   // Remove da tela comandas enviadas, concluídas, entregues ou recusadas/canceladas
   const pedidosAtivos = pedidos.filter(pedido => {
@@ -77,9 +113,73 @@ export const Comandas = () => {
     );
   });
 
+  // Verifica se há algum pedido pendente aguardando ação da cozinha
+  const temPendentes = pedidosAtivos.some(p => (p.status || 'pendente') === 'pendente');
+
+  // Gerencia o alarme contínuo estilo iFood: toca a cada 4 segundos enquanto houver pedidos pendentes e o áudio estiver ativado
+  useEffect(() => {
+    if (somAtivado && temPendentes) {
+      // Toca imediatamente ao detectar pendente
+      tocarSomIfood();
+      
+      // Configura o loop sonoro a cada 4 segundos
+      alarmeIntervalRef.current = setInterval(() => {
+        tocarSomIfood();
+      }, 4000);
+    } else {
+      if (alarmeIntervalRef.current) {
+        clearInterval(alarmeIntervalRef.current);
+        alarmeIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (alarmeIntervalRef.current) {
+        clearInterval(alarmeIntervalRef.current);
+      }
+    };
+  }, [somAtivado, temPendentes]);
+
+  const toggleExpand = (id) => {
+    setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const alterarStatus = async (e, id, novoStatus) => {
+    e.stopPropagation();
+    try {
+      await api.atualizarStatusPedido(id, novoStatus);
+      carregarPedidos();
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-100 mb-6">painel de comandas (cozinha / delivery)</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-100">painel de comandas (cozinha / delivery)</h1>
+          {temPendentes && somAtivado && (
+            <span className="flex items-center gap-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+              <BellRing size={14} /> NOVO PEDIDO TOCANDO!
+            </span>
+          )}
+        </div>
+        
+        {/* Botão de desbloqueio de áudio exigido pelos navegadores */}
+        {!somAtivado ? (
+          <button 
+            onClick={ativarAudioPorInteracao}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs shadow-lg transition animate-bounce cursor-pointer"
+          >
+            <Volume2 size={16} /> Ativar Alarme Contínuo (Estilo iFood)
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-medium">
+            <Volume2 size={14} /> Alarme iFood Ativo
+          </span>
+        )}
+      </div>
 
       {pedidosAtivos.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
@@ -92,15 +192,18 @@ export const Comandas = () => {
             const statusAtual = pedido.status || 'pendente';
             const estaExpandido = expandidos[idPedido];
             const dataFormatada = extrairData(pedido.criadoEm, pedido.createdAt);
+            const isPendente = statusAtual === 'pendente';
 
             return (
               <div 
                 key={idPedido} 
                 onClick={() => toggleExpand(idPedido)}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer hover:border-slate-700 transition shadow-md"
+                className={`bg-slate-900 border rounded-xl p-4 flex flex-col justify-between cursor-pointer transition shadow-md ${
+                  isPendente ? 'border-amber-500/80 ring-1 ring-amber-500/50 bg-slate-900/90' : 'border-slate-800 hover:border-slate-700'
+                }`}
               >
                 <div>
-                  {/* CABEÇALHO COMPACTO (Sempre visível) */}
+                  {/* CABEÇALHO COMPACTO */}
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-amber-500 text-lg">#{idPedido.slice(-4)}</span>
@@ -109,7 +212,7 @@ export const Comandas = () => {
                     
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                        statusAtual === 'pendente' ? 'bg-amber-500/20 text-amber-400' :
+                        isPendente ? 'bg-amber-500 text-slate-950 animate-pulse' :
                         statusAtual === 'preparo' ? 'bg-blue-500/20 text-blue-400' :
                         'bg-rose-500/20 text-rose-400'
                       }`}>
@@ -128,7 +231,7 @@ export const Comandas = () => {
                     </span>
                   </div>
 
-                  {/* CONTEÚDO DETALHADO (Aparece apenas ao expandir) */}
+                  {/* CONTEÚDO DETALHADO */}
                   {estaExpandido && (
                     <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-3 animate-fadeIn">
                       <div className="space-y-1 text-xs text-slate-400">
@@ -170,11 +273,11 @@ export const Comandas = () => {
                   </div>
 
                   <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                    {statusAtual === 'pendente' && (
+                    {isPendente && (
                       <>
                         <button 
                           onClick={(e) => alterarStatus(e, idPedido, 'preparo')}
-                          className="flex-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-lg shadow-amber-500/20"
                         >
                           <CheckCircle size={14} /> Assumir / Preparo
                         </button>
@@ -206,3 +309,5 @@ export const Comandas = () => {
     </div>
   );
 };
+
+export default Comandas;
