@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Utensils, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X } from 'lucide-react';
+import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -16,6 +16,13 @@ export const Navbar = () => {
   const [pedidosPendentesCount, setPedidosPendentesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Estados para gerir o status e o horário da loja na Navbar
+  const [configLoja, setConfigLoja] = useState({
+    horarioAbertura: '08:00',
+    horarioFechamento: '23:30',
+    diasFuncionamento: {}
+  });
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); 
@@ -23,7 +30,6 @@ export const Navbar = () => {
     if (token) {
       setIsLoggedIn(true);
       const normalizedRole = role ? role.toLowerCase() : '';
-      
       if (['root', 'admin', 'adm'].includes(normalizedRole)) {
         setIsAdmin(true);
       } else {
@@ -35,62 +41,88 @@ export const Navbar = () => {
     }
   }, []);
 
-  // Verificação de alertas para Cliente ou Administrador
+  // Carregar as configurações da loja para o status em tempo real
+  useEffect(() => {
+    const carregarConfig = async () => {
+      try {
+        if (typeof api.getConfiguracoesLoja === 'function') {
+          const dadosServer = await api.getConfiguracoesLoja();
+          if (dadosServer && Object.keys(dadosServer).length > 0) {
+            setConfigLoja(dadosServer);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar config da loja:', err);
+      }
+      const salvo = localStorage.getItem('configuracoes_loja');
+      if (salvo) {
+        try { setConfigLoja(JSON.parse(salvo)); } catch (e) {}
+      }
+    };
+    carregarConfig();
+  }, []);
+
+  // Cálculo automático se a loja está aberta
+  const calcularStatusAutomatico = () => {
+    const agora = new Date();
+    const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diaAtualStr = diasSemanaMap[agora.getDay()];
+    const diasFuncionamento = configLoja.diasFuncionamento || {};
+    
+    if (diasFuncionamento[diaAtualStr] === false) return false;
+
+    const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
+    const [hAb, mAb] = (configLoja.horarioAbertura || '08:00').split(':').map(Number);
+    const minAbertura = hAb * 60 + mAb;
+
+    const [hFech, mFech] = (configLoja.horarioFechamento || '23:30').split(':').map(Number);
+    const minFechamento = hFech * 60 + mFech;
+
+    return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
+  };
+
+  const lojaAberta = calcularStatusAutomatico();
+
+  // Verificação de alertas para pedidos
   useEffect(() => {
     const verificarPedidos = async () => {
       try {
         const response = await api.getPedidos();
         const todosPedidos = Array.isArray(response) ? response : response?.data || [];
-
-        // Filtra apenas pedidos do DIA ATUAL
         const hoje = new Date().toISOString().split('T')[0];
 
         if (isAdmin) {
           const ativos = todosPedidos.filter(p => {
             const dataBruta = p.criadoEm || p.createdAt;
             if (!dataBruta) return false;
-            const dataPedido = new Date(typeof dataBruta === 'object' && dataBruta.$date ? dataBruta.$date : dataBruta).toISOString().split('T')[0];
-            if (dataPedido !== hoje) return false;
-
-            const status = (p.status || 'pendente').toLowerCase();
-            return status === 'pendente';
+            const dataPedido = new Date(dataBruta).toISOString().split('T')[0];
+            return dataPedido === hoje && (p.status || 'pendente').toLowerCase() === 'pendente';
           });
-
           setPedidosPendentesCount(ativos.length);
         } else if (isLoggedIn) {
           const savedUser = localStorage.getItem('user');
           if (!savedUser) return;
           const user = JSON.parse(savedUser);
           const userId = user.id || user._id;
-          const userEmail = (user.email || '').toLowerCase().trim();
-          const userNome = (user.nome || '').toLowerCase().trim();
 
           const meusPedidosDoDia = todosPedidos.filter((p) => {
             const dataBruta = p.criadoEm || p.createdAt;
             if (!dataBruta) return false;
-            const dataPedido = new Date(typeof dataBruta === 'object' && dataBruta.$date ? dataBruta.$date : dataBruta).toISOString().split('T')[0];
+            const dataPedido = new Date(dataBruta).toISOString().split('T')[0];
             if (dataPedido !== hoje) return false;
-
             const pUserId = p.userId || p.cliente_id;
-            const pEmail = (p.email || p.cliente_email || '').toLowerCase().trim();
-            const pNome = (p.cliente_nome || p.nome || '').toLowerCase().trim();
-
-            const matchId = userId && pUserId && String(pUserId) === String(userId);
-            const matchEmail = userEmail && pEmail && pEmail === userEmail;
-            const matchNome = userNome && pNome && pNome === userNome;
-
-            return matchId || matchEmail || matchNome;
+            return userId && pUserId && String(pUserId) === String(userId);
           });
 
           const temAtivosEmAndamento = meusPedidosDoDia.some(p => {
             const status = (p.status || 'pendente').toLowerCase();
             return ['pendente', 'preparo', 'pronto', 'enviado'].includes(status);
           });
-
           setTemAlertaPedidos(temAtivosEmAndamento);
         }
       } catch (error) {
-        console.error('Erro ao verificar pedidos para alerta na Navbar:', error);
+        console.error('Erro ao verificar pedidos:', error);
       }
     };
 
@@ -100,14 +132,9 @@ export const Navbar = () => {
   }, [isAdmin, isLoggedIn]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('user');
-    localStorage.removeItem('carrinho');
-    
+    localStorage.clear();
     setIsAdmin(false);
     setIsLoggedIn(false);
-    
     toast.success('Sessão encerrada com sucesso!');
     navigate('/');
     window.location.reload();
@@ -115,10 +142,10 @@ export const Navbar = () => {
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between">
         
-        {/* Logo e Botão do Menu Mobile */}
-        <div className="flex items-center gap-3">
+        {/* Logo Tay Mix e Status/Horário da Loja */}
+        <div className="flex items-center gap-3.5">
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-1.5 text-slate-300 hover:text-amber-400 focus:outline-none"
@@ -127,10 +154,38 @@ export const Navbar = () => {
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
-          <Link to="/" className="flex items-center gap-2 text-amber-500 font-bold text-lg">
-            <Utensils className="w-6 h-6" />
-            <span>baguete burguer</span>
+          <Link to="/" className="flex items-center gap-4 group">
+            <div className="bg-white p-1 rounded-full border-3 border-amber-500 shadow-xl flex items-center justify-center shrink-0">
+              <img
+                src="/logoaçai.jpg"
+                alt="Tay Mix Açaí"
+                className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover transition-transform group-hover:scale-105 shadow-inner"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-2xl md:text-3xl text-amber-400 tracking-tight leading-none capitalize drop-shadow-md">
+                tay mix
+              </span>
+              <span className="text-xs md:text-sm text-slate-100 font-bold tracking-wide mt-1.5">
+                açaí cremoso & delivery
+              </span>
+            </div>
           </Link>
+
+          {/* Badge de Status da Loja na Navbar */}
+          <div className="hidden lg:flex items-center gap-2.5 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl ml-4 text-xs">
+            <span className="relative flex h-2.5 w-2.5">
+              {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+            </span>
+            <span className={`font-extrabold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {lojaAberta ? 'ABERTO' : 'FECHADO'}
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-300 flex items-center gap-1 font-medium">
+              <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+            </span>
+          </div>
         </div>
 
         {/* Navegação Desktop */}
@@ -162,7 +217,6 @@ export const Navbar = () => {
               {isLoggedIn && (
                 <Link to="/meus-pedidos" className="relative hover:text-amber-400 transition flex items-center gap-1">
                   <Clock className="w-4 h-4" /> meus pedidos
-                  
                   {temAlertaPedidos && (
                     <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -171,7 +225,6 @@ export const Navbar = () => {
                   )}
                 </Link>
               )}
-              {/* O link de cadastro aparece sempre que o usuário não estiver logado */}
               {!isLoggedIn && (
                 <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
                   <UserPlus className="w-4 h-4" /> cadastro
@@ -181,39 +234,8 @@ export const Navbar = () => {
           )}
         </nav>
 
-        {/* Ações à Direita (Carrinho e Sessão) */}
+        {/* Ações à Direita */}
         <div className="flex items-center gap-3">
-          {isAdmin ? (
-            <Link 
-              to="/comandas" 
-              className="md:hidden relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center justify-center"
-              title="Comandas"
-            >
-              <ClipboardList className="w-5 h-5 text-amber-500" />
-              {pedidosPendentesCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                  {pedidosPendentesCount}
-                </span>
-              )}
-            </Link>
-          ) : (
-            isLoggedIn && (
-              <Link 
-                to="/meus-pedidos" 
-                className="md:hidden relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center justify-center"
-                title="Meus Pedidos"
-              >
-                <Clock className="w-5 h-5 text-amber-500" />
-                {temAlertaPedidos && (
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                  </span>
-                )}
-              </Link>
-            )
-          )}
-
           <button
             onClick={() => setIsCartOpen(true)}
             className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-2 cursor-pointer"
@@ -249,79 +271,44 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Menu Desdobrável para Versão Mobile */}
+      {/* Menu Mobile */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 py-3 space-y-2 text-sm text-slate-300 font-medium">
-          <Link 
-            to="/" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-          >
+          <div className="flex items-center justify-between bg-slate-950 px-3 py-2 rounded-lg text-xs mb-2">
+            <span className={`font-bold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {lojaAberta ? '● Aberto Agora' : '● Fechado'}
+            </span>
+            <span className="text-slate-300">{configLoja.horarioAbertura} às {configLoja.horarioFechamento}</span>
+          </div>
+
+          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
             cardápio
           </Link>
-
           {isAdmin ? (
             <>
-              <Link 
-                to="/comandas" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-              >
-                <span className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-amber-500" /> comandas
-                </span>
-                {pedidosPendentesCount > 0 && (
-                  <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full animate-pulse">
-                    {pedidosPendentesCount} novos
-                  </span>
-                )}
+              <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
+                <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4 text-amber-500" /> comandas</span>
+                {pedidosPendentesCount > 0 && <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">{pedidosPendentesCount} novos</span>}
               </Link>
-              <Link 
-                to="/caixa" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-              >
+              <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
                 <DollarSign className="w-4 h-4 text-amber-500" /> caixa
               </Link>
-              <Link 
-                to="/admin/produtos" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-              >
+              <Link to="/admin/produtos" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
                 <Package className="w-4 h-4 text-amber-500" /> produtos
               </Link>
-              <Link 
-                to="/configuracoes/entrega" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 transition"
-              >
+              <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-400 transition">
                 <MapPin className="w-4 h-4" /> raio de entrega
               </Link>
             </>
           ) : (
             <>
               {isLoggedIn && (
-                <Link 
-                  to="/meus-pedidos" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-                >
-                  <span className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-500" /> meus pedidos
-                  </span>
-                  {temAlertaPedidos && (
-                    <span className="bg-amber-500 text-slate-950 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                      Ativo
-                    </span>
-                  )}
+                <Link to="/meus-pedidos" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
+                  <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> meus pedidos</span>
                 </Link>
               )}
               {!isLoggedIn && (
-                <Link 
-                  to="/cadastro" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition"
-                >
+                <Link to="/cadastro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
                   <UserPlus className="w-4 h-4 text-amber-500" /> cadastro
                 </Link>
               )}

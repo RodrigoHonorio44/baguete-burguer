@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { AdminComplementos } from '../components/AdminComplementos';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Estado para controlar qual produto terá seus complementos/sabores editados
+  const [produtoComplementosId, setProdutoComplementosId] = useState(null);
+
   const [form, setForm] = useState({
     nome: '',
     descricao: '',
     preco: '',
-    categoria: 'hamburgueres',
+    categoria: 'acai',
     imagem: '',
     disponivel: true,
   });
@@ -115,7 +119,7 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '', disponivel: true });
+        setForm({ nome: '', descricao: '', preco: '', categoria: 'acai', imagem: '', disponivel: true });
         setEditandoId(null);
         carregarProdutos();
         return editandoId ? 'produto atualizado com sucesso!' : 'produto cadastrado com sucesso!';
@@ -130,11 +134,11 @@ export const AdminProdutos = () => {
       nome: prod.nome || prod.name || '',
       descricao: prod.descricao || prod.description || '',
       preco: prod.preco || prod.price || '',
-      categoria: prod.categoria || 'hamburgueres',
+      categoria: prod.categoria || 'acai',
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
     });
-    toast('modo de edição ativado', { icon: '✏️️' });
+    toast('modo de edição ativado', { icon: '✏' });
   };
 
   const handleToggleDisponibilidadeRapida = async (prod) => {
@@ -146,7 +150,7 @@ export const AdminProdutos = () => {
         nome: prod.nome || prod.name,
         descricao: prod.descricao || prod.description,
         preco: Number(prod.preco || prod.price),
-        categoria: prod.categoria || 'hamburgueres',
+        categoria: prod.categoria || 'acai',
         imagem: prod.imagem || prod.image,
         disponivel: novoStatus,
       };
@@ -175,7 +179,7 @@ export const AdminProdutos = () => {
 
   const cancelarEdicao = () => {
     setEditandoId(null);
-    setForm({ nome: '', descricao: '', preco: '', categoria: 'hamburgueres', imagem: '', disponivel: true });
+    setForm({ nome: '', descricao: '', preco: '', categoria: 'acai', imagem: '', disponivel: true });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
@@ -184,7 +188,7 @@ export const AdminProdutos = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
           <Package className="w-6 h-6 text-amber-500" />
-          gestão de produtos (hambúrgueres e bebidas)
+          gestão de produtos (açaí, baguetes e bebidas)
         </h1>
         <button
           onClick={carregarProdutos}
@@ -211,7 +215,7 @@ export const AdminProdutos = () => {
                 required
                 value={form.nome}
                 onChange={handleChange}
-                placeholder="ex: baguete artesanal, coca-cola 350ml"
+                placeholder="ex: açaí na garrafa 500ml, baguete artesanal"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -224,6 +228,7 @@ export const AdminProdutos = () => {
                 onChange={handleChange}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
               >
+                <option value="acai">açaí / garrafas</option>
                 <option value="hamburgueres">hambúrgueres / baguetes</option>
                 <option value="bebidas">bebidas</option>
                 <option value="porcoes">porções / acompanhamentos</option>
@@ -252,7 +257,7 @@ export const AdminProdutos = () => {
                 rows="3"
                 value={form.descricao}
                 onChange={handleChange}
-                placeholder="ex: pão baguete, 180g de hambúrguer artesanal..."
+                placeholder="ex: garrafa de açaí cremoso de 500ml. monte com seus sabores e acompanhamentos..."
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -309,7 +314,7 @@ export const AdminProdutos = () => {
                 const id = prod._id || prod.id;
                 const preco = Number(prod.preco || prod.price || 0);
                 const imagemProd = prod.imagem || prod.image;
-                const disponivel = prod.disponivel !== false; // padrão true se não definido
+                const disponivel = prod.disponivel !== false;
 
                 return (
                   <div
@@ -330,7 +335,7 @@ export const AdminProdutos = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-100 capitalize">{prod.nome || prod.name}</span>
                         <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">
-                          {prod.categoria || 'hamburgueres'}
+                          {prod.categoria || 'acai'}
                         </span>
                         {!disponivel && (
                           <span className="text-[10px] bg-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded uppercase">
@@ -345,6 +350,15 @@ export const AdminProdutos = () => {
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-2">
+                      {/* Botão para abrir os complementos do produto */}
+                      <button
+                        onClick={() => setProdutoComplementosId(id)}
+                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
+                        title="gerenciar complementos e opcionais"
+                      >
+                        <Layers className="w-4 h-4" />
+                      </button>
+
                       {/* Botão rápido para ligar/desligar disponibilidade */}
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
@@ -380,6 +394,14 @@ export const AdminProdutos = () => {
           )}
         </div>
       </div>
+
+      {/* Renderização do componente de complementos quando um produto estiver selecionado */}
+      {produtoComplementosId && (
+        <AdminComplementos
+          produtoId={produtoComplementosId}
+          onFechar={() => setProdutoComplementosId(null)}
+        />
+      )}
     </div>
   );
 };

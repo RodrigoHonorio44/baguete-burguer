@@ -1,23 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus, ChevronDown, ChevronUp, EyeOff, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { api } from '../services/api';
 
 export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const { cart, addToCart, removeFromCart } = useCart();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [gruposComplementos, setGruposComplementos] = useState([]);
+  const [loadingComplementos, setLoadingComplementos] = useState(false);
 
-  const id = product.id || product._id;
-  const preco = Number(product.preco || product.price || 0);
-  const imagem = product.imagem || product.image || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60';
-  const nome = product.nome || product.name;
-  const descricao = product.descricao || product.description;
+  // Guarda as opções selecionadas: { "grupoId": [ { id, nome, preco, quantidade } ] }
+  const [selecoes, setSelecoes] = useState({});
+
+  const id = product?.id || product?._id;
+  const precoBase = Number(product?.preco || product?.price || 0);
+  const imagem = product?.imagem || product?.image || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60';
+  const nome = product?.nome || product?.name || '';
+  const descricao = product?.descricao || product?.description || '';
   
-  const disponivel = product.disponivel !== undefined ? product.disponivel : true;
+  const disponivel = product?.disponivel !== undefined ? product.disponivel : true;
 
   const itemInCart = cart.find(item => (item.id || item._id) === id);
   const quantity = itemInCart ? itemInCart.quantity : 0;
 
-  // Verificação estrita do perfil de admin ou root
+  // Busca os complementos do produto com tratamento de erro seguro
+  useEffect(() => {
+    if (isExpanded && id) {
+      const carregarComplementos = async () => {
+        setLoadingComplementos(true);
+        try {
+          if (typeof api?.getComplementosProduto === 'function') {
+            const data = await api.getComplementosProduto(id);
+            setGruposComplementos(Array.isArray(data) ? data : []);
+          } else {
+            setGruposComplementos([]);
+          }
+        } catch (err) {
+          console.error('Erro ao carregar complementos:', err);
+          setGruposComplementos([]);
+        } fontally: {
+          setLoadingComplementos(false);
+        }
+      };
+      carregarComplementos();
+    }
+  }, [isExpanded, id]);
+
+  // Incremento e decremento das opções/sabores/acompanhamentos
+  const handleOptionChange = (grupo, item, delta) => {
+    const grupoId = grupo._id || grupo.id;
+    const itemArray = selecoes[grupoId] || [];
+    const itemExistente = itemArray.find(i => (i._id || i.id) === (item._id || item.id));
+    const qtdAtual = itemExistente ? itemExistente.quantidade : 0;
+    const totalQtdGrupo = itemArray.reduce((acc, curr) => acc + curr.quantidade, 0);
+
+    if (delta > 0 && grupo.maximo && totalQtdGrupo >= grupo.maximo) {
+      return; // Atingiu o limite do grupo
+    }
+
+    let novosItens = [...itemArray];
+
+    if (qtdAtual + delta <= 0) {
+      novosItens = novosItens.filter(i => (i._id || i.id) !== (item._id || item.id));
+    } else {
+      if (itemExistente) {
+        novosItens = novosItens.map(i =>
+          (i._id || i.id) === (item._id || item.id)
+            ? { ...i, quantidade: i.quantidade + delta }
+            : i
+        );
+      } else {
+        novosItens.push({ ...item, quantidade: 1 });
+      }
+    }
+
+    setSelecoes({
+      ...selecoes,
+      [grupoId]: novosItens,
+    });
+  };
+
+  // Cálculo do valor adicional total vindo dos complementos selecionados
+  const calcularValorAdicional = () => {
+    let valorExtra = 0;
+    Object.values(selecoes).forEach(itensDoGrupo => {
+      if (Array.isArray(itensDoGrupo)) {
+        itensDoGrupo.forEach(item => {
+          valorExtra += Number(item.preco || 0) * (item.quantidade || 0);
+        });
+      }
+    });
+    return valorExtra;
+  };
+
+  const precoTotalUnitario = precoBase + calcularValorAdicional();
+
+  // Verificação de perfil de admin
   const getUserRole = () => {
     try {
       const userStr = localStorage.getItem('user') || localStorage.getItem('usuario');
@@ -28,7 +106,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
         }
       }
     } catch (e) {
-      // Ignora erro de parse
+      // Ignora erro
     }
     return (localStorage.getItem('userRole') || localStorage.getItem('role') || localStorage.getItem('tipo') || '').toLowerCase().trim();
   };
@@ -44,7 +122,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (!disponivel) return;
-    addToCart({ ...product, id, preco, imagem });
+
+    addToCart({
+      ...product,
+      id,
+      preco: precoTotalUnitario,
+      imagem,
+      opcionaisSelecionados: selecoes,
+    });
   };
 
   const handleRemoveFromCart = (e) => {
@@ -69,7 +154,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       >
         <div className="flex-1 pr-4">
           <div className="flex items-center gap-2.5 mb-1.5">
-            <h3 className="font-bold text-base md:text-lg text-slate-900 tracking-tight">{nome}</h3>
+            <h3 className="font-bold text-base md:text-lg text-slate-900 tracking-tight capitalize">{nome}</h3>
             {!disponivel && (
               <span className="bg-rose-100 text-rose-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                 Esgotado
@@ -79,7 +164,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           <p className="text-xs md:text-sm text-slate-600 line-clamp-2 mb-3 leading-relaxed">{descricao}</p>
           <p className="text-sm md:text-base font-extrabold text-slate-900">
             <span className="text-xs font-normal text-slate-500 mr-1">a partir de</span> 
-            <span className="text-emerald-600">R$ {preco.toFixed(2)}</span>
+            <span className="text-emerald-600">R$ {precoBase.toFixed(2)}</span>
           </p>
         </div>
         
@@ -99,7 +184,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
         </div>
       </div>
 
-      {/* Conteúdo Expandido */}
+      {/* Conteúdo Expandido com Opcionais / Complementos */}
       {isExpanded && (
         <div className="px-5 pb-5 pt-0 border-t border-slate-100 bg-slate-50/50">
           <img
@@ -112,7 +197,81 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             {descricao}
           </p>
 
-          {/* Botão de controle visível APENAS para Admin/Root */}
+          {/* LISTAGEM DOS GRUPOS DE COMPLEMENTOS */}
+          {loadingComplementos ? (
+            <p className="text-xs text-slate-500 py-2">Carregando opções...</p>
+          ) : gruposComplementos.length > 0 && (
+            <div className="space-y-4 mb-6">
+              {gruposComplementos.map(grupo => {
+                const gId = grupo._id || grupo.id;
+                const itensSelecionadosDoGrupo = selecoes[gId] || [];
+                const qtdTotalNoGrupo = itensSelecionadosDoGrupo.reduce((acc, curr) => acc + curr.quantidade, 0);
+
+                return (
+                  <div key={gId} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 capitalize">{grupo.nome}</h4>
+                        <p className="text-[11px] text-slate-500">
+                          {grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : 'Opcional'} 
+                          {grupo.maximo ? ` (até ${grupo.maximo})` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold">
+                        {qtdTotalNoGrupo} / {grupo.maximo || '∞'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(grupo.itens || []).map(item => {
+                        const itemId = item._id || item.id;
+                        const itemSel = itensSelecionadosDoGrupo.find(i => (i._id || i.id) === itemId);
+                        const qtdItem = itemSel ? itemSel.quantidade : 0;
+                        const precoItem = Number(item.preco || 0);
+
+                        return (
+                          <div key={itemId} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition">
+                            <div>
+                              <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
+                              {precoItem > 0 && (
+                                <span className="text-xs text-emerald-600 font-bold ml-2">+ R$ {precoItem.toFixed(2)}</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {qtdItem > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOptionChange(grupo, item, -1)}
+                                  className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 hover:bg-slate-200"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                              )}
+
+                              {qtdItem > 0 && (
+                                <span className="text-xs font-bold text-slate-900 w-4 text-center">{qtdItem}</span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleOptionChange(grupo, item, 1)}
+                                className="w-7 h-7 bg-amber-500 text-slate-950 font-bold rounded-lg flex items-center justify-center hover:bg-amber-400"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Controle de Estoque/Disponibilidade para Admin */}
           {isAdminOrRoot && (
             <div className="mb-4 flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
               <span className="text-xs text-slate-700 font-semibold">Controle de Estoque/Disponibilidade:</span>
@@ -131,11 +290,12 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             </div>
           )}
 
+          {/* Rodapé com Preço Total e Botão de Adicionar */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-200/80">
             <div>
               <span className="text-xs text-slate-500 block">Total do item</span>
               <span className="text-lg md:text-xl font-black text-slate-900">
-                R$ {(preco * (quantity > 0 ? quantity : 1)).toFixed(2)}
+                R$ {(precoTotalUnitario * (quantity > 0 ? quantity : 1)).toFixed(2)}
               </span>
             </div>
 
@@ -175,4 +335,5 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   );
 };
 
+// Permite ambas as formas de importação no projeto
 export default ProductCardExpandable;

@@ -9,14 +9,8 @@ export const useCaixa = () => {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   
   const hojeStr = new Date().toISOString().split('T')[0];
-  const [caixaAberto, setCaixaAberto] = useState(() => {
-    const salvo = localStorage.getItem(`caixa_aberto_${hojeStr}`);
-    return salvo ? JSON.parse(salvo) : false;
-  });
-  const [fundoCaixa, setFundoCaixa] = useState(() => {
-    const salvo = localStorage.getItem(`caixa_fundo_${hojeStr}`);
-    return salvo ? Number(salvo) : 0;
-  });
+  const [caixaAberto, setCaixaAberto] = useState(false);
+  const [fundoCaixa, setFundoCaixa] = useState(0);
   const [valorAbertura, setValorAbertura] = useState('');
 
   // Modal PDV
@@ -26,6 +20,24 @@ export const useCaixa = () => {
   const [pagamentoPdv, setPagamentoPdv] = useState('dinheiro');
   const [canalPdv, setCanalPdv] = useState('presencial');
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
+
+  // Carrega status do Caixa diretamente do Banco de Dados
+  const carregarStatusCaixaBanco = async () => {
+    try {
+      if (api.getCaixaStatus) {
+        const res = await api.getCaixaStatus();
+        if (res && res.aberto) {
+          setCaixaAberto(true);
+          setFundoCaixa(Number(res.fundoCaixa || 0));
+        } else {
+          setCaixaAberto(false);
+          setFundoCaixa(0);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao verificar status do caixa no banco:', err);
+    }
+  };
 
   const carregarDados = async () => {
     setLoading(true);
@@ -46,6 +58,8 @@ export const useCaixa = () => {
 
       const pedidosOrdenados = pedidosHoje.sort((a, b) => new Date(b.criadoEm || b.createdAt) - new Date(a.criadoEm || a.createdAt));
       setPedidos(pedidosOrdenados);
+      
+      await carregarStatusCaixaBanco();
     } catch (err) {
       console.error(err);
       toast.error('Erro ao carregar os dados reais do caixa.');
@@ -60,28 +74,55 @@ export const useCaixa = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const abrirCaixa = (e) => {
+  // Abertura do Caixa enviando requisição para o BANCO DE DADOS
+  const abrirCaixa = async (e) => {
     e.preventDefault();
     const valor = parseFloat(valorAbertura);
     if (isNaN(valor) || valor < 0) {
       toast.error('Insira um valor de abertura válido.');
       return;
     }
-    setFundoCaixa(valor);
-    setCaixaAberto(true);
-    
-    localStorage.setItem(`caixa_aberto_${hojeStr}`, JSON.stringify(true));
-    localStorage.setItem(`caixa_fundo_${hojeStr}`, valor.toString());
 
-    toast.success(`Caixa aberto com fundo de ${formatarMoeda(valor)}`);
+    try {
+      if (api.abrirCaixa) {
+        await api.abrirCaixa({ valorAbertura: valor, data: hojeStr });
+      }
+      
+      setFundoCaixa(valor);
+      setCaixaAberto(true);
+      
+      // Armazena cópia local de segurança
+      localStorage.setItem(`caixa_aberto_${hojeStr}`, JSON.stringify(true));
+      localStorage.setItem(`caixa_fundo_${hojeStr}`, valor.toString());
+
+      toast.success(`Caixa aberto no banco com fundo de ${formatarMoeda(valor)}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao registrar abertura de caixa no servidor.');
+    }
   };
 
-  const fecharCaixaSistema = () => {
+  // Fechamento do Caixa enviando requisição para o BANCO DE DADOS
+  const fecharCaixaSistema = async () => {
     if (window.confirm('Tens a certeza que pretendes fechar o caixa de hoje?')) {
-      setCaixaAberto(false);
-      localStorage.removeItem(`caixa_aberto_${hojeStr}`);
-      localStorage.removeItem(`caixa_fundo_${hojeStr}`);
-      toast.success('Caixa fechado com sucesso.');
+      try {
+        if (api.fecharCaixa) {
+          await api.fecharCaixa({
+            faturamentoVendas,
+            totalGeral,
+            totalDinheiroCaixa,
+            data: hojeStr
+          });
+        }
+
+        setCaixaAberto(false);
+        localStorage.removeItem(`caixa_aberto_${hojeStr}`);
+        localStorage.removeItem(`caixa_fundo_${hojeStr}`);
+        toast.success('Caixa fechado e salvo no banco com sucesso.');
+      } catch (err) {
+        console.error(err);
+        toast.error('Erro ao fechar o caixa no banco de dados.');
+      }
     }
   };
 
@@ -152,7 +193,7 @@ export const useCaixa = () => {
         await api.criarPedido(novoPedido);
       }
 
-      toast.success('Venda registada com sucesso no caixa!');
+      toast.success('Venda registrada com sucesso no caixa!');
       setModalPdvAberto(false);
       setCarrinhoPdv([]);
       setClientePdv('');
@@ -160,11 +201,11 @@ export const useCaixa = () => {
       carregarDados();
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao registar venda.');
+      toast.error('Erro ao registrar venda.');
     }
   };
 
-  // Exclui pedidos recusados e cancelados dos cálculos financeiros
+  // Cálculos financeiros
   const pedidosValidos = pedidos.filter(p => p.status !== 'recusado' && p.status !== 'cancelado');
   const faturamentoVendas = pedidosValidos.reduce((acc, p) => acc + Number(p.total || 0), 0);
   const totalGeral = faturamentoVendas + fundoCaixa;

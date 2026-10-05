@@ -109,6 +109,95 @@ export const api = {
     return await response.json();
   },
 
+  // --- COMPLEMENTOS / OPCIONAIS / SABORES ---
+  getComplementosProduto: async (produtoId) => {
+    const response = await fetch(`${API_URL}/produtos/${produtoId}/complementos`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar complementos do produto');
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  criarGrupoComplemento: async (payload) => {
+    const payloadFormatado = {
+      ...payload,
+      ...(payload.nome && { nome: payload.nome.toLowerCase() }),
+    };
+
+    const response = await fetch(`${API_URL}/complementos/grupos`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payloadFormatado)
+    });
+
+    if (!response.ok) throw new Error('Erro ao criar grupo de complementos');
+    return await response.json();
+  },
+
+  criarItemComplemento: async (payload) => {
+    const payloadFormatado = {
+      ...payload,
+      ...(payload.nome && { nome: payload.nome.toLowerCase() }),
+    };
+
+    const response = await fetch(`${API_URL}/complementos/itens`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payloadFormatado)
+    });
+
+    if (!response.ok) throw new Error('Erro ao adicionar opção de complemento');
+    return await response.json();
+  },
+
+  excluirGrupoComplemento: async (grupoId) => {
+    const response = await fetch(`${API_URL}/complementos/grupos/${grupoId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao excluir grupo de complementos');
+    return await response.json();
+  },
+
+  excluirItemComplemento: async (itemId) => {
+    const response = await fetch(`${API_URL}/complementos/itens/${itemId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao excluir opção de complemento');
+    return await response.json();
+  },
+
+  // --- GERENCIAMENTO DE CAIXA (PERSISTÊNCIA NO BANCO) ---
+  getCaixaStatus: async () => {
+    const response = await fetch(`${API_URL}/caixa/status`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) return { aberto: false, fundoCaixa: 0 };
+    return await response.json();
+  },
+
+  abrirCaixa: async (payload) => {
+    const response = await fetch(`${API_URL}/caixa/abrir`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('Erro ao registrar abertura de caixa no servidor');
+    return await response.json();
+  },
+
+  fecharCaixa: async (payload) => {
+    const response = await fetch(`${API_URL}/caixa/fechar`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('Erro ao registrar fechamento de caixa no servidor');
+    return await response.json();
+  },
+
   // --- PEDIDOS (CLIENTE & COZINHA) ---
   getPedidos: async (status = '') => {
     const url = status ? `${API_URL}/pedidos?status=${status}` : `${API_URL}/pedidos`;
