@@ -16,7 +16,7 @@ export const Navbar = () => {
   const [pedidosPendentesCount, setPedidosPendentesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Estados para gerir o status e o horário da loja na Navbar
+  // Estados para gerir o status, horário e dias de funcionamento
   const [configLoja, setConfigLoja] = useState({
     horarioAbertura: '08:00',
     horarioFechamento: '23:30',
@@ -41,7 +41,7 @@ export const Navbar = () => {
     }
   }, []);
 
-  // Carregar as configurações da loja para o status em tempo real
+  // Carregar as configurações da loja
   useEffect(() => {
     const carregarConfig = async () => {
       try {
@@ -83,6 +83,7 @@ export const Navbar = () => {
   };
 
   const lojaAberta = calcularStatusAutomatico();
+  const diasAtivosObj = Object.entries(configLoja.diasFuncionamento || {}).filter(([_, ativo]) => ativo);
 
   // Verificação de alertas para pedidos
   useEffect(() => {
@@ -141,39 +142,41 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between">
+    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-45">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-0 md:h-24 flex flex-col md:flex-row items-center justify-between gap-3">
         
-        {/* Logo Tay Mix e Status/Horário da Loja */}
-        <div className="flex items-center gap-3.5">
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-1.5 text-slate-300 hover:text-amber-400 focus:outline-none"
-            aria-label="Abrir Menu"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+        {/* Esquerda: Logo, Menu Hamburguer e Status/Horário no PC */}
+        <div className="w-full md:w-auto flex items-center justify-between md:justify-start gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-1.5 text-slate-300 hover:text-amber-400 focus:outline-none"
+              aria-label="Abrir Menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
 
-          <Link to="/" className="flex items-center gap-4 group">
-            <div className="bg-white p-1 rounded-full border-3 border-amber-500 shadow-xl flex items-center justify-center shrink-0">
-              <img
-                src="/logoaçai.jpg"
-                alt="Tay Mix Açaí"
-                className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover transition-transform group-hover:scale-105 shadow-inner"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black text-2xl md:text-3xl text-amber-400 tracking-tight leading-none capitalize drop-shadow-md">
-                tay mix
-              </span>
-              <span className="text-xs md:text-sm text-slate-100 font-bold tracking-wide mt-1.5">
-                açaí cremoso & delivery
-              </span>
-            </div>
-          </Link>
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="bg-white p-1 rounded-full border-2 md:border-3 border-amber-500 shadow-xl flex items-center justify-center shrink-0">
+                <img
+                  src="/logoaçai.jpg"
+                  alt="Tay Mix Açaí"
+                  className="w-12 h-12 md:w-20 md:h-20 rounded-full object-cover transition-transform group-hover:scale-105 shadow-inner"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-black text-xl md:text-3xl text-amber-400 tracking-tight leading-none capitalize drop-shadow-md">
+                  tay mix
+                </span>
+                <span className="text-[10px] md:text-sm text-slate-100 font-bold tracking-wide mt-1">
+                  açaí cremoso & delivery
+                </span>
+              </div>
+            </Link>
+          </div>
 
-          {/* Badge de Status da Loja na Navbar */}
-          <div className="hidden lg:flex items-center gap-2.5 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl ml-4 text-xs">
+          {/* Badge de Status da Loja no PC (Logo no início, ao lado do logo) */}
+          <div className="hidden md:flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs ml-2">
             <span className="relative flex h-2.5 w-2.5">
               {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
@@ -186,9 +189,42 @@ export const Navbar = () => {
               <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
             </span>
           </div>
+
+          {/* Ações no Mobile (Carrinho e Sair/Entrar) */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-2 cursor-pointer"
+            >
+              <ShoppingBag className="w-5 h-5 text-amber-500" />
+              {totalItens > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+                  {totalItens}
+                </span>
+              )}
+            </button>
+
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium cursor-pointer"
+                title="terminar sessão"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-1 text-xs font-medium"
+                title="entrar na conta"
+              >
+                <LogIn className="w-4 h-4 text-amber-500" />
+              </Link>
+            )}
+          </div>
         </div>
 
-        {/* Navegação Desktop */}
+        {/* Centro: Navegação Desktop */}
         <nav className="hidden md:flex items-center gap-5 text-sm text-slate-300 font-medium">
           <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
           
@@ -234,8 +270,8 @@ export const Navbar = () => {
           )}
         </nav>
 
-        {/* Ações à Direita */}
-        <div className="flex items-center gap-3">
+        {/* Direita: Carrinho/Sessão Desktop */}
+        <div className="hidden md:flex items-center gap-2.5">
           <button
             onClick={() => setIsCartOpen(true)}
             className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-2 cursor-pointer"
@@ -269,21 +305,39 @@ export const Navbar = () => {
             </Link>
           )}
         </div>
+
       </div>
 
-      {/* Menu Mobile */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 py-3 space-y-2 text-sm text-slate-300 font-medium">
-          <div className="flex items-center justify-between bg-slate-950 px-3 py-2 rounded-lg text-xs mb-2">
-            <span className={`font-bold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {lojaAberta ? '● Aberto Agora' : '● Fechado'}
+      {/* Linha Inferior Mobile Centralizada (Visível apenas em dispositivos móveis) */}
+      <div className="flex md:hidden w-full bg-slate-950 border-t border-slate-800 py-1.5 px-3 items-center justify-center gap-2 text-xs">
+        <span className="relative flex h-2.5 w-2.5">
+          {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+        </span>
+        <span className={`font-extrabold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {lojaAberta ? 'ABERTO' : 'FECHADO'}
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="text-slate-300 flex items-center gap-1 font-medium">
+          <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+        </span>
+        {diasAtivosObj.length > 0 && (
+          <>
+            <span className="text-slate-600">•</span>
+            <span className="text-slate-400 capitalize">
+              {diasAtivosObj.map(([dia]) => dia.slice(0, 3)).join(', ')}
             </span>
-            <span className="text-slate-300">{configLoja.horarioAbertura} às {configLoja.horarioFechamento}</span>
-          </div>
+          </>
+        )}
+      </div>
 
+      {/* Menu Mobile Expandido */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-slate-950 border-t border-slate-800 px-4 py-3 space-y-3 text-sm text-slate-300 font-medium">
           <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
             cardápio
           </Link>
+          
           {isAdmin ? (
             <>
               <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">

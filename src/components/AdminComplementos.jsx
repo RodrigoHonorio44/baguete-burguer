@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Layers, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Layers, Check, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const AdminComplementos = ({ produtoId, onFechar }) => {
@@ -15,20 +15,23 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
     obrigatorio: false,
   });
 
-  // Estado para criar um item dentro de um grupo (ex: "Leite em pó", "Granola")
+  // Estado para criar um item dentro de um grupo (ex: "Leite em pó", "Brigadeiro")
   const [itemForm, setItemForm] = useState({
     grupoId: '',
     nome: '',
     preco: '0.00',
+    foto: '',
   });
 
-  // Método para carregar complementos vinculados ao produto
+  // Método para carregar grupos e complementos vinculados ao produto
   const carregarComplementos = async () => {
     if (!produtoId) return;
     setLoading(true);
     try {
-      const data = await api.getComplementosProduto(produtoId);
-      setGrupos(data || []);
+      // Busca os grupos cadastrados para este produto
+      const response = await fetch(`/api/complementos/grupos?produtoId=${produtoId}`);
+      const data = await response.json();
+      setGrupos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao carregar complementos.');
@@ -44,7 +47,14 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
   const handleSalvarGrupo = async (e) => {
     e.preventDefault();
     try {
-      await api.criarGrupoComplemento({ ...grupoForm, produtoId });
+      const response = await fetch('/api/complementos/grupos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...grupoForm, produtoId })
+      });
+      
+      if (!response.ok) throw new Error('Falha ao salvar grupo');
+
       toast.success('Grupo de complementos criado!');
       setGrupoForm({ nome: '', minimo: 0, maximo: 1, obrigatorio: false });
       carregarComplementos();
@@ -53,16 +63,35 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
     }
   };
 
+  // Função para tratar o upload da foto do item e converter em Base64
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setItemForm({ ...itemForm, foto: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSalvarItem = async (e) => {
     e.preventDefault();
     if (!itemForm.grupoId) return toast.error('Selecione um grupo primeiro.');
     try {
-      await api.criarItemComplemento({
-        ...itemForm,
-        preco: parseFloat(itemForm.preco),
+      const response = await fetch('/api/complementos/itens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...itemForm,
+          preco: parseFloat(itemForm.preco) || 0,
+        })
       });
-      toast.success('Opção adicionada!');
-      setItemForm({ grupoId: '', nome: '', preco: '0.00' });
+
+      if (!response.ok) throw new Error('Falha ao salvar item');
+
+      toast.success('Opção adicionada com sucesso!');
+      setItemForm({ grupoId: '', nome: '', preco: '0.00', foto: '' });
       carregarComplementos();
     } catch (err) {
       toast.error('Erro ao adicionar opção: ' + err.message);
@@ -107,7 +136,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
               <input
                 type="number"
                 value={grupoForm.minimo}
-                onChange={(e) => setGrupoForm({ ...grupoForm, minimo: parseInt(e.target.value) })}
+                onChange={(e) => setGrupoForm({ ...grupoForm, minimo: parseInt(e.target.value) || 0 })}
                 className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
               />
             </div>
@@ -116,7 +145,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
               <input
                 type="number"
                 value={grupoForm.maximo}
-                onChange={(e) => setGrupoForm({ ...grupoForm, maximo: parseInt(e.target.value) })}
+                onChange={(e) => setGrupoForm({ ...grupoForm, maximo: parseInt(e.target.value) || 1 })}
                 className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
               />
             </div>
@@ -150,7 +179,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
               <input
                 type="text"
                 required
-                placeholder="Ex: Leite em pó"
+                placeholder="Ex: Brigadeiro"
                 value={itemForm.nome}
                 onChange={(e) => setItemForm({ ...itemForm, nome: e.target.value })}
                 className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
@@ -167,6 +196,27 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
               />
             </div>
           </div>
+
+          {/* Campo de Foto do Complemento */}
+          <div>
+            <label className="block text-xs text-slate-400 flex items-center gap-1">
+              <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+              Foto do Complemento (Opcional)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
+            />
+            {itemForm.foto && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={itemForm.foto} alt="Pré-visualização" className="w-10 h-10 object-cover rounded border border-slate-700" />
+                <span className="text-xs text-emerald-400">Foto carregada com sucesso!</span>
+              </div>
+            )}
+          </div>
+
           <button type="submit" className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded text-xs">
             + Adicionar Opção
           </button>

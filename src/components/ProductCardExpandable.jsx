@@ -9,7 +9,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const [gruposComplementos, setGruposComplementos] = useState([]);
   const [loadingComplementos, setLoadingComplementos] = useState(false);
 
-  // Guarda as opções selecionadas: { "grupoId": [ { id, nome, preco, quantidade } ] }
+  // Guarda as opções selecionadas: { "grupoId": [ { id, nome, preco, quantidade, foto } ] }
   const [selecoes, setSelecoes] = useState({});
 
   const id = product?.id || product?._id;
@@ -23,22 +23,42 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const itemInCart = cart.find(item => (item.id || item._id) === id);
   const quantity = itemInCart ? itemInCart.quantity : 0;
 
-  // Busca os complementos do produto com tratamento de erro seguro
+  // Busca os complementos lidando de forma flexível com qualquer formato que a API retorne
   useEffect(() => {
     if (isExpanded && id) {
       const carregarComplementos = async () => {
         setLoadingComplementos(true);
         try {
+          let data = [];
+          
           if (typeof api?.getComplementosProduto === 'function') {
-            const data = await api.getComplementosProduto(id);
-            setGruposComplementos(Array.isArray(data) ? data : []);
-          } else {
-            setGruposComplementos([]);
+            try {
+              data = await api.getComplementosProduto(id);
+            } catch (e) { /* ignora e tenta via fetch */ }
           }
+
+          if (!data || (Array.isArray(data) && data.length === 0)) {
+            const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/produtos/${id}/complementos`);
+            if (res.ok) {
+              data = await res.json();
+            }
+          }
+
+          console.log("Resposta bruta da API de complementos:", data);
+
+          // Normalização inteligente: aceita array direto ou objetos encapsulados (grupos, complementos, data, etc.)
+          let gruposArray = [];
+          if (Array.isArray(data)) {
+            gruposArray = data;
+          } else if (data && typeof data === 'object') {
+            gruposArray = data.grupos || data.complementos || data.data || data.items || [];
+          }
+
+          setGruposComplementos(Array.isArray(gruposArray) ? gruposArray : []);
         } catch (err) {
           console.error('Erro ao carregar complementos:', err);
           setGruposComplementos([]);
-        } fontally: {
+        } finally {
           setLoadingComplementos(false);
         }
       };
@@ -46,26 +66,30 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     }
   }, [isExpanded, id]);
 
-  // Incremento e decremento das opções/sabores/acompanhamentos
+  // Controle de quantidade de cada item dentro do grupo (respeitando o limite máximo)
   const handleOptionChange = (grupo, item, delta) => {
     const grupoId = grupo._id || grupo.id;
     const itemArray = selecoes[grupoId] || [];
-    const itemExistente = itemArray.find(i => (i._id || i.id) === (item._id || item.id));
+    const itemId = item._id || item.id;
+    const itemExistente = itemArray.find(i => (i._id || i.id) === itemId);
     const qtdAtual = itemExistente ? itemExistente.quantidade : 0;
+    
     const totalQtdGrupo = itemArray.reduce((acc, curr) => acc + curr.quantidade, 0);
+    const maximoGrupo = grupo.maximo !== undefined && grupo.maximo !== null ? Number(grupo.maximo) : Infinity;
 
-    if (delta > 0 && grupo.maximo && totalQtdGrupo >= grupo.maximo) {
-      return; // Atingiu o limite do grupo
+    if (delta > 0 && totalQtdGrupo >= maximoGrupo) {
+      alert(`Você pode escolher no máximo ${maximoGrupo} item(ns) neste grupo (${grupo.nome}).`);
+      return;
     }
 
     let novosItens = [...itemArray];
 
     if (qtdAtual + delta <= 0) {
-      novosItens = novosItens.filter(i => (i._id || i.id) !== (item._id || item.id));
+      novosItens = novosItens.filter(i => (i._id || i.id) !== itemId);
     } else {
       if (itemExistente) {
         novosItens = novosItens.map(i =>
-          (i._id || i.id) === (item._id || item.id)
+          (i._id || i.id) === itemId
             ? { ...i, quantidade: i.quantidade + delta }
             : i
         );
@@ -80,13 +104,15 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     });
   };
 
-  // Cálculo do valor adicional total vindo dos complementos selecionados
+  // Cálculo do valor adicional dos itens escolhidos (itens sem preço somam R$ 0,00)
   const calcularValorAdicional = () => {
     let valorExtra = 0;
     Object.values(selecoes).forEach(itensDoGrupo => {
       if (Array.isArray(itensDoGrupo)) {
         itensDoGrupo.forEach(item => {
-          valorExtra += Number(item.preco || 0) * (item.quantidade || 0);
+          const precoItem = Number(item.preco || 0);
+          const qtdItem = Number(item.quantidade || 0);
+          valorExtra += precoItem * qtdItem;
         });
       }
     });
@@ -105,9 +131,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           return String(userObj.role || userObj.tipo || userObj.nivel).toLowerCase();
         }
       }
-    } catch (e) {
-      // Ignora erro
-    }
+    } catch (e) {}
     return (localStorage.getItem('userRole') || localStorage.getItem('role') || localStorage.getItem('tipo') || '').toLowerCase().trim();
   };
 
@@ -122,6 +146,19 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (!disponivel) return;
+
+    // Validação obrigatória dos mínimos configurados nos grupos
+    for (const grupo of gruposComplementos) {
+      const gId = grupo._id || grupo.id;
+      const itensSelecionados = selecoes[gId] || [];
+      const totalQtdGrupo = itensSelecionados.reduce((acc, curr) => acc + curr.quantidade, 0);
+      const minimoObrigatorio = Number(grupo.minimo || 0);
+
+      if (totalQtdGrupo < minimoObrigatorio) {
+        alert(`O grupo "${grupo.nome}" é obrigatório. Escolha pelo menos ${minimoObrigatorio} item(ns).`);
+        return;
+      }
+    }
 
     addToCart({
       ...product,
@@ -200,12 +237,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           {/* LISTAGEM DOS GRUPOS DE COMPLEMENTOS */}
           {loadingComplementos ? (
             <p className="text-xs text-slate-500 py-2">Carregando opções...</p>
-          ) : gruposComplementos.length > 0 && (
+          ) : gruposComplementos.length > 0 ? (
             <div className="space-y-4 mb-6">
               {gruposComplementos.map(grupo => {
                 const gId = grupo._id || grupo.id;
                 const itensSelecionadosDoGrupo = selecoes[gId] || [];
                 const qtdTotalNoGrupo = itensSelecionadosDoGrupo.reduce((acc, curr) => acc + curr.quantidade, 0);
+                const min = Number(grupo.minimo || 0);
+                const max = Number(grupo.maximo || 1);
 
                 return (
                   <div key={gId} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -213,12 +252,11 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                       <div>
                         <h4 className="font-bold text-sm text-slate-900 capitalize">{grupo.nome}</h4>
                         <p className="text-[11px] text-slate-500">
-                          {grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : 'Opcional'} 
-                          {grupo.maximo ? ` (até ${grupo.maximo})` : ''}
+                          {min > 0 ? `Obrigatório (Escolha de ${min} até ${max})` : `Opcional (Até ${max})`}
                         </p>
                       </div>
-                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold">
-                        {qtdTotalNoGrupo} / {grupo.maximo || '∞'}
+                      <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">
+                        {qtdTotalNoGrupo} / {max}
                       </span>
                     </div>
 
@@ -230,12 +268,21 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                         const precoItem = Number(item.preco || 0);
 
                         return (
-                          <div key={itemId} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition">
-                            <div>
-                              <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
-                              {precoItem > 0 && (
-                                <span className="text-xs text-emerald-600 font-bold ml-2">+ R$ {precoItem.toFixed(2)}</span>
+                          <div key={itemId} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 transition border border-slate-100">
+                            <div className="flex items-center gap-3">
+                              {item.foto && (
+                                <img src={item.foto} alt={item.nome} className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
                               )}
+                              <div>
+                                <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
+                                <div className="text-[11px]">
+                                  {precoItem > 0 ? (
+                                    <span className="text-emerald-600 font-bold">+ R$ {precoItem.toFixed(2)}</span>
+                                  ) : (
+                                    <span className="text-slate-400 font-medium">Grátis</span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -243,20 +290,20 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                                 <button
                                   type="button"
                                   onClick={() => handleOptionChange(grupo, item, -1)}
-                                  className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 hover:bg-slate-200"
+                                  className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 hover:bg-slate-200 cursor-pointer"
                                 >
                                   <Minus size={14} />
                                 </button>
                               )}
 
                               {qtdItem > 0 && (
-                                <span className="text-xs font-bold text-slate-900 w-4 text-center">{qtdItem}</span>
+                                <span className="text-xs font-bold text-slate-900 w-5 text-center">{qtdItem}</span>
                               )}
 
                               <button
                                 type="button"
                                 onClick={() => handleOptionChange(grupo, item, 1)}
-                                className="w-7 h-7 bg-amber-500 text-slate-950 font-bold rounded-lg flex items-center justify-center hover:bg-amber-400"
+                                className="w-7 h-7 bg-amber-500 text-slate-950 font-bold rounded-lg flex items-center justify-center hover:bg-amber-400 cursor-pointer shadow-sm"
                               >
                                 <Plus size={14} />
                               </button>
@@ -269,6 +316,8 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 );
               })}
             </div>
+          ) : (
+            <p className="text-xs text-slate-400 py-2 italic mb-4">Nenhum complemento cadastrado para este produto.</p>
           )}
 
           {/* Controle de Estoque/Disponibilidade para Admin */}
@@ -335,5 +384,4 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   );
 };
 
-// Permite ambas as formas de importação no projeto
 export default ProductCardExpandable;
