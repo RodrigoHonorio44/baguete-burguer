@@ -21,6 +21,46 @@ export const useCaixa = () => {
   const [canalPdv, setCanalPdv] = useState('presencial');
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
 
+  // --- CÁLCULOS FINANCEIROS (Declarados antes para estarem acessíveis no fecho) ---
+  const pedidosValidos = pedidos.filter(p => {
+    const status = (p.status || '').toLowerCase();
+    return status !== 'recusado' && status !== 'cancelado';
+  });
+
+  const faturamentoVendas = pedidosValidos.reduce((acc, p) => acc + Number(p.total || 0), 0);
+  const totalGeral = faturamentoVendas + Number(fundoCaixa || 0);
+  
+  const totalPix = pedidosValidos
+    .filter(p => (p.forma_pagamento || p.pagamento || '').toLowerCase() === 'pix')
+    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+
+  const totalCartao = pedidosValidos
+    .filter(p => {
+      const pag = (p.forma_pagamento || p.pagamento || '').toLowerCase();
+      return pag === 'cartao' || pag === 'cartao_credito' || pag === 'cartao_debito';
+    })
+    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+
+  const totalDinheiroVendas = pedidosValidos
+    .filter(p => (p.forma_pagamento || p.pagamento || '').toLowerCase() === 'dinheiro')
+    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+  
+  const totalDinheiroCaixa = totalDinheiroVendas + Number(fundoCaixa || 0);
+
+  const totalPresencial = pedidosValidos
+    .filter(p => {
+      const canal = (p.canal || p.rua || '').toLowerCase();
+      return canal === 'presencial' || canal === 'balcão' || canal.includes('retirada') || !p.canal;
+    })
+    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+
+  const totalIfood = pedidosValidos
+    .filter(p => {
+      const canal = (p.canal || p.rua || '').toLowerCase();
+      return canal === 'ifood' || canal.includes('ifood');
+    })
+    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+
   // Carrega status do Caixa diretamente do Banco de Dados
   const carregarStatusCaixaBanco = async () => {
     try {
@@ -96,33 +136,40 @@ export const useCaixa = () => {
       localStorage.setItem(`caixa_fundo_${hojeStr}`, valor.toString());
 
       toast.success(`Caixa aberto no banco com fundo de ${formatarMoeda(valor)}`);
+      carregarDados();
     } catch (err) {
       console.error(err);
       toast.error('Erro ao registrar abertura de caixa no servidor.');
     }
   };
 
-  // Fechamento do Caixa enviando requisição para o BANCO DE DADOS
+  // Fechamento do Caixa enviando todos os totais apurados para o BANCO DE DADOS
   const fecharCaixaSistema = async () => {
-    if (window.confirm('Tens a certeza que pretendes fechar o caixa de hoje?')) {
-      try {
-        if (api.fecharCaixa) {
-          await api.fecharCaixa({
-            faturamentoVendas,
-            totalGeral,
-            totalDinheiroCaixa,
-            data: hojeStr
-          });
-        }
-
-        setCaixaAberto(false);
-        localStorage.removeItem(`caixa_aberto_${hojeStr}`);
-        localStorage.removeItem(`caixa_fundo_${hojeStr}`);
-        toast.success('Caixa fechado e salvo no banco com sucesso.');
-      } catch (err) {
-        console.error(err);
-        toast.error('Erro ao fechar o caixa no banco de dados.');
+    try {
+      if (api.fecharCaixa) {
+        await api.fecharCaixa({
+          status: 'fechado',
+          valorAbertura: Number(fundoCaixa),
+          faturamentoVendas: Number(faturamentoVendas),
+          totalGeral: Number(totalGeral),
+          totalPix: Number(totalPix),
+          totalCartao: Number(totalCartao),
+          totalDinheiroCaixa: Number(totalDinheiroCaixa),
+          totalPresencial: Number(totalPresencial),
+          totalIfood: Number(totalIfood),
+          totalVendasRealizadas: pedidosValidos.length,
+          data: hojeStr
+        });
       }
+
+      setCaixaAberto(false);
+      localStorage.removeItem(`caixa_aberto_${hojeStr}`);
+      localStorage.removeItem(`caixa_fundo_${hojeStr}`);
+      toast.success('Caixa fechado e todas as transações gravadas no banco com sucesso.');
+      carregarDados();
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao fechar o caixa no banco de dados.');
     }
   };
 
@@ -204,35 +251,6 @@ export const useCaixa = () => {
       toast.error('Erro ao registrar venda.');
     }
   };
-
-  // Cálculos financeiros
-  const pedidosValidos = pedidos.filter(p => p.status !== 'recusado' && p.status !== 'cancelado');
-  const faturamentoVendas = pedidosValidos.reduce((acc, p) => acc + Number(p.total || 0), 0);
-  const totalGeral = faturamentoVendas + fundoCaixa;
-  
-  const totalPix = pedidosValidos
-    .filter(p => (p.forma_pagamento || p.pagamento) === 'pix')
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
-
-  const totalCartao = pedidosValidos
-    .filter(p => {
-      const pag = p.forma_pagamento || p.pagamento;
-      return pag === 'cartao' || pag === 'cartao_credito' || pag === 'cartao_debito';
-    })
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
-
-  const totalDinheiroVendas = pedidosValidos
-    .filter(p => (p.forma_pagamento || p.pagamento) === 'dinheiro')
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
-  const totalDinheiroCaixa = totalDinheiroVendas + fundoCaixa;
-
-  const totalPresencial = pedidosValidos
-    .filter(p => p.canal === 'presencial' || !p.canal || p.rua === 'Retirada no balcão')
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
-
-  const totalIfood = pedidosValidos
-    .filter(p => p.canal === 'ifood' || p.rua === 'Pedido iFood')
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
 
   const pedidosFiltrados = pedidos.filter(p => {
     const status = p.status || 'pendente';

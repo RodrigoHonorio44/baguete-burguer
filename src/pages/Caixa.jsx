@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCaixa } from '../hooks/useCaixa';
-import { DollarSign, CreditCard, Wallet, QrCode, TrendingUp, RefreshCw, ShoppingBag, Clock, Truck, CheckCircle2, Lock, PlusCircle, Store, X, Check } from 'lucide-react';
+import { DollarSign, CreditCard, Wallet, QrCode, TrendingUp, RefreshCw, ShoppingBag, Clock, Truck, CheckCircle2, Lock, PlusCircle, Store, X, Check, AlertTriangle } from 'lucide-react';
 
 export const Caixa = () => {
   const {
@@ -14,42 +14,8 @@ export const Caixa = () => {
     totalPresencial, totalIfood, pedidosFiltrados, carregarDados
   } = useCaixa();
 
-  if (!caixaAberto) {
-    return (
-      <div className="max-w-md mx-auto mt-16 bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center">
-        <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
-          <Lock className="w-8 h-8" />
-        </div>
-        <h1 className="text-xl font-bold text-slate-100 mb-2">abertura de caixa diário</h1>
-        <p className="text-xs text-slate-400 mb-6">
-          insira o valor inicial de troco disponível no gaveteiro para iniciar as operações de hoje.
-        </p>
-        <form onSubmit={abrirCaixa} className="space-y-4">
-          <div className="text-left">
-            <label className="text-xs font-semibold text-slate-300 block mb-1">valor inicial em dinheiro (fundo de troco)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-400 text-sm">R$</span>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="0,00"
-                value={valorAbertura}
-                onChange={(e) => setValorAbertura(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 pl-10 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
-                required
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition cursor-pointer shadow-lg"
-          >
-            abrir caixa agora
-          </button>
-        </form>
-      </div>
-    );
-  }
+  // Estado local para controlar o modal de confirmação de fecho de caixa
+  const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 relative">
@@ -73,7 +39,7 @@ export const Caixa = () => {
             <PlusCircle className="w-4 h-4" /> registar venda (balcão/ifood)
           </button>
           <button
-            onClick={fecharCaixaSistema}
+            onClick={() => setModalConfirmacaoAberto(true)}
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 text-rose-400 hover:bg-slate-700 rounded-lg border border-slate-700 text-xs font-semibold transition cursor-pointer"
           >
             <Lock className="w-4 h-4" /> fechar caixa
@@ -263,6 +229,38 @@ export const Caixa = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL DE CONFIRMAÇÃO DE FECHO DE CAIXA */}
+      {modalConfirmacaoAberto && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
+            <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-500/20">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-100 mb-1">Fechar Caixa</h3>
+            <p className="text-xs text-slate-400 mb-6">
+              Tens a certeza que pretendes fechar o caixa de hoje? Esta ação irá encerrar as operações.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setModalConfirmacaoAberto(false)}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Não
+              </button>
+              <button
+                onClick={() => {
+                  setModalConfirmacaoAberto(false);
+                  fecharCaixaSistema();
+                }}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow"
+              >
+                Sim, Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE REGISTO DE VENDA (BALCÃO OU IFOOD) */}
       {modalPdvAberto && (
