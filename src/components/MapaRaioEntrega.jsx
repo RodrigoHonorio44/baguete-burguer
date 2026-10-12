@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
-import { Store, Clock, MapPin, Power, Save, Trash2, AlertTriangle, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
+import { Store, Clock, MapPin, Power, Save, Trash2, AlertTriangle, Eye, EyeOff, Lock, Unlock, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
 import 'leaflet/dist/leaflet.css';
@@ -38,7 +38,8 @@ export const MapaRaioEntrega = () => {
   const [lojaNome, setLojaNome] = useState('Baguete Burguer');
   const [endereco, setEndereco] = useState('Maricá, RJ');
   const [posicaoLoja, setPosicaoLoja] = useState([-22.9194, -42.8186]); 
-  const [isOnline, setIsOnline] = useState(true); // Botão manual de abrir/fechar
+  const [isOnline, setIsOnline] = useState(true);
+  const [pedidoMinimo, setPedidoMinimo] = useState(20.00); // Novo estado para o pedido mínimo
   
   const [modoMapa, setModoMapa] = useState('loja');
 
@@ -57,29 +58,6 @@ export const MapaRaioEntrega = () => {
   });
 
   const [loading, setLoading] = useState(false);
-
-  // Função auxiliar para verificar se a loja deveria estar aberta com base no dia e hora atuais
-  const verificarStatusAutomatico = (abertura, fechamento, dias) => {
-    const agora = new Date();
-    const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const diaAtualStr = diasSemanaMap[agora.getDay()];
-
-    // Valida se o dia atual está ativo
-    if (!dias[diaAtualStr]) return false;
-
-    // Valida o horário
-    const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
-    
-    const [hAb, mAb] = abertura.split(':').map(Number);
-    const minAbertura = hAb * 60 + mAb;
-
-    const [hFech, mFech] = fechamento.split(':').map(Number);
-    const minFechamento = hFech * 60 + mFech;
-
-    // Se o fechamento for no dia seguinte (ex: 02:00), a lógica pode ser adaptada, 
-    // mas considerando o intervalo normal do mesmo dia:
-    return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
-  };
 
   useEffect(() => {
     const carregarConfiguracoes = async () => {
@@ -120,8 +98,7 @@ export const MapaRaioEntrega = () => {
     if (dados.horarioAbertura) setHorarioAbertura(dados.horarioAbertura);
     if (dados.horarioFechamento) setHorarioFechamento(dados.horarioFechamento);
     if (dados.diasFuncionamento) setDiasFuncionamento(dados.diasFuncionamento);
-    
-    // Se o status manual estiver salvo, respeita ele; caso contrário, calcula pelo horário
+    if (dados.pedidoMinimo !== undefined) setPedidoMinimo(Number(dados.pedidoMinimo));
     if (dados.isOnline !== undefined) {
       setIsOnline(dados.isOnline);
     }
@@ -133,7 +110,8 @@ export const MapaRaioEntrega = () => {
 
     const config = {
       lojaNome, endereco, posicaoLoja, faixasRaio, zonasProibidas,
-      isOnline, horarioAbertura, horarioFechamento, diasFuncionamento
+      isOnline, horarioAbertura, horarioFechamento, diasFuncionamento,
+      pedidoMinimo: Number(pedidoMinimo) || 0
     };
 
     try {
@@ -144,7 +122,7 @@ export const MapaRaioEntrega = () => {
       }
 
       localStorage.setItem('configuracoes_loja', JSON.stringify(config));
-      toast.success('Configurações salvas com sucesso na coleção configuracoes_loja!');
+      toast.success('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar alterações no servidor.');
@@ -159,7 +137,8 @@ export const MapaRaioEntrega = () => {
 
     const config = {
       lojaNome, endereco, posicaoLoja, faixasRaio, zonasProibidas,
-      isOnline: novoStatus, horarioAbertura, horarioFechamento, diasFuncionamento
+      isOnline: novoStatus, horarioAbertura, horarioFechamento, diasFuncionamento,
+      pedidoMinimo: Number(pedidoMinimo) || 0
     };
 
     try {
@@ -267,6 +246,27 @@ export const MapaRaioEntrega = () => {
             />
             <p className="text-[11px] text-slate-400 leading-relaxed">
               O marcador principal da loja serve como sua âncora fixa para cálculo de quilometragem e referência visual.
+            </p>
+          </div>
+
+          {/* Card de Configuração de Pedido Mínimo */}
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
+            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <DollarSign size={15} /> Pedido Mínimo de Entrega
+            </h2>
+            <div>
+              <label className="block text-[10px] text-slate-400 mb-1">Valor Mínimo (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={pedidoMinimo}
+                onChange={(e) => setPedidoMinimo(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Defina o valor mínimo que o carrinho precisa atingir para liberar a finalização do delivery. Se for 0, não haverá limite.
             </p>
           </div>
 
@@ -446,7 +446,7 @@ export const MapaRaioEntrega = () => {
               <button
                 type="button"
                 onClick={() => setModoMapa('bloqueio')}
-                className={`px-3 py-1 nested-btn px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
                   modoMapa === 'bloqueio' ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-slate-400 border-slate-800'
                 }`}
               >
@@ -527,3 +527,5 @@ export const MapaRaioEntrega = () => {
     </div>
   );
 };
+
+export default MapaRaioEntrega;

@@ -1,11 +1,28 @@
-import React from 'react';
-import { X, Trash2, ShoppingBag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trash2, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 export const CartDrawer = () => {
   const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, cartTotal } = useCart();
   const navigate = useNavigate();
+
+  const [pedidoMinimo, setPedidoMinimo] = useState(0);
+
+  // Carrega o pedido mínimo configurado na loja ao abrir o carrinho
+  useEffect(() => {
+    if (isCartOpen) {
+      try {
+        const configSalva = localStorage.getItem('configuracoes_loja');
+        if (configSalva) {
+          const parsed = JSON.parse(configSalva);
+          setPedidoMinimo(Number(parsed.pedidoMinimo) || 0);
+        }
+      } catch (e) {
+        console.error('Erro ao ler pedido mínimo:', e);
+      }
+    }
+  }, [isCartOpen]);
 
   if (!isCartOpen) return null;
 
@@ -17,6 +34,9 @@ export const CartDrawer = () => {
         const qtd = Number(item.quantity || 1);
         return acc + (preco * qtd);
       }, 0);
+
+  const atingiuMinimo = pedidoMinimo <= 0 || totalGeral >= pedidoMinimo;
+  const faltaValor = pedidoMinimo > 0 && totalGeral < pedidoMinimo ? pedidoMinimo - totalGeral : 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -47,7 +67,7 @@ export const CartDrawer = () => {
                 o seu carrinho está vazio.
               </div>
             ) : (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
                 {cart.map((item) => {
                   const id = item.id || item._id;
                   const preco = Number(item.preco || item.price || 0);
@@ -71,7 +91,7 @@ export const CartDrawer = () => {
 
                       <div className="flex items-center gap-2">
                         <div className="flex items-center border border-slate-700 rounded-md bg-slate-800">
-                          {/* Botão Menos garantindo o cálculo correto */}
+                          {/* Botão Menos */}
                           <button
                             onClick={() => updateQuantity(id, quantidade - 1)}
                             className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
@@ -79,7 +99,7 @@ export const CartDrawer = () => {
                             -
                           </button>
                           <span className="px-2 text-xs font-bold text-slate-100">{quantidade}</span>
-                          {/* Botão Mais garantindo o cálculo correto */}
+                          {/* Botão Mais */}
                           <button
                             onClick={() => updateQuantity(id, quantidade + 1)}
                             className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
@@ -104,18 +124,36 @@ export const CartDrawer = () => {
 
           {cart.length > 0 && (
             <div className="border-t border-slate-800 pt-4 mt-auto">
-              <div className="flex justify-between items-center mb-4 text-slate-100 font-bold">
+              <div className="flex justify-between items-center mb-3 text-slate-100 font-bold">
                 <span>total:</span>
                 <span className="text-emerald-400 text-xl">R$ {totalGeral.toFixed(2)}</span>
               </div>
+
+              {/* Alerta Visual de Pedido Mínimo */}
+              {pedidoMinimo > 0 && !atingiuMinimo && (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg mb-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-300">
+                    <span className="font-bold block">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
+                    <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> para finalizar.</span>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => {
+                  if (!atingiuMinimo) return;
                   setIsCartOpen(false);
                   navigate('/checkout');
                 }}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition cursor-pointer"
+                disabled={!atingiuMinimo}
+                className={`w-full py-3 font-bold rounded-lg transition ${
+                  atingiuMinimo
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer shadow-md'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                }`}
               >
-                finalizar pedido
+                {atingiuMinimo ? 'finalizar pedido' : `adicione mais R$ ${faltaValor.toFixed(2)}`}
               </button>
             </div>
           )}
@@ -124,3 +162,5 @@ export const CartDrawer = () => {
     </div>
   );
 };
+
+export default CartDrawer;

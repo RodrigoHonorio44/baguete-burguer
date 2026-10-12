@@ -7,11 +7,11 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Estado para criar um grupo (ex: "Sabores", "Acompanhamentos")
+  // Estado para criar um grupo configurado inicialmente com mínimo: 1 e máximo: 2
   const [grupoForm, setGrupoForm] = useState({
     nome: '',
-    minimo: 0,
-    maximo: 1,
+    minimo: 1,
+    maximo: 2,
     obrigatorio: false,
   });
 
@@ -56,7 +56,9 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
       if (!response.ok) throw new Error('Falha ao salvar grupo');
 
       toast.success('Grupo de complementos criado!');
-      setGrupoForm({ nome: '', minimo: 0, maximo: 1, obrigatorio: false });
+      
+      // Reinicia mantendo os padrões de mínimo: 1 e máximo: 2
+      setGrupoForm({ nome: '', minimo: 1, maximo: 2, obrigatorio: false });
       carregarComplementos();
     } catch (err) {
       toast.error('Erro ao salvar grupo: ' + err.message);
@@ -108,7 +110,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
         {onFechar && (
           <button
             onClick={onFechar}
-            className="text-xs text-slate-400 hover:text-slate-200 bg-slate-800 px-3 py-1 rounded"
+            className="text-xs text-slate-400 hover:text-slate-200 bg-slate-800 px-3 py-1 rounded cursor-pointer"
           >
             Fechar
           </button>
@@ -119,38 +121,54 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
         {/* Cadastro de Grupo */}
         <form onSubmit={handleSalvarGrupo} className="space-y-3 bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
           <h4 className="text-sm font-semibold text-amber-400">1. Criar Grupo de Opcionais</h4>
+          
           <div>
-            <label className="block text-xs text-slate-400">Nome do Grupo</label>
+            <label className="block text-xs text-slate-400 mb-1">Nome do Grupo</label>
             <input
               type="text"
               required
               placeholder="Ex: Escolha o Sabor, Acompanhamentos"
               value={grupoForm.nome}
               onChange={(e) => setGrupoForm({ ...grupoForm, nome: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+              className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
             />
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-400">Mínimo</label>
+              <label className="block text-xs text-slate-400 mb-1">Mínimo</label>
               <input
                 type="number"
+                min="0"
                 value={grupoForm.minimo}
-                onChange={(e) => setGrupoForm({ ...grupoForm, minimo: parseInt(e.target.value) || 0 })}
-                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGrupoForm({ ...grupoForm, minimo: val === '' ? '' : parseInt(val) });
+                }}
+                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400">Máximo</label>
+              <label className="block text-xs text-slate-400 mb-1">Máximo</label>
               <input
                 type="number"
+                min="1"
                 value={grupoForm.maximo}
-                onChange={(e) => setGrupoForm({ ...grupoForm, maximo: parseInt(e.target.value) || 1 })}
-                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGrupoForm({ ...grupoForm, maximo: val === '' ? '' : parseInt(val) });
+                }}
+                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
               />
             </div>
           </div>
-          <button type="submit" className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs">
+
+          {/* Dica visual informativa */}
+          <p className="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded border border-slate-800 leading-relaxed">
+            💡 <strong className="text-amber-400">Dica:</strong> Mínimo <span className="text-white font-bold">1</span> obriga o cliente a escolher. Mínimo <span className="text-white font-bold">0</span> deixa a escolha opcional.
+          </p>
+
+          <button type="submit" className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs cursor-pointer transition-colors">
             + Adicionar Grupo
           </button>
         </form>
@@ -158,12 +176,13 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
         {/* Cadastro de Itens dentro do Grupo */}
         <form onSubmit={handleSalvarItem} className="space-y-3 bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
           <h4 className="text-sm font-semibold text-amber-400">2. Adicionar Opção ao Grupo</h4>
+          
           <div>
-            <label className="block text-xs text-slate-400">Selecione o Grupo</label>
+            <label className="block text-xs text-slate-400 mb-1">Selecione o Grupo</label>
             <select
               value={itemForm.grupoId}
               onChange={(e) => setItemForm({ ...itemForm, grupoId: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+              className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
             >
               <option value="">Selecione...</option>
               {grupos.map((g) => (
@@ -173,33 +192,34 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
               ))}
             </select>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-400">Nome do Item</label>
+              <label className="block text-xs text-slate-400 mb-1">Nome do Item</label>
               <input
                 type="text"
                 required
                 placeholder="Ex: Brigadeiro"
                 value={itemForm.nome}
                 onChange={(e) => setItemForm({ ...itemForm, nome: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400">Preço Adicional (R$)</label>
+              <label className="block text-xs text-slate-400 mb-1">Preço Adicional (R$)</label>
               <input
                 type="number"
                 step="0.01"
                 value={itemForm.preco}
                 onChange={(e) => setItemForm({ ...itemForm, preco: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100"
+                className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-slate-100 focus:border-amber-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Campo de Foto do Complemento */}
           <div>
-            <label className="block text-xs text-slate-400 flex items-center gap-1">
+            <label className="block text-xs text-slate-400 flex items-center gap-1 mb-1">
               <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
               Foto do Complemento (Opcional)
             </label>
@@ -217,7 +237,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
             )}
           </div>
 
-          <button type="submit" className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded text-xs">
+          <button type="submit" className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded text-xs cursor-pointer transition-colors">
             + Adicionar Opção
           </button>
         </form>
