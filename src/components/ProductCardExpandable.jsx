@@ -46,7 +46,6 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
 
           console.log("Resposta bruta da API de complementos:", data);
 
-          // Normalização inteligente: aceita array direto ou objetos encapsulados (grupos, complementos, data, etc.)
           let gruposArray = [];
           if (Array.isArray(data)) {
             gruposArray = data;
@@ -104,7 +103,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     });
   };
 
-  // Cálculo do valor adicional dos itens escolhidos (itens sem preço somam R$ 0,00)
+  // Cálculo do valor adicional dos itens escolhidos
   const calcularValorAdicional = () => {
     let valorExtra = 0;
     Object.values(selecoes).forEach(itensDoGrupo => {
@@ -120,6 +119,23 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   };
 
   const precoTotalUnitario = precoBase + calcularValorAdicional();
+
+  // Validação dinâmica para saber se todos os mínimos obrigatórios foram atingidos
+  const verificarValidacaoMinimos = () => {
+    for (const grupo of gruposComplementos) {
+      const gId = grupo._id || grupo.id;
+      const itensSelecionados = selecoes[gId] || [];
+      const totalQtdGrupo = itensSelecionados.reduce((acc, curr) => acc + curr.quantidade, 0);
+      const minimoObrigatorio = Number(grupo.minimo || 0);
+
+      if (totalQtdGrupo < minimoObrigatorio) {
+        return { valido: false, grupoNome: grupo.nome, faltam: minimoObrigatorio - totalQtdGrupo };
+      }
+    }
+    return { valido: true };
+  };
+
+  const validacao = verificarValidacaoMinimos();
 
   // Verificação de perfil de admin
   const getUserRole = () => {
@@ -147,17 +163,9 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     e.stopPropagation();
     if (!disponivel) return;
 
-    // Validação obrigatória dos mínimos configurados nos grupos
-    for (const grupo of gruposComplementos) {
-      const gId = grupo._id || grupo.id;
-      const itensSelecionados = selecoes[gId] || [];
-      const totalQtdGrupo = itensSelecionados.reduce((acc, curr) => acc + curr.quantidade, 0);
-      const minimoObrigatorio = Number(grupo.minimo || 0);
-
-      if (totalQtdGrupo < minimoObrigatorio) {
-        alert(`O grupo "${grupo.nome}" é obrigatório. Escolha pelo menos ${minimoObrigatorio} item(ns).`);
-        return;
-      }
+    if (!validacao.valido) {
+      alert(`Falta(m) ${validacao.faltam} item(ns) a escolher no grupo "${validacao.grupoNome}".`);
+      return;
     }
 
     addToCart({
@@ -340,12 +348,17 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           )}
 
           {/* Rodapé com Preço Total e Botão de Adicionar */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80">
-            <div>
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-200/80 gap-3">
+            <div className="w-full sm:w-auto text-center sm:text-left">
               <span className="text-xs text-slate-500 block">Total do item</span>
               <span className="text-lg md:text-xl font-black text-slate-900">
                 R$ {(precoTotalUnitario * (quantity > 0 ? quantity : 1)).toFixed(2)}
               </span>
+              {!validacao.valido && (
+                <span className="block text-[11px] font-semibold text-rose-500 mt-0.5">
+                  Falta escolher {validacao.faltam} em "{validacao.grupoNome}"
+                </span>
+              )}
             </div>
 
             {!disponivel ? (
@@ -355,13 +368,18 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             ) : quantity === 0 ? (
               <button
                 onClick={handleAddToCart}
-                className="flex items-center gap-2 bg-amber-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl hover:bg-amber-400 transition text-sm cursor-pointer shadow-md shadow-amber-500/20 active:scale-95"
+                disabled={!validacao.valido}
+                className={`flex items-center justify-center gap-2 font-bold px-6 py-2.5 rounded-xl transition text-sm shadow-md w-full sm:w-auto ${
+                  validacao.valido 
+                    ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer shadow-amber-500/20 active:scale-95' 
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                }`}
               >
                 <Plus className="w-4 h-4" />
-                Adicionar
+                {validacao.valido ? 'Adicionar' : `Escolha mais ${validacao.faltam}`}
               </button>
             ) : (
-              <div className="flex items-center gap-3 bg-white border border-slate-300 rounded-xl p-1.5 shadow-sm">
+              <div className="flex items-center gap-3 bg-white border border-slate-300 rounded-xl p-1.5 shadow-sm w-full sm:w-auto justify-center">
                 <button 
                   onClick={handleRemoveFromCart} 
                   className="p-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 cursor-pointer transition-colors"
@@ -371,7 +389,10 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 <span className="font-bold text-slate-900 w-8 text-center text-sm">{quantity}</span>
                 <button 
                   onClick={handleAddToCart} 
-                  className="p-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 cursor-pointer transition-colors"
+                  disabled={!validacao.valido}
+                  className={`p-2 rounded-lg transition-colors ${
+                    validacao.valido ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
                 >
                   <Plus size={18} />
                 </button>

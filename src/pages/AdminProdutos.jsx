@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers, Sliders } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminComplementos } from '../components/AdminComplementos';
+import { AdminEditarComplementos } from '../components/AdminEditarComplementos';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estado para controlar qual produto terá seus complementos/sabores editados
-  const [produtoComplementosId, setProdutoComplementosId] = useState(null);
+  // Estados separados para controlar cada painel individualmente
+  const [produtoComplementosId, setProdutoComplementosId] = useState(null); // Painel de Cadastro
+  const [produtoGerenciarId, setProdutoGerenciarId] = useState(null); // Painel de Edição e Gestão
 
   const [form, setForm] = useState({
     nome: '',
@@ -350,13 +352,24 @@ export const AdminProdutos = () => {
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-2">
-                      {/* Botão para abrir os complementos do produto */}
+                      {/* Botão 1: Apenas para cadastrar novos grupos/opções */}
                       <button
-                        onClick={() => setProdutoComplementosId(id)}
-                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
-                        title="gerenciar complementos e opcionais"
+                        onClick={() => { setProdutoComplementosId(id); setProdutoGerenciarId(null); }}
+                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700"
+                        title="cadastrar novas categorias ou adicionais"
                       >
-                        <Layers className="w-4 h-4" />
+                        <Layers className="w-4 h-4 text-amber-500" />
+                        <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">cadastrar</span>
+                      </button>
+
+                      {/* Botão 2: Para gerenciar, renomear e editar itens já cadastrados */}
+                      <button
+                        onClick={() => { setProdutoGerenciarId(id); setProdutoComplementosId(null); }}
+                        className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700"
+                        title="gerenciar e editar categorias cadastradas"
+                      >
+                        <Sliders className="w-4 h-4 text-emerald-400" />
+                        <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">gerenciar</span>
                       </button>
 
                       {/* Botão rápido para ligar/desligar disponibilidade */}
@@ -395,11 +408,19 @@ export const AdminProdutos = () => {
         </div>
       </div>
 
-      {/* Renderização do componente de complementos quando um produto estiver selecionado */}
+      {/* Renderização condicional do painel de cadastro */}
       {produtoComplementosId && (
         <AdminComplementos
           produtoId={produtoComplementosId}
           onFechar={() => setProdutoComplementosId(null)}
+        />
+      )}
+
+      {/* Renderização condicional do painel de gerenciamento e edição */}
+      {produtoGerenciarId && (
+        <AdminEditarComplementos
+          produtoId={produtoGerenciarId}
+          onFechar={() => setProdutoGerenciarId(null)}
         />
       )}
     </div>
