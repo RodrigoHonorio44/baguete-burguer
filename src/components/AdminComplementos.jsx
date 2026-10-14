@@ -3,6 +3,8 @@ import { api } from '../services/api';
 import { Plus, Trash2, Edit2, Layers, Check, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+
 export const AdminComplementos = ({ produtoId, onFechar }) => {
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,8 +30,8 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
     if (!produtoId) return;
     setLoading(true);
     try {
-      // Busca os grupos cadastrados para este produto
-      const response = await fetch(`/api/complementos/grupos?produtoId=${produtoId}`);
+      // Busca os grupos cadastrados para este produto usando a URL completa da API
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos?produtoId=${produtoId}`);
       const data = await response.json();
       setGrupos(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -47,7 +49,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
   const handleSalvarGrupo = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/complementos/grupos', {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...grupoForm, produtoId })
@@ -81,7 +83,7 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
     e.preventDefault();
     if (!itemForm.grupoId) return toast.error('Selecione um grupo primeiro.');
     try {
-      const response = await fetch('/api/complementos/itens', {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -163,7 +165,6 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
             </div>
           </div>
 
-          {/* Dica visual informativa */}
           <p className="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded border border-slate-800 leading-relaxed">
             💡 <strong className="text-amber-400">Dica:</strong> Mínimo <span className="text-white font-bold">1</span> obriga o cliente a escolher. Mínimo <span className="text-white font-bold">0</span> deixa a escolha opcional.
           </p>
@@ -217,7 +218,6 @@ export const AdminComplementos = ({ produtoId, onFechar }) => {
             </div>
           </div>
 
-          {/* Campo de Foto do Complemento */}
           <div>
             <label className="block text-xs text-slate-400 flex items-center gap-1 mb-1">
               <ImageIcon className="w-3.5 h-3.5 text-amber-500" />

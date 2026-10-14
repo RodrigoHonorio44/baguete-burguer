@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Layers, Trash2, Edit2, X, Image as ImageIcon, Save, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+
 export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   const [gruposComItens, setGruposComItens] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
     if (!produtoId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/produtos/${produtoId}/complementos`);
+      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/produtos/${produtoId}/complementos`);
       const data = await res.json();
       setGruposComItens(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -49,7 +51,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   // ==========================================
   const handleSalvarGrupo = async (grupoId) => {
     try {
-      const response = await fetch(`/api/complementos/grupos/${grupoId}`, {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos/${grupoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,7 +74,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   const handleExcluirGrupo = async (grupoId) => {
     if (!window.confirm('Tem certeza que deseja excluir esta categoria e todos os seus itens?')) return;
     try {
-      const response = await fetch(`/api/complementos/grupos/${grupoId}`, { method: 'DELETE' });
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos/${grupoId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Erro ao excluir');
       
       toast.success('Categoria excluída!');
@@ -90,7 +92,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
     const precoFinal = isNaN(valorNumerico) ? 0 : valorNumerico;
 
     try {
-      const response = await fetch(`/api/complementos/itens/${itemId}`, {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,7 +114,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   const handleExcluirItem = async (itemId) => {
     if (!window.confirm('Tem certeza que deseja excluir este item?')) return;
     try {
-      const response = await fetch(`/api/complementos/itens/${itemId}`, { method: 'DELETE' });
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens/${itemId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Erro ao excluir item');
 
       toast.success('Item removido!');
@@ -140,7 +142,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
     e.preventDefault();
     const precoNum = parseFloat(novoItemForm.preco) || 0;
     try {
-      const response = await fetch('/api/complementos/itens', {
+      const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
