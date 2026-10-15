@@ -269,5 +269,47 @@ export const api = {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Erro ao salvar configurações da loja');
     return data;
+  },
+
+  // --- PRECIFICAÇÃO E INSUMOS (INTEGRADO AO MONGODB) ---
+  getInsumosPrecificacao: async () => {
+    const response = await fetch(`${API_URL}/precificacao`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar insumos de precificação');
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  criarInsumoPrecificacao: async (payload) => {
+    const response = await fetch(`${API_URL}/precificacao`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao cadastrar insumo');
+    return data;
+  },
+
+  atualizarInsumoPrecificacao: async (id, payload) => {
+    const response = await fetch(`${API_URL}/precificacao/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao atualizar insumo');
+    return data;
+  },
+
+  excluirInsumoPrecificacao: async (id) => {
+    const response = await fetch(`${API_URL}/precificacao/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao excluir insumo');
+    return data;
   }
 };

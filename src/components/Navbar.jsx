@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X } from 'lucide-react';
+import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -175,7 +175,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Badge de Status da Loja no PC (Logo no início, ao lado do logo) */}
+          {/* Badge de Status da Loja no PC */}
           <div className="hidden md:flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs ml-2">
             <span className="relative flex h-2.5 w-2.5">
               {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
@@ -190,7 +190,7 @@ export const Navbar = () => {
             </span>
           </div>
 
-          {/* Ações no Mobile (Carrinho e Sair/Entrar) */}
+          {/* Ações no Mobile */}
           <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setIsCartOpen(true)}
@@ -225,7 +225,7 @@ export const Navbar = () => {
         </div>
 
         {/* Centro: Navegação Desktop */}
-        <nav className="hidden md:flex items-center gap-5 text-sm text-slate-300 font-medium">
+        <nav className="hidden md:flex items-center gap-4 text-sm text-slate-300 font-medium">
           <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
           
           {isAdmin ? (
@@ -246,6 +246,10 @@ export const Navbar = () => {
               </Link>
               <Link to="/configuracoes/entrega" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
                 <MapPin className="w-4 h-4" /> raio de entrega
+              </Link>
+              {/* 👉 Link Protegido para Administradores */}
+              <Link to="/admin/precificacao" className="hover:text-amber-400 transition flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                <Calculator className="w-4 h-4" /> precificação
               </Link>
             </>
           ) : (
@@ -308,7 +312,7 @@ export const Navbar = () => {
 
       </div>
 
-      {/* Linha Inferior Mobile Centralizada (Visível apenas em dispositivos móveis) */}
+      {/* Linha Inferior Mobile Centralizada */}
       <div className="flex md:hidden w-full bg-slate-950 border-t border-slate-800 py-1.5 px-3 items-center justify-center gap-2 text-xs">
         <span className="relative flex h-2.5 w-2.5">
           {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
@@ -321,14 +325,6 @@ export const Navbar = () => {
         <span className="text-slate-300 flex items-center gap-1 font-medium">
           <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
         </span>
-        {diasAtivosObj.length > 0 && (
-          <>
-            <span className="text-slate-600">•</span>
-            <span className="text-slate-400 capitalize">
-              {diasAtivosObj.map(([dia]) => dia.slice(0, 3)).join(', ')}
-            </span>
-          </>
-        )}
       </div>
 
       {/* Menu Mobile Expandido */}
@@ -352,6 +348,10 @@ export const Navbar = () => {
               </Link>
               <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-400 transition">
                 <MapPin className="w-4 h-4" /> raio de entrega
+              </Link>
+              {/* 👉 Link Protegido no Menu Mobile */}
+              <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 transition">
+                <Calculator className="w-4 h-4" /> precificação
               </Link>
             </>
           ) : (

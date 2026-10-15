@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { Navbar } from './components/Navbar';
 import { CartDrawer } from './components/CartDrawer';
 import { AppRoutes } from './routes/AppRoutes';
+import { Footer } from './components/Footer'; // Importação do componente Footer atualizado
 
 export default function App() {
   return (
@@ -18,9 +19,9 @@ export default function App() {
             </main>
           </div>
           <CartDrawer />
-          <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-            © baguete burguer - todos os direitos reservados. qualidade e sabor em cada mordida.
-          </footer>
+          
+          {/* Footer Atualizado */}
+          <Footer />
         </div>
         
         {/* Configuração global do Toast */}
