@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodho
 const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL.replace(/\/$/, '')}/api`;
 
 // LOG DE DEPURAÇÃO: Permite verificar na consola do navegador qual API está ativa
-//console.log("🚀 URL da API ativa no Frontend:", API_URL);
+// console.log("🚀 URL da API ativa no Frontend:", API_URL);
 
 const getHeaders = () => {
   const token = localStorage.getItem('token');
