@@ -2,25 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { X, Trash2, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api'; // Certifique-se de que a api está importada
 
 export const CartDrawer = () => {
   const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, cartTotal } = useCart();
   const navigate = useNavigate();
 
-  const [pedidoMinimo, setPedidoMinimo] = useState(0);
+  // Força o padrão inicial para 20 caso não encontre em lugar nenhum
+  const [pedidoMinimo, setPedidoMinimo] = useState(20);
 
-  // Carrega o pedido mínimo configurado na loja ao abrir o carrinho
+  // Carrega o pedido mínimo da API do banco e faz fallback para o localStorage
   useEffect(() => {
     if (isCartOpen) {
-      try {
-        const configSalva = localStorage.getItem('configuracoes_loja');
-        if (configSalva) {
-          const parsed = JSON.parse(configSalva);
-          setPedidoMinimo(Number(parsed.pedidoMinimo) || 0);
+      const buscarPedidoMinimo = async () => {
+        try {
+          // Tenta buscar diretamente do backend/banco de dados online
+          if (api.getConfiguracoesLoja) {
+            const configServer = await api.getConfiguracoesLoja();
+            if (configServer && (configServer.pedidoMinimo !== undefined || configServer.pedido_minimo !== undefined)) {
+              const minServidor = Number(configServer.pedidoMinimo ?? configServer.pedido_minimo);
+              setPedidoMinimo(minServidor >= 0 ? minServidor : 20);
+              return;
+            }
+          }
+
+          // Se falhar a API, tenta o localStorage
+          const configSalva = localStorage.getItem('configuracoes_loja');
+          if (configSalva) {
+            const parsed = JSON.parse(configSalva);
+            const minLocal = Number(parsed.pedidoMinimo ?? parsed.pedido_minimo);
+            if (!isNaN(minLocal)) {
+              setPedidoMinimo(minLocal);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Erro ao carregar pedido mínimo:', e);
         }
-      } catch (e) {
-        console.error('Erro ao ler pedido mínimo:', e);
-      }
+      };
+
+      buscarPedidoMinimo();
     }
   }, [isCartOpen]);
 

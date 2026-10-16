@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Trash2 } from 'lucide-react';
+import { MapPin, Trash2, AlertCircle } from 'lucide-react';
 import { useCheckout } from '../hooks/useCheckout';
 
 export const Checkout = () => {
@@ -10,6 +10,7 @@ export const Checkout = () => {
     loadingGeo,
     loadingCancelamento,
     taxaEntrega,
+    pedidoMinimo,
     navigate,
     handleChange,
     capturarLocalizacao,
@@ -24,6 +25,10 @@ export const Checkout = () => {
 
   // Valor total final: Produtos + Taxa de Entrega calculada pelo hook
   const totalGeral = calcularTotal();
+
+  // Verificação do pedido mínimo
+  const atingePedidoMinimo = pedidoMinimo <= 0 || subtotalProdutos >= pedidoMinimo;
+  const faltaValor = pedidoMinimo > 0 && subtotalProdutos < pedidoMinimo ? pedidoMinimo - subtotalProdutos : 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -61,7 +66,7 @@ export const Checkout = () => {
               <span className="text-slate-100 font-medium whitespace-pre-line">
                 {form.rua ? `${form.rua}, nº ${form.numero}\n${form.bairro}` : 'Endereço não informado'}
               </span>
-              {/* Alerta caso as coordenadas não estejam definidas ou a taxa seja zero fora da área */}
+              {/* Alerta caso as coordenadas não estejam definidas */}
               {!form.latitude && (
                 <p className="text-xs text-amber-400 mt-1">Clique em "Atualizar Localização Atual (GPS)" para calcular a taxa de entrega.</p>
               )}
@@ -113,7 +118,7 @@ export const Checkout = () => {
           </select>
         </div>
 
-        {/* CAMPO CONDICIONAL DE TROCO (Apenas se escolher dinheiro com troco) */}
+        {/* CAMPO CONDICIONAL DE TROCO */}
         {form.forma_pagamento === 'dinheiro_troco' && (
           <div className="bg-slate-950 border border-amber-500/30 p-4 rounded-xl space-y-2">
             <label className="block text-xs font-medium text-amber-400">
@@ -144,6 +149,17 @@ export const Checkout = () => {
           </div>
         )}
 
+        {/* ALERTA DE PEDIDO MÍNIMO SE NÃO ATINGIR */}
+        {!atingiePedidoMinimo && (
+          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-300">
+              <span className="font-bold block text-sm">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}[cite: 4]</span>
+              <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> em produtos para poder finalizar o pedido[cite: 4].</span>
+            </div>
+          </div>
+        )}
+
         {/* Resumo de Valores (Produto + Frete) */}
         <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2 text-sm">
           <div className="flex justify-between text-slate-300">
@@ -171,12 +187,17 @@ export const Checkout = () => {
               disabled={
                 loading || 
                 cart.length === 0 || 
+                !atingiePedidoMinimo || 
                 taxaEntrega === 0 || 
                 (form.forma_pagamento === 'dinheiro_troco' && (!form.troco_para || Number(form.troco_para) <= totalGeral))
               }
-              className="py-3 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition text-sm shadow-lg shadow-amber-500/10 cursor-pointer disabled:opacity-50"
+              className={`py-3 px-6 font-bold rounded-xl transition text-sm shadow-lg cursor-pointer ${
+                atingiePedidoMinimo 
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/10' 
+                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+              } disabled:opacity-50`}
             >
-              {loading ? 'A finalizar...' : 'Finalizar Pedido'}
+              {loading ? 'A finalizar...' : atingiePedidoMinimo ? 'Finalizar Pedido' : `Faltam R$ ${faltaValor.toFixed(2)}`}[cite: 4]
             </button>
           </div>
 

@@ -13,9 +13,10 @@ export const useCheckout = () => {
   const [userDataId, setUserDataId] = useState('');
   const [userDataEmail, setUserDataEmail] = useState('');
 
-  // Estados de Entrega Dinâmicos
+  // Estados de Entrega e Pedido Mínimo Dinâmicos
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [configLoja, setConfigLoja] = useState(null);
+  const [pedidoMinimo, setPedidoMinimo] = useState(20); // Padrão de segurança de R$ 20.00
 
   const [form, setForm] = useState({
     cliente_nome: '',
@@ -30,7 +31,7 @@ export const useCheckout = () => {
     longitude: ''
   });
 
-  // Carrega dados do usuário e configurações de entrega da loja
+  // Carrega dados do usuário, configurações de entrega e o pedido mínimo da loja
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -60,7 +61,7 @@ export const useCheckout = () => {
       console.error('Erro ao carregar dados do utilizador:', e);
     }
 
-    // Carrega as configurações unificadas da loja (raios, taxas e zonas proibidas)
+    // Carrega as configurações unificadas da loja (raios, taxas, zonas proibidas e pedido mínimo)
     const carregarConfiguracoesLoja = async () => {
       try {
         let dadosServer = null;
@@ -72,6 +73,10 @@ export const useCheckout = () => {
 
         if (dadosServer) {
           setConfigLoja(dadosServer);
+          const minServidor = Number(dadosServer.pedidoMinimo ?? dadosServer.pedido_minimo);
+          if (!isNaN(minimoServidor) && minimoServidor >= 0) {
+            setPedidoMinimo(minimoServidor);
+          }
           return;
         }
       } catch (err) {
@@ -82,7 +87,12 @@ export const useCheckout = () => {
       const configSalva = localStorage.getItem('configuracoes_loja');
       if (configSalva) {
         try {
-          setConfigLoja(JSON.parse(configSalva));
+          const parsed = JSON.parse(configSalva);
+          setConfigLoja(parsed);
+          const minLocal = Number(parsed.pedidoMinimo ?? parsed.pedido_minimo);
+          if (!isNaN(minLocal) && minLocal >= 0) {
+            setPedidoMinimo(minLocal);
+          }
         } catch (e) {
           console.error('Erro ao analisar configurações locais:', e);
         }
@@ -146,7 +156,6 @@ export const useCheckout = () => {
     }
 
     const faixaEncontrada = faixasAtivas.find(f => {
-      // Se a faixa tiver um centro independente fixado, calcula a distância a partir dele, senão usa a loja principal
       let centroRaio = posicaoLoja;
       if (f.fixo && f.posicao) {
         centroRaio = f.posicao;
@@ -249,6 +258,14 @@ export const useCheckout = () => {
       return;
     }
 
+    const subtotal = calcularSubtotal();
+
+    // VALIDAÇÃO RIGOROSA DO PEDIDO MÍNIMO
+    if (subtotal < pedidoMinimo) {
+      toast.error(`O pedido mínimo é de R$ ${pedidoMinimo.toFixed(2)}. Adicione mais itens ao carrinho.`);
+      return;
+    }
+
     if (taxaEntrega === 0 && configLoja) {
       toast.error('Por favor, valide a sua localização/morada para calcular a entrega antes de finalizar.');
       return;
@@ -261,7 +278,7 @@ export const useCheckout = () => {
         ...form,
         userId: userDataId,
         email: userDataEmail,
-        subtotal: calcularSubtotal(),
+        subtotal: subtotal,
         taxa_entrega: taxaEntrega,
         total: calcularTotal(),
         troco_para: form.forma_pagamento === 'dinheiro' ? form.troco_para : '',
@@ -292,6 +309,7 @@ export const useCheckout = () => {
     loadingGeo,
     loadingCancelamento,
     taxaEntrega,
+    pedidoMinimo,
     navigate,
     handleChange,
     capturarLocalizacao,
