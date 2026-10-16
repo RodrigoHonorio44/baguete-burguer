@@ -13,15 +13,16 @@ export const useCaixa = () => {
   const [fundoCaixa, setFundoCaixa] = useState(0);
   const [valorAbertura, setValorAbertura] = useState('');
 
-  // Modal PDV
+  // Modal PDV (Venda Manual)
   const [modalPdvAberto, setModalPdvAberto] = useState(false);
   const [carrinhoPdv, setCarrinhoPdv] = useState([]);
   const [clientePdv, setClientePdv] = useState('');
   const [pagamentoPdv, setPagamentoPdv] = useState('dinheiro');
   const [canalPdv, setCanalPdv] = useState('presencial');
+  const [tipoRetiradaPdv, setTipoRetiradaPdv] = useState('retirada'); // 'retirada' ou 'entrega'
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
 
-  // --- CÁLCULOS FINANCEIROS (Declarados antes para estarem acessíveis no fecho) ---
+  // --- CÁLCULOS FINANCEIROS ---
   const pedidosValidos = pedidos.filter(p => {
     const status = (p.status || '').toLowerCase();
     return status !== 'recusado' && status !== 'cancelado';
@@ -116,7 +117,9 @@ export const useCaixa = () => {
 
   // Abertura do Caixa enviando requisição para o BANCO DE DADOS
   const abrirCaixa = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     const valor = parseFloat(valorAbertura);
     if (isNaN(valor) || valor < 0) {
       toast.error('Insira um valor de abertura válido.');
@@ -131,7 +134,6 @@ export const useCaixa = () => {
       setFundoCaixa(valor);
       setCaixaAberto(true);
       
-      // Armazena cópia local de segurança
       localStorage.setItem(`caixa_aberto_${hojeStr}`, JSON.stringify(true));
       localStorage.setItem(`caixa_fundo_${hojeStr}`, valor.toString());
 
@@ -143,7 +145,7 @@ export const useCaixa = () => {
     }
   };
 
-  // Fechamento do Caixa enviando todos os totais apurados para o BANCO DE DADOS
+  // Fechamento do Caixa enviando totais para o BANCO DE DADOS
   const fecharCaixaSistema = async () => {
     try {
       if (api.fecharCaixa) {
@@ -201,9 +203,9 @@ export const useCaixa = () => {
   };
 
   const adicionarAoCarrinhoPdv = (produto) => {
-    const itemExistente = carrinhoPdv.find(i => i._id === produto._id);
+    const itemExistente = carrinhoPdv.find(i => (i._id || i.id) === (produto._id || produto.id));
     if (itemExistente) {
-      setCarrinhoPdv(carrinhoPdv.map(i => i._id === produto._id ? { ...i, quantidade: i.quantidade + 1 } : i));
+      setCarrinhoPdv(carrinhoPdv.map(i => (i._id || i.id) === (produto._id || produto.id) ? { ...i, quantidade: i.quantidade + 1 } : i));
     } else {
       setCarrinhoPdv([...carrinhoPdv, { ...produto, quantidade: 1 }]);
     }
@@ -213,7 +215,9 @@ export const useCaixa = () => {
   const trocoPdv = Number(valorRecebidoPdv) - totalCarrinhoPdv;
 
   const finalizarVendaPdv = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     if (carrinhoPdv.length === 0) {
       toast.error('Adicione produtos ao carrinho.');
       return;
@@ -224,15 +228,19 @@ export const useCaixa = () => {
     }
 
     try {
+      // Se for para retirada imediata no balcão, já nasce pronto/concluído ou vai para a cozinha preparar e depois concluir direto
+      const statusInicial = (tipoRetiradaPdv === 'retirada' && canalPdv === 'presencial') ? 'preparo' : 'preparo';
+
       const novoPedido = {
         cliente_nome: clientePdv.trim() || (canalPdv === 'ifood' ? 'Cliente iFood' : 'Cliente Balcão'),
         itens: carrinhoPdv,
         total: totalCarrinhoPdv,
         forma_pagamento: pagamentoPdv,
         pagamento: pagamentoPdv,
-        status: 'concluido',
+        status: statusInicial,
         canal: canalPdv,
-        rua: canalPdv === 'ifood' ? 'Pedido iFood' : 'Retirada no balcão',
+        tipo: tipoRetiradaPdv,
+        rua: tipoRetiradaPdv === 'retirada' ? 'Retirada no Balcão' : 'Delivery',
         criadoEm: new Date().toISOString()
       };
 
@@ -240,7 +248,7 @@ export const useCaixa = () => {
         await api.criarPedido(novoPedido);
       }
 
-      toast.success('Venda registrada com sucesso no caixa!');
+      toast.success('Venda registrada com sucesso!');
       setModalPdvAberto(false);
       setCarrinhoPdv([]);
       setClientePdv('');
@@ -266,6 +274,7 @@ export const useCaixa = () => {
     caixaAberto, valorAbertura, setValorAbertura, abrirCaixa, fecharCaixaSistema,
     fundoCaixa, modalPdvAberto, setModalPdvAberto, carrinhoPdv, clientePdv,
     setClientePdv, pagamentoPdv, setPagamentoPdv, canalPdv, setCanalPdv,
+    tipoRetiradaPdv, setTipoRetiradaPdv,
     valorRecebidoPdv, setValorRecebidoPdv, adicionarAoCarrinhoPdv, totalCarrinhoPdv,
     trocoPdv, finalizarVendaPdv, alterarStatus, formatarMoeda, formatarDataHora,
     pedidosValidos, totalGeral, totalPix, totalCartao, totalDinheiroCaixa,
