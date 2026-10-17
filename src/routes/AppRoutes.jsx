@@ -7,7 +7,8 @@ import { Login } from '../pages/Login';
 import { Comandas } from '../pages/Comandas';
 import { Caixa } from '../pages/Caixa';
 import { AdminProdutos } from '../pages/AdminProdutos';
-import AdminPrecificacao from '../pages/AdminPrecificacao';// <--- Importação da tela de Precificação
+import AdminPrecificacao from '../pages/AdminPrecificacao';
+import PrestacaoContasTaymix from '../pages/PrestacaoContasTaymix'; // <--- Importação da Prestação de Contas Taymix
 import { MeusPedidos } from '../pages/MeusPedidos';
 import { Motoboy } from '../pages/Motoboy';
 import { RastreioCliente } from '../pages/RastreioCliente';
@@ -63,12 +64,22 @@ export const AppRoutes = () => {
         } 
       />
 
-      {/* 👉 Rota Protegida de Precificação iFood x 99Food */}
+      {/* Rota Protegida de Precificação iFood x 99Food */}
       <Route 
         path="/admin/precificacao" 
         element={
           <ProtectedRoute requireAdmin={true}>
             <AdminPrecificacao />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* 👉 Nova Rota Protegida de Prestação de Contas & Divisão de Lucros (Taymix) */}
+      <Route 
+        path="/admin/financeiro" 
+        element={
+          <ProtectedRoute requireAdmin={true}>
+            <PrestacaoContasTaymix />
           </ProtectedRoute>
         } 
       />

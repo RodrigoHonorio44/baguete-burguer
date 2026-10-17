@@ -311,5 +311,50 @@ export const api = {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Erro ao excluir insumo');
     return data;
+  },
+
+  // --- GESTÃO FINANCEIRA & PRESTAÇÃO DE CONTAS (TAYMIX) ---
+  getFinanceiro: async () => {
+    const response = await fetch(`${API_URL}/financeiro`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar dados financeiros');
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  criarMovimentacaoFinanceira: async (payload) => {
+    const response = await fetch(`${API_URL}/financeiro`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao registrar lançamento financeiro');
+    return data;
+  },
+
+  excluirMovimentacaoFinanceira: async (id) => {
+    const response = await fetch(`${API_URL}/financeiro/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao excluir lançamento financeiro');
+    return data;
+  },
+
+  lerNotaFiscal: async (formData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/financeiro/ler-nota`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao ler a nota fiscal com IA');
+    return data;
   }
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator } from 'lucide-react';
+import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -83,7 +83,6 @@ export const Navbar = () => {
   };
 
   const lojaAberta = calcularStatusAutomatico();
-  const diasAtivosObj = Object.entries(configLoja.diasFuncionamento || {}).filter(([_, ativo]) => ativo);
 
   // Verificação de alertas para pedidos
   useEffect(() => {
@@ -228,7 +227,8 @@ export const Navbar = () => {
         <nav className="hidden md:flex items-center gap-4 text-sm text-slate-300 font-medium">
           <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
           
-          {isAdmin ? (
+          {/* APENAS EXIBE O MENU ADMIN SE ESTIVER LOGADO COMO ADMINISTRADOR */}
+          {isLoggedIn && isAdmin && (
             <>
               <Link to="/comandas" className="relative hover:text-amber-400 transition flex items-center gap-1">
                 <ClipboardList className="w-4 h-4" /> comandas
@@ -238,21 +238,32 @@ export const Navbar = () => {
                   </span>
                 )}
               </Link>
+
               <Link to="/caixa" className="hover:text-amber-400 transition flex items-center gap-1">
                 <DollarSign className="w-4 h-4" /> caixa
               </Link>
+
               <Link to="/admin/produtos" className="hover:text-amber-400 transition flex items-center gap-1">
                 <Package className="w-4 h-4" /> produtos
               </Link>
+
               <Link to="/configuracoes/entrega" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
                 <MapPin className="w-4 h-4" /> raio de entrega
               </Link>
-              {/* 👉 Link Protegido para Administradores */}
+
               <Link to="/admin/precificacao" className="hover:text-amber-400 transition flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                 <Calculator className="w-4 h-4" /> precificação
               </Link>
+
+              {/* 👉 NOVO LINK PROTEGIDO: Prestação de Contas Taymix */}
+              <Link to="/admin/financeiro" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold">
+                <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro
+              </Link>
             </>
-          ) : (
+          )}
+
+          {/* SE NÃO FOR ADMIN (CLIENTE LOGADO OU VISITANTE) */}
+          {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
                 <Link to="/meus-pedidos" className="relative hover:text-amber-400 transition flex items-center gap-1">
@@ -334,7 +345,8 @@ export const Navbar = () => {
             cardápio
           </Link>
           
-          {isAdmin ? (
+          {/* SÓ MOSTRA SE ESTIVER LOGADO COMO ADMINISTRADOR */}
+          {isLoggedIn && isAdmin && (
             <>
               <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
                 <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4 text-amber-500" /> comandas</span>
@@ -349,12 +361,18 @@ export const Navbar = () => {
               <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-400 transition">
                 <MapPin className="w-4 h-4" /> raio de entrega
               </Link>
-              {/* 👉 Link Protegido no Menu Mobile */}
               <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 transition">
                 <Calculator className="w-4 h-4" /> precificação
               </Link>
+              {/* 👉 Link Protegido no Menu Mobile */}
+              <Link to="/admin/financeiro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-300 font-bold transition">
+                <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro / prestação
+              </Link>
             </>
-          ) : (
+          )}
+
+          {/* SE NÃO FOR ADMIN */}
+          {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
                 <Link to="/meus-pedidos" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
