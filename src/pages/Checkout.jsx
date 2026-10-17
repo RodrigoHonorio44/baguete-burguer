@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Trash2, AlertCircle } from 'lucide-react';
+import { MapPin, Trash2, AlertCircle, ShoppingBag } from 'lucide-react';
 import { useCheckout } from '../hooks/useCheckout';
 
 export const Checkout = () => {
@@ -149,14 +149,25 @@ export const Checkout = () => {
           </div>
         )}
 
-        {/* ALERTA DE PEDIDO MÍNIMO SE NÃO ATINGIR */}
-        {!atingiePedidoMinimo && (
-          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5">
-            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-300">
-              <span className="font-bold block text-sm">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}[cite: 4]</span>
-              <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> em produtos para poder finalizar o pedido[cite: 4].</span>
+        {/* ALERTA DE PEDIDO MÍNIMO + BOTÃO PARA VOLTAR AO CARDÁPIO */}
+        {!atingePedidoMinimo && (
+          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl space-y-3">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-300">
+                <span className="font-bold block text-sm">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
+                <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> em produtos para poder finalizar o pedido.</span>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Adicionar Mais Itens (Faltam R$ {faltaValor.toFixed(2)})
+            </button>
           </div>
         )}
 
@@ -187,17 +198,17 @@ export const Checkout = () => {
               disabled={
                 loading || 
                 cart.length === 0 || 
-                !atingiePedidoMinimo || 
+                !atingePedidoMinimo || 
                 taxaEntrega === 0 || 
                 (form.forma_pagamento === 'dinheiro_troco' && (!form.troco_para || Number(form.troco_para) <= totalGeral))
               }
               className={`py-3 px-6 font-bold rounded-xl transition text-sm shadow-lg cursor-pointer ${
-                atingiePedidoMinimo 
+                atingePedidoMinimo 
                   ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/10' 
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
               } disabled:opacity-50`}
             >
-              {loading ? 'A finalizar...' : atingiePedidoMinimo ? 'Finalizar Pedido' : `Faltam R$ ${faltaValor.toFixed(2)}`}[cite: 4]
+              {loading ? 'A finalizar...' : atingePedidoMinimo ? 'Finalizar Pedido' : `Faltam R$ ${faltaValor.toFixed(2)}`}
             </button>
           </div>
 

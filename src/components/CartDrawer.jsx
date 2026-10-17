@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ShoppingBag, AlertCircle } from 'lucide-react';
+import { X, Trash2, ShoppingBag, AlertCircle, PlusCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api'; // Certifique-se de que a api está importada
+import { api } from '../services/api';
 
 export const CartDrawer = () => {
   const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, cartTotal } = useCart();
@@ -58,6 +58,12 @@ export const CartDrawer = () => {
 
   const atingiuMinimo = pedidoMinimo <= 0 || totalGeral >= pedidoMinimo;
   const faltaValor = pedidoMinimo > 0 && totalGeral < pedidoMinimo ? pedidoMinimo - totalGeral : 0;
+
+  // Função para voltar ao cardápio e fechar o carrinho
+  const handleVoltarAoCardapio = () => {
+    setIsCartOpen(false);
+    navigate('/');
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -150,32 +156,40 @@ export const CartDrawer = () => {
                 <span className="text-emerald-400 text-xl">R$ {totalGeral.toFixed(2)}</span>
               </div>
 
-              {/* Alerta Visual de Pedido Mínimo */}
-              {pedidoMinimo > 0 && !atingiuMinimo && (
-                <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg mb-3 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-300">
-                    <span className="font-bold block">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
-                    <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> para finalizar.</span>
+              {/* Alerta Visual e Ação para Pedido Mínimo */}
+              {pedidoMinimo > 0 && !atingiuMinimo ? (
+                <div className="space-y-3">
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-amber-300">
+                      <span className="font-bold block">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
+                      <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> para finalizar.</span>
+                    </div>
                   </div>
-                </div>
-              )}
 
-              <button
-                onClick={() => {
-                  if (!atingiuMinimo) return;
-                  setIsCartOpen(false);
-                  navigate('/checkout');
-                }}
-                disabled={!atingiuMinimo}
-                className={`w-full py-3 font-bold rounded-lg transition ${
-                  atingiuMinimo
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer shadow-md'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                }`}
-              >
-                {atingiuMinimo ? 'finalizar pedido' : `adicione mais R$ ${faltaValor.toFixed(2)}`}
-              </button>
+                  {/* Botão Clicável para Adicionar Mais Itens no Cardápio */}
+                  <button
+                    type="button"
+                    onClick={handleVoltarAoCardapio}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Adicionar mais R$ {faltaValor.toFixed(2)} (Ver Cardápio)
+                  </button>
+                </div>
+              ) : (
+                /* Botão de Avançar para o Checkout */
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    navigate('/checkout');
+                  }}
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition text-sm cursor-pointer shadow-md"
+                >
+                  finalizar pedido
+                </button>
+              )}
             </div>
           )}
         </div>
