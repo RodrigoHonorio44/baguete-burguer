@@ -1,151 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, Users, Plus, Trash2, Calendar, Filter, Camera, ShieldCheck, CheckSquare, Square, BookOpen, X } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
-import { api } from '../services/api';
+import React from 'react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Users, Plus, Trash2, Filter, Camera, ShieldCheck, CheckSquare, Square, BookOpen, X } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
+import { usePrestacaoContasTaymix } from '../hooks/usePrestacaoContasTaymix';
+import ImpressaoPrestacaoContasTaymix from '../components/ImpressaoPrestacaoContasTaymix';
 
 export default function PrestacaoContasTaymix() {
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
-  const [movimentacoes, setMovimentacoes] = useState([]);
-  const [percentualGiro, setPercentualGiro] = useState(20);
-  const [percentualSocioA, setPercentualSocioA] = useState(50);
-  const [investimentoManual, setInvestimentoManual] = useState(0);
-
-  const [tipo, setTipo] = useState('Receita');
-  const [categoria, setCategoria] = useState('Vendas / Pedidos');
-  const [descricao, setDescricao] = useState('');
-  const [valor, setValor] = useState('');
-  const [ehInvestimentoInicial, setEhInvestimentoInicial] = useState(false);
-  const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
-  const [lendoNota, setLendoNota] = useState(false);
-  const [manualAberto, setManualAberto] = useState(false);
-
-  const categoriasReceita = ['Vendas / Pedidos', 'Aporte de Sócio', 'Outros Recebimentos'];
-  const categoriasDespesa = ['Insumos / Ingredientes', 'Embalagens', 'Mão de Obra / Pessoal', 'Gás / Energia / Água', 'Combustível / Entrega', 'Manutenção / Ferramentas', 'Outras Despesas'];
-
-  useEffect(() => {
-    carregarMovimentacoes();
-  }, []);
-
-  const carregarMovimentacoes = async () => {
-    try {
-      const dados = await api.getFinanceiro();
-      setMovimentacoes(dados || []);
-    } catch (error) {
-      console.error('Erro ao buscar movimentações:', error);
-      toast.error('Erro ao carregar dados financeiros.');
-    }
-  };
-
-  const handleScanNota = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setLendoNota(true);
-    const toastId = toast.loading('Analisando foto da notinha com IA...');
-
-    const formData = new FormData();
-    formData.append('fotoNota', file);
-
-    try {
-      const res = await api.lerNotaFiscal(formData);
-      if (res) {
-        if (res.descricao) setDescricao(res.descricao);
-        if (res.valorTotal) setValor(res.valorTotal);
-        if (res.categoria) setCategoria(res.categoria);
-        setTipo('Despesa');
-        toast.success('Notinha lida com sucesso!', { id: toastId });
-      }
-    } catch (error) {
-      console.error('Erro ao escanear nota:', error);
-      toast.error('Não foi possível ler a nota. Preencha manualmente.', { id: toastId });
-    } finally {
-      setLendoNota(false);
-    }
-  };
-
-  const adicionarLancamento = async (e) => {
-    e.preventDefault();
-    if (!descricao.trim() || !valor || Number(valor) <= 0) {
-      toast.error('Preencha a descrição e um valor válido!');
-      return;
-    }
-
-    const novoRegistro = {
-      empresa: 'Taymix',
-      tipo,
-      categoria,
-      descricao: descricao.trim().toLowerCase(),
-      valor: Number(valor),
-      ehInvestimentoInicial: tipo === 'Despesa' ? ehInvestimentoInicial : false,
-      data: dataLancamento ? new Date(dataLancamento) : new Date(),
-    };
-
-    try {
-      await api.criarMovimentacaoFinanceira(novoRegistro);
-      toast.success('Lançamento registrado!');
-      setDescricao('');
-      setValor('');
-      setEhInvestimentoInicial(false);
-      carregarMovimentacoes();
-    } catch (error) {
-      console.error('Erro ao salvar lançamento:', error);
-      toast.error('Erro ao salvar no banco de dados.');
-    }
-  };
-
-  const excluirLancamento = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir este lançamento?')) return;
-    try {
-      await api.excluirMovimentacaoFinanceira(id);
-      toast.success('Lançamento removido!');
-      carregarMovimentacoes();
-    } catch (error) {
-      toast.error('Erro ao excluir lançamento.');
-    }
-  };
-
-  const movimentacoesFiltradas = movimentacoes.filter((item) => {
-    if (item.empresa && item.empresa !== 'Taymix') return false;
-    const dataItem = new Date(item.data).toISOString().split('T')[0];
-    if (dataInicio && dataItem < dataInicio) return false;
-    if (dataFim && dataItem > dataFim) return false;
-    return true;
-  });
-
-  const totalReceitas = movimentacoesFiltradas
-    .filter((m) => m.tipo === 'Receita')
-    .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
-
-  const totalDespesasOperacionais = movimentacoesFiltradas
-    .filter((m) => m.tipo === 'Despesa' && !m.ehInvestimentoInicial)
-    .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
-
-  const lucroLiquido = totalReceitas - totalDespesasOperacionais;
-
-  const totalNotinhasIniciais = movimentacoes
-    .filter((m) => m.empresa === 'Taymix' && (m.ehInvestimentoInicial || m.categoria === 'Aporte de Sócio'))
-    .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
-
-  const investimentoTotalCalculado = investimentoManual + totalNotinhasIniciais;
-  const saldoInvestimentoPendente = investimentoTotalCalculado - lucroLiquido;
-  const investimentoQuitado = investimentoTotalCalculado > 0 && saldoInvestimentoPendente <= 0;
-
-  const valorCapitalGiro = lucroLiquido > 0 ? (lucroLiquido * Number(percentualGiro)) / 100 : 0;
-  const valorParaDividir = lucroLiquido > 0 ? lucroLiquido - valorCapitalGiro : 0;
-
-  const lucroSocioA = (valorParaDividir * Number(percentualSocioA)) / 100;
-  const lucroSocioB = valorParaDividir - lucroSocioA;
+  const {
+    dataInicio, setDataInicio,
+    dataFim, setDataFim,
+    movimentacoesFiltradas,
+    percentualGiro, setPercentualGiro,
+    investimentoManual, setInvestimentoManual,
+    tipo, setTipo,
+    categoria, setCategoria,
+    descricao, setDescricao,
+    valor, setValor,
+    ehInvestimentoInicial, setEhInvestimentoInicial,
+    dataLancamento, setDataLancamento,
+    lendoNota,
+    manualAberto, setManualAberto,
+    categoriasReceita, categoriasDespesa,
+    handleScanNota,
+    adicionarLancamento,
+    excluirLancamento,
+    totalReceitas,
+    totalDespesasOperacionais,
+    lucroLiquido,
+    totalNotinhasIniciais,
+    investimentoTotalCalculado,
+    saldoInvestimentoPendente,
+    investimentoQuitado,
+    valorCapitalGiro,
+    valorParaDividir,
+    lucroSocioA,
+    lucroSocioB
+  } = usePrestacaoContasTaymix();
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 text-slate-800 relative">
       <Toaster position="top-right" />
 
+      {/* 🖥️ PAINEL VISUAL NA TELA */}
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Cabeçalho com Botão do Manual */}
+        {/* Cabeçalho com Botões de Ajuda e Download de PDF */}
         <div className="flex flex-col md:flex-row md:items-center justify-between bg-slate-900 text-white p-6 rounded-2xl shadow-lg gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30">
                 Prestação de Contas
               </span>
@@ -155,6 +55,23 @@ export default function PrestacaoContasTaymix() {
               >
                 <BookOpen size={14} /> 📖 Manual de Ajuda
               </button>
+
+              {/* Botão Oficial de PDF */}
+              <ImpressaoPrestacaoContasTaymix 
+                faturamento={totalReceitas}
+                gastos={totalDespesasOperacionais}
+                lucroLiquido={lucroLiquido}
+                capitalGiro={valorCapitalGiro}
+                investimentoInicialPendente={saldoInvestimentoPendente}
+                totalInvestido={investimentoTotalCalculado}
+                extrato={movimentacoesFiltradas}
+                retencaoGiro={percentualGiro}
+                totalDisponivelDivisao={valorParaDividir}
+                socio1Valor={lucroSocioA}
+                socio2Valor={lucroSocioB}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+              />
             </div>
             <h1 className="text-2xl font-black mt-2 tracking-wide text-amber-400">TAYMIX — Controle Financeiro</h1>
             <p className="text-xs text-slate-400 mt-1">Gestão de faturamento, despesas, capital de giro e divisão de lucros</p>
@@ -198,29 +115,14 @@ export default function PrestacaoContasTaymix() {
                 <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
                   <p className="font-bold text-amber-900 mb-1">💡 Regra de Ouro: Como lançar notinhas?</p>
                   <ul className="list-disc pl-4 space-y-1 text-amber-800">
-                    <li><strong>Compras do Dia a Dia (Reposição de açaí, embalagens, frutas):</strong> Deixe a caixinha de investimento <em>desmarcada</em>. Isso é despesa operacional do mês.</li>
-                    <li><strong>Investimento Inicial / Abertura (Freezers, máquinas, reforma, estoque inicial):</strong> Marque a caixinha <strong>[x] Notinha de Investimento Inicial</strong>. O sistema somará no Payback.</li>
+                    <li><strong>Compras do Dia a Dia:</strong> Deixe a caixinha de investimento <em>desmarcada</em> (despesa operacional).</li>
+                    <li><strong>Investimento Inicial / Abertura:</strong> Marque <strong>[x] Notinha de Investimento Inicial</strong> para entrar no Payback.</li>
                   </ul>
                 </div>
 
                 <div>
-                  <p className="font-bold text-slate-900 text-sm">1. O que significam os Cards Superiores?</p>
-                  <p>Mostram o faturamento (vendas), os gastos operacionais do mês, o lucro líquido real e a retenção automática do Capital de Giro para novas compras.</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-900 text-sm">2. Como funciona o Payback (Investimento Inicial)?</p>
-                  <p>O painel acumula todas as notas de abertura. O lucro gerado pelas vendas vai abatendo esse valor automaticamente até quitar 100% do que foi investido pelos sócios.</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-900 text-sm">3. Leitura Automática por Foto (IA)</p>
-                  <p>Clique em <strong>📸 Tirar Foto / Enviar Notinha</strong> no formulário para a inteligência artificial ler o valor e a descrição direto do cupom fiscal.</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-900 text-sm">4. Divisão de Lucros</p>
-                  <p>Após separar a retenção para o Capital de Giro, o restante do lucro líquido é dividido de forma igualitária (50% / 50%) entre os sócios.</p>
+                  <p className="font-bold text-slate-900 text-sm">Como exportar o Balancete?</p>
+                  <p>Clique no botão verde <strong>📄 Baixar Balancete Oficial em PDF</strong> no topo para gerar o documento corporativo formatado, respeitando o período filtrado.</p>
                 </div>
               </div>
 

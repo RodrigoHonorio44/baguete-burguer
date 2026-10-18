@@ -230,17 +230,19 @@ export const Navbar = () => {
           {/* APENAS EXIBE O MENU ADMIN SE ESTIVER LOGADO COMO ADMINISTRADOR */}
           {isLoggedIn && isAdmin && (
             <>
-              <Link to="/comandas" className="relative hover:text-amber-400 transition flex items-center gap-1">
+              {/* Comandas / Cozinha sem o alerta de pendente */}
+              <Link to="/comandas" className="hover:text-amber-400 transition flex items-center gap-1">
                 <ClipboardList className="w-4 h-4" /> comandas
+              </Link>
+
+              {/* Caixa com a notificação do pedido pendente do Delivery */}
+              <Link to="/caixa" className="relative hover:text-amber-400 transition flex items-center gap-1">
+                <DollarSign className="w-4 h-4" /> caixa
                 {pedidosPendentesCount > 0 && (
                   <span className="absolute -top-2 -right-3 bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
                     {pedidosPendentesCount}
                   </span>
                 )}
-              </Link>
-
-              <Link to="/caixa" className="hover:text-amber-400 transition flex items-center gap-1">
-                <DollarSign className="w-4 h-4" /> caixa
               </Link>
 
               <Link to="/admin/produtos" className="hover:text-amber-400 transition flex items-center gap-1">
@@ -255,7 +257,6 @@ export const Navbar = () => {
                 <Calculator className="w-4 h-4" /> precificação
               </Link>
 
-              {/* 👉 NOVO LINK PROTEGIDO: Prestação de Contas Taymix */}
               <Link to="/admin/financeiro" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold">
                 <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro
               </Link>
@@ -348,13 +349,15 @@ export const Navbar = () => {
           {/* SÓ MOSTRA SE ESTIVER LOGADO COMO ADMINISTRADOR */}
           {isLoggedIn && isAdmin && (
             <>
-              <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4 text-amber-500" /> comandas</span>
+              <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
+                <ClipboardList className="w-4 h-4 text-amber-500" /> comandas
+              </Link>
+              
+              <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
+                <span className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-amber-500" /> caixa</span>
                 {pedidosPendentesCount > 0 && <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">{pedidosPendentesCount} novos</span>}
               </Link>
-              <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                <DollarSign className="w-4 h-4 text-amber-500" /> caixa
-              </Link>
+
               <Link to="/admin/produtos" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
                 <Package className="w-4 h-4 text-amber-500" /> produtos
               </Link>
@@ -364,7 +367,6 @@ export const Navbar = () => {
               <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 transition">
                 <Calculator className="w-4 h-4" /> precificação
               </Link>
-              {/* 👉 Link Protegido no Menu Mobile */}
               <Link to="/admin/financeiro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-300 font-bold transition">
                 <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro / prestação
               </Link>
