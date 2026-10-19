@@ -161,7 +161,7 @@ export const Navbar = () => {
     window.location.reload();
   };
 
-  // 🛵 SE FOR ENTREGADOR: Exibe layout limpo para entregadores
+  // 🛵 LAYOUT ENTREGADOR
   if (isEntregador) {
     return (
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
@@ -192,68 +192,70 @@ export const Navbar = () => {
   }
 
   return (
-    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-xs transition-all">
-      <div className="max-w-7xl mx-auto px-3 md:px-4 py-2 md:py-0 md:h-20 flex flex-col md:flex-row items-center justify-between gap-3">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs transition-all">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-x-4 gap-y-2.5">
         
-        {/* Esquerda: Logo, Menu Hamburguer e Status no PC */}
-        <div className="w-full md:w-auto flex items-center justify-between md:justify-start gap-4">
-          <div className="flex items-center gap-3">
+        {/* Esquerda: Logo, Menu Hamburguer e Status */}
+        <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 text-slate-700 hover:text-amber-600 focus:outline-none"
+              className="lg:hidden p-1.5 text-slate-700 hover:text-amber-600 focus:outline-none cursor-pointer"
               aria-label="Abrir Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-xs flex items-center justify-center shrink-0">
                 <img
                   src="/logoaçai8.png"
                   alt="Tay Mix Açaí & Massas"
-                  className="w-10 h-10 md:w-14 md:h-14 rounded-full object-cover transition-transform group-hover:scale-105"
+                  className="w-10 h-10 lg:w-11 lg:h-11 rounded-full object-cover transition-transform group-hover:scale-105"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-xl md:text-2xl text-slate-900 tracking-tight leading-none capitalize">
+                <span className="font-black text-lg lg:text-xl text-slate-900 tracking-tight leading-none capitalize">
                   tay <span className="text-amber-500">mix</span>
                 </span>
-                <span className="text-[10px] md:text-xs text-slate-500 font-bold tracking-wide uppercase mt-1">
-                  açaí &bull; massas &bull; delivery
+                <span className="text-[9px] lg:text-[10px] text-slate-500 font-bold tracking-wide uppercase mt-0.5">
+                  açaí &bull; massas
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* Badge de Status da Loja no PC */}
-          <div className="hidden md:flex items-center gap-2 bg-slate-100/80 border border-slate-200 px-3 py-1.5 rounded-full text-xs ml-2">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+          {/* Badge de Status da Loja (Visível em Desktop e Telas Grandes) */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/80 px-2.5 py-1 rounded-full text-xs shrink-0">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
               lojaAberta 
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
                 : 'bg-rose-100 text-rose-800 border border-rose-300'
             }`}>
-              <span className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${lojaAberta ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
               {lojaAberta ? 'ABERTO' : 'FECHADO'}
             </span>
             <span className="text-slate-300">|</span>
-            <span className="text-slate-600 flex items-center gap-1 font-semibold">
-              <Clock className="w-3.5 h-3.5 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+            <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
+              <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
             </span>
           </div>
 
-          {/* Ações no Mobile */}
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs cursor-pointer shadow-xs"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              {totalItens > 0 && (
-                <span className="bg-white text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                  {totalItens}
-                </span>
-              )}
-            </button>
+          {/* Ações Rápidas no Mobile */}
+          <div className="flex lg:hidden items-center gap-2">
+            {!isAdmin && (
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center gap-1 font-bold text-xs cursor-pointer shadow-xs"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {totalItens > 0 && (
+                  <span className="bg-white text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                    {totalItens}
+                  </span>
+                )}
+              </button>
+            )}
 
             {isLoggedIn ? (
               <button
@@ -275,60 +277,62 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Centro: Navegação Desktop */}
-        <nav className="hidden md:flex items-center gap-4 text-xs md:text-sm text-slate-600 font-bold">
-          <Link to="/" className="hover:text-amber-600 transition">cardápio</Link>
+        {/* Centro: Navegação Desktop Flexível e Organizada */}
+        <nav className="hidden lg:flex items-center gap-1.5 flex-wrap justify-end text-xs font-bold text-slate-700 flex-1">
+          <Link to="/" className="px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+            cardápio
+          </Link>
           
-          {/* APENAS EXIBE O MENU ADMIN SE ESTIVER LOGADO COMO ADMINISTRADOR */}
+          {/* PAINEL ADMIN: LINKS COMPACTOS E ESTILIZADOS */}
           {isLoggedIn && isAdmin && (
             <>
-              <Link to="/comandas" className="hover:text-amber-600 transition flex items-center gap-1">
-                <ClipboardList className="w-4 h-4 text-slate-400" /> comandas
+              <Link to="/comandas" className="px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
+                <ClipboardList className="w-3.5 h-3.5 text-slate-400" /> comandas
               </Link>
 
-              <Link to="/caixa" className="relative hover:text-amber-600 transition flex items-center gap-1">
-                <DollarSign className="w-4 h-4 text-slate-400" /> caixa
+              <Link to="/caixa" className="relative px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5 text-slate-400" /> caixa
                 {pedidosPendentesCount > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
+                  <span className="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.2 rounded-full animate-pulse">
                     {pedidosPendentesCount}
                   </span>
                 )}
               </Link>
 
-              <Link to="/admin/produtos" className="hover:text-amber-600 transition flex items-center gap-1">
-                <Package className="w-4 h-4 text-slate-400" /> produtos
+              <Link to="/admin/produtos" className="px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
+                <Package className="w-3.5 h-3.5 text-slate-400" /> produtos
               </Link>
 
-              <Link to="/configuracoes/entrega" className="hover:text-amber-700 transition flex items-center gap-1 text-amber-800 bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-200">
-                <MapPin className="w-4 h-4 text-amber-600" /> raio de entrega
+              <Link to="/configuracoes/entrega" className="px-2.5 py-1.5 rounded-xl hover:text-amber-700 transition flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200">
+                <MapPin className="w-3.5 h-3.5 text-amber-600" /> raio de entrega
               </Link>
 
-              <Link to="/admin/precificacao" className="hover:text-emerald-700 transition flex items-center gap-1 text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-lg border border-emerald-200">
-                <Calculator className="w-4 h-4 text-emerald-600" /> precificação
+              <Link to="/admin/precificacao" className="px-2.5 py-1.5 rounded-xl hover:text-emerald-700 transition flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200">
+                <Calculator className="w-3.5 h-3.5 text-emerald-600" /> precificação
               </Link>
 
-              <Link to="/admin/financeiro" className="hover:text-amber-800 transition flex items-center gap-1 text-amber-900 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300 font-bold">
-                <TrendingUp className="w-4 h-4 text-amber-600" /> financeiro
+              <Link to="/admin/financeiro" className="px-2.5 py-1.5 rounded-xl hover:text-amber-900 transition flex items-center gap-1 text-amber-900 bg-amber-100 border border-amber-300 font-extrabold">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> financeiro
               </Link>
             </>
           )}
 
-          {/* SE NÃO FOR ADMIN */}
+          {/* VISÃO CLIENTE */}
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
-                <Link to="/meus-pedidos" className="relative hover:text-amber-600 transition flex items-center gap-1">
+                <Link to="/meus-pedidos" className="relative px-3 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
                   <Clock className="w-4 h-4 text-slate-400" /> meus pedidos
                   {temAlertaPedidos && (
-                    <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
+                    <span className="absolute top-1 right-1 flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
                   )}
                 </Link>
               )}
               {!isLoggedIn && (
-                <Link to="/cadastro" className="hover:text-amber-600 transition flex items-center gap-1">
+                <Link to="/cadastro" className="px-3 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
                   <UserPlus className="w-4 h-4 text-slate-400" /> cadastro
                 </Link>
               )}
@@ -337,36 +341,38 @@ export const Navbar = () => {
         </nav>
 
         {/* Direita: Carrinho e Sessão Desktop */}
-        <div className="hidden md:flex items-center gap-2.5">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="relative flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-95"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>carrinho</span>
-            {totalItens > 0 && (
-              <span className="bg-white text-emerald-700 text-[11px] font-black px-2 py-0.5 rounded-full">
-                {totalItens}
-              </span>
-            )}
-          </button>
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          {!isAdmin && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>carrinho</span>
+              {totalItens > 0 && (
+                <span className="bg-white text-emerald-700 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                  {totalItens}
+                </span>
+              )}
+            </button>
+          )}
 
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ml-1"
               title="Sair da conta"
             >
-              <LogOut className="w-4 h-4 text-slate-500" />
+              <LogOut className="w-3.5 h-3.5 text-slate-500" />
               <span>sair</span>
             </button>
           ) : (
             <Link
               to="/login"
-              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs"
+              className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors shadow-xs ml-1"
               title="Entrar na conta"
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="w-3.5 h-3.5" />
               <span>entrar</span>
             </Link>
           )}
@@ -374,28 +380,28 @@ export const Navbar = () => {
 
       </div>
 
-      {/* Linha Inferior Mobile Centralizada */}
-      <div className="flex md:hidden w-full bg-slate-50 border-t border-slate-200 py-1.5 px-3 items-center justify-center gap-2 text-xs">
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+      {/* Barreira do Status no Mobile */}
+      <div className="flex sm:hidden w-full bg-slate-50 border-t border-slate-200/80 py-1 px-3 items-center justify-center gap-2 text-xs">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold ${
           lojaAberta ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
           {lojaAberta ? 'ABERTO' : 'FECHADO'}
         </span>
         <span className="text-slate-300">•</span>
-        <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
+        <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px]">
           <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
         </span>
       </div>
 
       {/* Menu Mobile Expandido */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg">
+        <div className="lg:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg">
           <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
             cardápio
           </Link>
           
-          {/* SÓ MOSTRA SE ESTIVER LOGADO COMO ADMINISTRADOR */}
+          {/* APENAS ADMIN */}
           {isLoggedIn && isAdmin && (
             <>
               <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
@@ -422,7 +428,7 @@ export const Navbar = () => {
             </>
           )}
 
-          {/* SE NÃO FOR ADMIN */}
+          {/* CLIENTE */}
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (

@@ -67,34 +67,36 @@ export const CartDrawer = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* fundo escuro com opacidade */}
+      {/* Fundo escurecido suave com blur */}
       <div
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
         onClick={() => setIsCartOpen(false)}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-slate-900 border-l border-slate-800 p-6 text-slate-100 flex flex-col justify-between">
+        <div className="w-screen max-w-md bg-white border-l border-slate-200/80 p-6 text-slate-800 flex flex-col justify-between shadow-2xl">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+            {/* Cabeçalho do Carrinho */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-amber-500" />
-                <h2 className="text-lg font-bold">seu carrinho</h2>
+                <ShoppingBag className="w-5 h-5 text-amber-600" />
+                <h2 className="text-lg font-black text-slate-800 tracking-tight">seu carrinho</h2>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Lista de Itens ou Estado Vazio */}
             {cart.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-16 text-slate-400 font-medium text-sm">
                 o seu carrinho está vazio.
               </div>
             ) : (
-              <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
                 {cart.map((item) => {
                   const id = item.id || item._id;
                   const preco = Number(item.preco || item.price || 0);
@@ -104,32 +106,32 @@ export const CartDrawer = () => {
                   return (
                     <div
                       key={id}
-                      className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-800"
+                      className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80 shadow-2xs"
                     >
                       <div className="flex-1 pr-2">
-                        <h4 className="font-semibold text-sm capitalize">{item.nome || item.name}</h4>
-                        <span className="text-xs text-emerald-400 font-bold block">
+                        <h4 className="font-bold text-sm text-slate-800 capitalize">{item.nome || item.name}</h4>
+                        <span className="text-xs text-emerald-600 font-extrabold block">
                           R$ {preco.toFixed(2)} un
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-500 font-semibold">
                           Subtotal: R$ {subtotalItem.toFixed(2)}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center border border-slate-700 rounded-md bg-slate-800">
+                        <div className="flex items-center border border-slate-200 rounded-lg bg-white shadow-2xs">
                           {/* Botão Menos */}
                           <button
                             onClick={() => updateQuantity(id, quantidade - 1)}
-                            className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
+                            className="px-2.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold cursor-pointer rounded-l-lg transition"
                           >
                             -
                           </button>
-                          <span className="px-2 text-xs font-bold text-slate-100">{quantidade}</span>
+                          <span className="px-2 text-xs font-bold text-slate-800">{quantidade}</span>
                           {/* Botão Mais */}
                           <button
                             onClick={() => updateQuantity(id, quantidade + 1)}
-                            className="px-2.5 py-1 text-slate-400 hover:text-slate-100 font-bold cursor-pointer"
+                            className="px-2.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold cursor-pointer rounded-r-lg transition"
                           >
                             +
                           </button>
@@ -137,7 +139,8 @@ export const CartDrawer = () => {
 
                         <button
                           onClick={() => removeFromCart(id)}
-                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                          className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          title="Remover item"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -149,29 +152,30 @@ export const CartDrawer = () => {
             )}
           </div>
 
+          {/* Rodapé e Ações do Carrinho */}
           {cart.length > 0 && (
-            <div className="border-t border-slate-800 pt-4 mt-auto">
-              <div className="flex justify-between items-center mb-3 text-slate-100 font-bold">
-                <span>total:</span>
-                <span className="text-emerald-400 text-xl">R$ {totalGeral.toFixed(2)}</span>
+            <div className="border-t border-slate-100 pt-4 mt-auto">
+              <div className="flex justify-between items-center mb-3 text-slate-800 font-black">
+                <span className="text-sm uppercase tracking-wider">total:</span>
+                <span className="text-emerald-600 text-xl font-extrabold">R$ {totalGeral.toFixed(2)}</span>
               </div>
 
               {/* Alerta Visual e Ação para Pedido Mínimo */}
               {pedidoMinimo > 0 && !atingiuMinimo ? (
                 <div className="space-y-3">
-                  <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-lg flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-300">
-                      <span className="font-bold block">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
-                      <span>Faltam <strong className="text-white">R$ {faltaValor.toFixed(2)}</strong> para finalizar.</span>
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs text-amber-900 font-medium">
+                      <span className="font-bold block text-amber-950">Pedido mínimo: R$ {pedidoMinimo.toFixed(2)}</span>
+                      <span>Faltam <strong className="text-amber-950 font-bold">R$ {faltaValor.toFixed(2)}</strong> para finalizar.</span>
                     </div>
                   </div>
 
-                  {/* Botão Clicável para Adicionar Mais Itens no Cardápio */}
+                  {/* Botão para Adicionar Mais Itens no Cardápio */}
                   <button
                     type="button"
                     onClick={handleVoltarAoCardapio}
-                    className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                   >
                     <PlusCircle className="w-4 h-4" />
                     Adicionar mais R$ {faltaValor.toFixed(2)} (Ver Cardápio)
@@ -185,7 +189,7 @@ export const CartDrawer = () => {
                     setIsCartOpen(false);
                     navigate('/checkout');
                   }}
-                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition text-sm cursor-pointer shadow-md"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition text-sm cursor-pointer shadow-xs"
                 >
                   finalizar pedido
                 </button>

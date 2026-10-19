@@ -178,7 +178,7 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'acai', imagem: '', disponivel: true });
+        setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
         setEditandoId(null);
         setIsCriandoNovaCategoria(false);
         setNovaCategoriaInput('');
@@ -191,7 +191,7 @@ export const AdminProdutos = () => {
 
   const handleEdit = (prod) => {
     setEditandoId(prod._id || prod.id);
-    const catProd = prod.categoria || prod.category || 'acai';
+    const catProd = prod.categoria || prod.category || 'açaí / garrafas';
     
     // Se a categoria do produto não estiver na lista padrão, adiciona para aparecer no select
     if (!categoriasDisponiveis.includes(catProd)) {
@@ -219,7 +219,7 @@ export const AdminProdutos = () => {
         nome: prod.nome || prod.name,
         descricao: prod.descricao || prod.description,
         preco: Number(prod.preco || prod.price),
-        categoria: prod.categoria || prod.category || 'acai',
+        categoria: prod.categoria || prod.category || 'açaí / garrafas',
         imagem: prod.imagem || prod.image,
         disponivel: novoStatus,
       };
@@ -250,58 +250,65 @@ export const AdminProdutos = () => {
     setEditandoId(null);
     setIsCriandoNovaCategoria(false);
     setNovaCategoriaInput('');
-    setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'acai', imagem: '', disponivel: true });
+    setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Cabeçalho Limpo em Modo Claro */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-          <Package className="w-6 h-6 text-amber-500" />
-          gestão de produtos (açaí, baguetes e bebidas)
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <Package className="w-7 h-7 text-amber-500" />
+            Gestão de Produtos (Açaí, Baguetes e Bebidas)
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Cadastre novos itens, gerencie preços e atualize o cardápio em tempo real
+          </p>
+        </div>
+
         <button
           onClick={carregarProdutos}
-          className="p-2 bg-slate-800 text-slate-300 hover:text-slate-100 rounded-lg border border-slate-700 transition cursor-pointer"
-          title="atualizar lista"
+          className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
+          title="Atualizar lista"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Formulário de Cadastro / Edição */}
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl h-fit">
-          <h2 className="text-lg font-bold text-slate-100 mb-4">
-            {editandoId ? 'editar produto' : 'cadastrar novo produto'}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Formulário de Cadastro / Edição (Coluna Esquerda) */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs h-fit">
+          <h2 className="text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
+            {editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">nome do item</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nome do Item</label>
               <input
                 type="text"
                 name="nome"
                 required
                 value={form.nome}
                 onChange={handleChange}
-                placeholder="ex: açaí na garrafa 500ml, baguete artesanal"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                placeholder="Ex: açaí na garrafa 500ml, baguete artesanal"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
 
             {/* Categoria com suporte a seleção, criação e exclusão */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-semibold text-slate-400">categoria</label>
+                <label className="block text-xs font-semibold text-slate-700">Categoria</label>
                 {isCriandoNovaCategoria && (
                   <button
                     type="button"
                     onClick={() => setIsCriandoNovaCategoria(false)}
-                    className="text-[11px] text-amber-500 hover:underline cursor-pointer"
+                    className="text-[11px] text-amber-600 hover:underline font-semibold cursor-pointer"
                   >
-                    &larr; voltar para lista
+                    &larr; Voltar para lista
                   </button>
                 )}
               </div>
@@ -312,24 +319,23 @@ export const AdminProdutos = () => {
                     name="categoria"
                     value={form.categoria}
                     onChange={handleChange}
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 cursor-pointer capitalize"
                   >
                     {categoriasDisponiveis.map((cat, idx) => (
-                      <option key={idx} value={cat} className="bg-slate-900 text-slate-100 capitalize">
+                      <option key={idx} value={cat} className="bg-white text-slate-800 capitalize">
                         {cat}
                       </option>
                     ))}
-                    <option value="__CRIAR_NOVA__" className="bg-slate-900 text-amber-400 font-bold">
+                    <option value="__CRIAR_NOVA__" className="bg-white text-amber-600 font-bold">
                       + Criar nova categoria...
                     </option>
                   </select>
 
-                  {/* Botão para excluir a categoria selecionada da lista */}
                   {form.categoria && (
                     <button
                       type="button"
                       onClick={handleExcluirCategoriaSelecionada}
-                      className="p-2 bg-slate-800 text-rose-400 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500 rounded-lg transition cursor-pointer"
+                      className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
                       title="Excluir categoria selecionada da lista"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -341,8 +347,8 @@ export const AdminProdutos = () => {
                   type="text"
                   value={novaCategoriaInput}
                   onChange={(e) => setNovaCategoriaInput(e.target.value)}
-                  placeholder="digite o nome da nova categoria..."
-                  className="w-full bg-slate-800 border border-amber-500 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  placeholder="Digite o nome da nova categoria..."
+                  className="w-full bg-slate-50 border border-amber-500 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none"
                   autoFocus
                   required
                 />
@@ -350,7 +356,7 @@ export const AdminProdutos = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">preço (r$)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Preço (R$)</label>
               <input
                 type="number"
                 step="0.01"
@@ -359,33 +365,33 @@ export const AdminProdutos = () => {
                 value={form.preco}
                 onChange={handleChange}
                 placeholder="0.00"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">descrição / ingredientes</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Descrição / Ingredientes</label>
               <textarea
                 name="descricao"
                 rows="3"
                 value={form.descricao}
                 onChange={handleChange}
-                placeholder="ex: garrafa de açaí cremoso de 500ml. monte com seus sabores e acompanhamentos..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                placeholder="Ex: garrafa de açaí cremoso de 500ml. monte com seus sabores e acompanhamentos..."
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:border-amber-500 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">foto do produto (computador ou telemóvel)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Foto do Produto (Computador ou Celular)</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
-                className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer bg-slate-800 border border-slate-700 rounded-lg"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
               />
               
               {form.imagem && (
-                <div className="mt-3 relative w-20 h-20 rounded-lg overflow-hidden border border-slate-700">
+                <div className="mt-3 relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-2xs">
                   <img src={form.imagem} alt="Preview" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -394,33 +400,41 @@ export const AdminProdutos = () => {
             <div className="flex gap-2 pt-2">
               <button
                 type="submit"
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <Plus className="w-4 h-4" />
-                {editandoId ? 'salvar alterações' : 'cadastrar no banco'}
+                {editandoId ? 'Salvar Alterações' : 'Cadastrar no Banco'}
               </button>
 
               {editandoId && (
                 <button
                   type="button"
                   onClick={cancelarEdicao}
-                  className="px-3 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold rounded-lg text-sm transition cursor-pointer"
+                  className="px-4 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl text-xs transition cursor-pointer border border-slate-200"
                 >
-                  cancelar
+                  Cancelar
                 </button>
               )}
             </div>
           </form>
         </div>
 
-        {/* Tabela / Lista de Produtos Cadastrados */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-lg font-bold text-slate-100 mb-4">itens no cardápio ({produtos.length})</h2>
+        {/* Tabela / Lista de Produtos Cadastrados (Coluna Direita) */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-800">
+              Itens no Cardápio ({produtos.length})
+            </h2>
+            <span className="text-xs text-slate-500 font-medium">Cardápio Ativo</span>
+          </div>
 
           {loading ? (
-            <p className="text-slate-400 text-sm">a carregar produtos do banco...</p>
+            <p className="text-slate-500 text-sm py-8 text-center">A carregar produtos do banco...</p>
           ) : produtos.length === 0 ? (
-            <p className="text-slate-500 text-sm">nenhum produto cadastrado no banco de dados.</p>
+            <div className="text-center py-12 border border-dashed border-slate-200 rounded-xl">
+              <Package className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+              <p className="text-slate-500 text-sm">Nenhum produto cadastrado no banco de dados.</p>
+            </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
               {produtos.map((prod) => {
@@ -432,78 +446,79 @@ export const AdminProdutos = () => {
                 return (
                   <div
                     key={id}
-                    className={`flex items-center justify-between bg-slate-800/40 border p-3 rounded-lg gap-4 transition ${
-                      disponivel ? 'border-slate-800' : 'border-rose-900/50 opacity-60'
+                    className={`flex items-center justify-between bg-slate-50 border p-3.5 rounded-xl gap-4 transition shadow-2xs ${
+                      disponivel ? 'border-slate-200' : 'border-rose-200 bg-rose-50/30 opacity-70'
                     }`}
                   >
                     {imagemProd ? (
-                      <img src={imagemProd} alt={prod.nome} className="w-14 h-14 rounded-lg object-cover border border-slate-700 flex-shrink-0" />
+                      <img src={imagemProd} alt={prod.nome} className="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
                     ) : (
-                      <div className="w-14 h-14 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 flex-shrink-0">
+                      <div className="w-14 h-14 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0">
                         <ImageIcon className="w-6 h-6" />
                       </div>
                     )}
 
                     <div className="flex-1 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-100 capitalize">{prod.nome || prod.name}</span>
-                        <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700 capitalize">
-                          {prod.categoria || prod.category || 'acai'}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-800 text-sm capitalize">{prod.nome || prod.name}</span>
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase border border-amber-200">
+                          {prod.categoria || prod.category || 'açaí / garrafas'}
                         </span>
                         {!disponivel && (
-                          <span className="text-[10px] bg-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded uppercase">
-                            esgotado
+                          <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded uppercase border border-rose-200">
+                            Esgotado
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                        {prod.descricao || prod.description || 'sem descrição'}
+                      <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                        {prod.descricao || prod.description || 'Sem descrição'}
                       </p>
-                      <span className="text-xs font-bold text-emerald-400">r$ {preco.toFixed(2)}</span>
+                      <span className="text-xs font-extrabold text-emerald-600 mt-0.5 block">R$ {preco.toFixed(2)}</span>
                     </div>
 
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       <button
                         onClick={() => { setProdutoComplementosId(id); setProdutoGerenciarId(null); }}
-                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700 cursor-pointer"
-                        title="cadastrar novas categorias ou adicionais"
+                        className="p-2 text-slate-700 hover:bg-slate-200 rounded-lg transition flex items-center gap-1 bg-white border border-slate-200 cursor-pointer shadow-2xs text-xs font-semibold"
+                        title="Cadastrar novas categorias ou adicionais"
                       >
                         <Layers className="w-4 h-4 text-amber-500" />
-                        <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">cadastrar</span>
+                        <span className="hidden sm:inline">Cadastrar</span>
                       </button>
 
                       <button
                         onClick={() => { setProdutoGerenciarId(id); setProdutoComplementosId(null); }}
-                        className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700 cursor-pointer"
-                        title="gerenciar e editar categorias cadastradas"
+                        className="p-2 text-slate-700 hover:bg-slate-200 rounded-lg transition flex items-center gap-1 bg-white border border-slate-200 cursor-pointer shadow-2xs text-xs font-semibold"
+                        title="Gerenciar e editar categorias cadastradas"
                       >
-                        <Sliders className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">gerenciar</span>
+                        <Sliders className="w-4 h-4 text-emerald-600" />
+                        <span className="hidden sm:inline">Gerenciar</span>
                       </button>
 
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
-                        className={`p-2 rounded-lg transition cursor-pointer ${
+                        className={`p-2 rounded-lg transition cursor-pointer border shadow-2xs ${
                           disponivel 
-                            ? 'text-emerald-400 hover:bg-emerald-500/10' 
-                            : 'text-rose-400 hover:bg-rose-500/10'
+                            ? 'bg-white text-emerald-600 border-slate-200 hover:bg-emerald-50' 
+                            : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                         }`}
-                        title={disponivel ? 'marcar como indisponível (esgotado)' : 'marcar como disponível'}
+                        title={disponivel ? 'Marcar como indisponível (esgotado)' : 'Marcar como disponível'}
                       >
                         {disponivel ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
 
                       <button
                         onClick={() => handleEdit(prod)}
-                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                        title="editar produto"
+                        className="p-2 text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-lg transition cursor-pointer shadow-2xs"
+                        title="Editar produto"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
+                      
                       <button
                         onClick={() => handleDelete(id)}
-                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                        title="excluir do banco"
+                        className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition cursor-pointer shadow-2xs"
+                        title="Excluir do banco"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

@@ -245,10 +245,50 @@
         "policyHash": "sha256:00b63b2f746eb8b9095bbd5e1dbae4ddd74fd92a6740b72f59f4069fbfda4737"
       },
       "hash": "sha256:c9f2c4b3db7af57a0e38779d145afadc1b390fc78e6ad783eb9a0f30d11a92ca"
+    },
+    {
+      "payload": {
+        "receiptId": "sha256:9622d2bdcfaf2478bd8719c2a20bb8d10267a15730771547fec2954e02d3f9b4",
+        "previousReceiptHash": "sha256:c9f2c4b3db7af57a0e38779d145afadc1b390fc78e6ad783eb9a0f30d11a92ca",
+        "sequence": 6,
+        "issuedAt": 1792444629530,
+        "request": {
+          "identity": {
+            "id": "legacy-cli",
+            "type": "legacy"
+          },
+          "action": {
+            "type": "memory.read",
+            "resource": "memory_stats",
+            "tool": "memory_stats",
+            "server": "ruflo",
+            "network": false,
+            "destructive": false
+          },
+          "context": {
+            "metadata": {
+              "inputDigest": "sha256:a16f3744e2f77a8f725ed4e488d0ccd0d3e38f0dc45b2ccd24ca72b98d56ecdf"
+            },
+            "now": 1792444629530
+          },
+          "requestId": "6bc83ff5-03c0-4b0a-b4cd-4a9e8cc75ee8"
+        },
+        "decision": {
+          "requestId": "6bc83ff5-03c0-4b0a-b4cd-4a9e8cc75ee8",
+          "outcome": "allowed",
+          "enforcedOutcome": "allowed",
+          "mode": "legacy",
+          "reason": "legacy-default-allow",
+          "matchedRules": [],
+          "obligations": []
+        },
+        "policyHash": "sha256:00b63b2f746eb8b9095bbd5e1dbae4ddd74fd92a6740b72f59f4069fbfda4737"
+      },
+      "hash": "sha256:f1047de633b95ebfcfbee1577862b8f43ff026179504d8b6b5ad5f010fc72cdc"
     }
   ],
   "migratedAt": 1792437736364,
   "migratedFrom": "pre-ADR-324; capabilities=none-detected",
-  "ledgerLength": 6,
-  "ledgerHead": "sha256:c9f2c4b3db7af57a0e38779d145afadc1b390fc78e6ad783eb9a0f30d11a92ca"
+  "ledgerLength": 7,
+  "ledgerHead": "sha256:f1047de633b95ebfcfbee1577862b8f43ff026179504d8b6b5ad5f010fc72cdc"
 }

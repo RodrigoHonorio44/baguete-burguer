@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "installedAt": "2026-10-19T21:20:57.651Z",
+  "files": {
+    "C:\\Users\\DELL\\Desktop\\baguete burguer\\baguete\\.claude\\settings.json": {
+      "plugins": [
+        "ruflo-mods@ruflo",
+        "ruflo-swarm@ruflo",
+        "ruflo-console@ruflo"
+      ],
+      "marketplace": true,
+      "env": true,
+      "claudeInstalled": []
+    }
+  }
+}

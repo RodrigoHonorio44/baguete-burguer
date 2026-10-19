@@ -6,13 +6,10 @@ export function usePrestacaoContasTaymix() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [movimentacoes, setMovimentacoes] = useState([]);
-  const [caixasFechados, setCaixasFechados] = useState([]); // Coleção Caixa
+  const [caixasFechados, setCaixasFechados] = useState([]); 
   
-  // 💾 Recupera o percentual salvo no navegador ou usa 20% como padrão inicial
-  const [percentualGiro, setPercentualGiro] = useState(() => {
-    const salvo = localStorage.getItem('taymix_percentual_giro');
-    return salvo !== null ? Number(salvo) : 20;
-  });
+  // 💾 Percentual de Giro (Busca do servidor ou usa 20% como padrão)
+  const [percentualGiro, setPercentualGiro] = useState(20);
 
   const [percentualSocioA, setPercentualSocioA] = useState(50);
   const [investimentoManual, setInvestimentoManual] = useState(0);
@@ -33,16 +30,12 @@ export function usePrestacaoContasTaymix() {
     carregarDadosFinanceiros();
   }, []);
 
-  // 💾 Salva automaticamente no navegador sempre que o percentual de giro mudar
-  useEffect(() => {
-    localStorage.setItem('taymix_percentual_giro', percentualGiro);
-  }, [percentualGiro]);
-
   const carregarDadosFinanceiros = async () => {
     try {
-      const [dadosMovimentacoes, resCaixa] = await Promise.all([
+      const [dadosMovimentacoes, resCaixa, dadosConfig] = await Promise.all([
         api.getFinanceiro ? api.getFinanceiro() : Promise.resolve([]),
-        api.getHistoricoCaixa ? api.getHistoricoCaixa() : Promise.resolve([])
+        api.getHistoricoCaixa ? api.getHistoricoCaixa() : Promise.resolve([]),
+        api.getConfiguracoesLoja ? api.getConfiguracoesLoja().catch(() => null) : (api.getConfiguracoes ? api.getConfiguracoes().catch(() => null) : Promise.resolve(null))
       ]);
 
       setMovimentacoes(dadosMovimentacoes || []);
@@ -52,9 +45,38 @@ export function usePrestacaoContasTaymix() {
         : (resCaixa && Array.isArray(resCaixa.data) ? resCaixa.data : []);
 
       setCaixasFechados(listaCaixas);
+
+      // Se houver percentual de giro salvo nas configurações do servidor, aplica ele!
+      if (dadosConfig && dadosConfig.percentualGiro !== undefined) {
+        setPercentualGiro(Number(dadosConfig.percentualGiro));
+      } else {
+        // Fallback para localStorage caso o servidor não tenha
+        const salvoLocal = localStorage.getItem('taymix_percentual_giro');
+        if (salvoLocal !== null) {
+          setPercentualGiro(Number(salvoLocal));
+        }
+      }
     } catch (error) {
       console.error('Erro ao buscar dados financeiros do banco:', error);
-      toast.error('Erro ao carregar dados financeiros do caixa.');
+      toast.error('Erro ao carregar dados financeiros.');
+    }
+  };
+
+  // 💾 Função para atualizar e salvar o percentual permanentemente no servidor e navegador
+  const alterarPercentualGiro = async (novoValor) => {
+    const valorNumerico = Number(novoValor);
+    setPercentualGiro(valorNumerico);
+    localStorage.setItem('taymix_percentual_giro', valorNumerico);
+
+    try {
+      // Atualiza na API de configurações da loja para persistir mesmo após relogar
+      if (typeof api.updateConfiguracoesLoja === 'function') {
+        await api.updateConfiguracoesLoja({ percentualGiro: valorNumerico });
+      } else if (typeof api.updateConfiguracoes === 'function') {
+        await api.updateConfiguracoes({ percentualGiro: valorNumerico });
+      }
+    } catch (err) {
+      console.error('Erro ao salvar percentual de giro no servidor:', err);
     }
   };
 
@@ -210,7 +232,6 @@ export function usePrestacaoContasTaymix() {
     return acc + (isNaN(v) ? 0 : v);
   }, 0);
 
-  // Total de receitas manuais
   const totalReceitasManuais = movimentacoesFiltradas
     .filter((m) => m.tipo === 'Receita' && m.categoria !== 'Vendas / Pedidos')
     .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
@@ -221,16 +242,10 @@ export function usePrestacaoContasTaymix() {
     .filter((m) => m.tipo === 'Despesa' && !m.ehInvestimentoInicial)
     .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
 
-  // 1. Lucro Bruto Operacional
   const lucroBrutoOperacional = totalReceitas - totalDespesasOperacionais;
-
-  // 2. Retenção do Capital de Giro
   const valorCapitalGiro = lucroBrutoOperacional > 0 ? (lucroBrutoOperacional * Number(percentualGiro)) / 100 : 0;
-
-  // 3. Lucro Líquido Operacional do Mês
   const lucroLiquido = lucroBrutoOperacional > 0 ? lucroBrutoOperacional - valorCapitalGiro : lucroBrutoOperacional;
 
-  // Payback
   const totalNotinhasIniciais = movimentacoes
     .filter((m) => m.empresa === 'Taymix' && (m.ehInvestimentoInicial || m.categoria === 'Aporte de Sócio'))
     .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
@@ -239,7 +254,6 @@ export function usePrestacaoContasTaymix() {
   const saldoInvestimentoPendente = investimentoTotalCalculado - lucroBrutoOperacional;
   const investimentoQuitado = investimentoTotalCalculado > 0 && saldoInvestimentoPendente <= 0;
 
-  // 🎯 REGRA RESTRITA: Só divide o lucro com os sócios se o investimento inicial (Payback) estiver 100% quitado!
   const valorParaDividir = investimentoQuitado ? (lucroLiquido > 0 ? lucroLiquido : 0) : 0;
 
   const lucroSocioA = (valorParaDividir * Number(percentualSocioA)) / 100;
@@ -249,7 +263,7 @@ export function usePrestacaoContasTaymix() {
     dataInicio, setDataInicio,
     dataFim, setDataFim,
     movimentacoesFiltradas,
-    percentualGiro, setPercentualGiro,
+    percentualGiro, setPercentualGiro: alterarPercentualGiro, // Usa a função que salva no servidor
     percentualSocioA, setPercentualSocioA,
     investimentoManual, setInvestimentoManual,
     tipo, setTipo,

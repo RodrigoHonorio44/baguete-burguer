@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Clock, CheckCircle, MapPin, Phone, ChefHat, ShoppingBag, Store, Truck } from 'lucide-react';
+import { Clock, CheckCircle, MapPin, Phone, ChefHat, ShoppingBag, Store, Truck, Sparkles } from 'lucide-react';
 import { formatarMoeda, formatarDataHora } from '../utils/whatsapp';
 import ComandaImpressao from '../components/ComandaImpressao';
 
@@ -78,24 +78,32 @@ export const Comandas = () => {
     const tipo = (pedido.tipo || '').toLowerCase();
     const temEndereco = Boolean(pedido.rua || pedido.endereco?.rua);
 
-    if (canal === 'ifood') {
+    if (canal === 'ifood' || canal === 'ifood_loja' || canal === 'ifood_parceiro') {
       return (
-        <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
+        <span className="text-[10px] bg-rose-100 text-rose-700 border border-rose-200 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
           <ShoppingBag size={12} /> iFood
+        </span>
+      );
+    }
+
+    if (canal === '99food') {
+      return (
+        <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
+          <ShoppingBag size={12} /> 99Food
         </span>
       );
     }
 
     if (canal === 'app' || canal === 'delivery' || tipo === 'entrega' || temEndereco) {
       return (
-        <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
+        <span className="text-[10px] bg-purple-100 text-purple-700 border border-purple-200 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
           <Truck size={12} /> App Delivery
         </span>
       );
     }
 
     return (
-      <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
+      <span className="text-[10px] bg-blue-100 text-blue-700 border border-blue-200 font-bold px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
         <Store size={12} /> Balcão
       </span>
     );
@@ -103,21 +111,41 @@ export const Comandas = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Cabeçalho Limpo no Modo Claro */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <ChefHat className="w-7 h-7 text-amber-500" />
-            tela da cozinha (pedidos em preparo)
+            Tela da Cozinha (Pedidos em Preparo)
           </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Acompanhe os pedidos aceitos no caixa e marque quando estiverem prontos
+          </p>
         </div>
-        <span className="text-xs text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
-          {pedidosCozinha.length} pedido(s) na linha de produção
-        </span>
+
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200/80 px-3.5 py-2 rounded-xl shadow-xs">
+          <span className="relative flex h-2.5 w-2.5">
+            {pedidosCozinha.length > 0 && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            )}
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${pedidosCozinha.length > 0 ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
+          </span>
+          <span className="text-xs text-slate-700 font-medium">
+            <strong className="text-amber-600 font-bold">{pedidosCozinha.length}</strong> pedido(s) na linha de produção
+          </span>
+        </div>
       </div>
 
+      {/* Conteúdo Principal */}
       {pedidosCozinha.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
-          Nenhum pedido em preparo na cozinha no momento. Tudo em dia! 👨‍🍳✨
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-xs">
+          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-200">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-800 mb-1">Nenhum pedido em preparo no momento</h3>
+          <p className="text-xs text-slate-500">
+            Tudo em dia por aqui! Assim que o caixa aceitar novos pedidos, as comandas aparecerão nesta tela. 👨‍🍳✨
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -134,64 +162,64 @@ export const Comandas = () => {
               <div 
                 key={idPedido} 
                 onClick={() => toggleExpand(idPedido)}
-                className="bg-slate-900 border-2 border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition shadow-xl hover:border-amber-400"
+                className="bg-white border-2 border-amber-400 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition-all shadow-md hover:shadow-lg"
               >
                 <div>
-                  {/* CABEÇALHO */}
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                  {/* Cabeçalho do Card */}
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-amber-400 text-xl font-mono">#{idPedido.slice(-4)}</span>
-                      <span className="text-xs text-slate-100 font-bold">{pedido.cliente_nome || pedido.nomeCliente || 'Cliente'}</span>
+                      <span className="font-extrabold text-amber-600 text-xl font-mono">#{idPedido.slice(-4)}</span>
+                      <span className="text-xs text-slate-800 font-bold">{pedido.cliente_nome || pedido.nomeCliente || 'Cliente'}</span>
                     </div>
                     
-                    {/* SELO DE CANAL DINÂMICO */}
+                    {/* Badge do Canal */}
                     {obterBadgeCanal(pedido)}
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-3">
                     <span className="flex items-center gap-1">
-                      <Clock size={12} /> {formatarDataHora(dataFormatada)}
+                      <Clock size={12} className="text-amber-500" /> {formatarDataHora(dataFormatada)}
                     </span>
-                    <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] uppercase text-slate-300 font-semibold">
+                    <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[10px] uppercase text-slate-700 font-semibold">
                       {pedido.forma_pagamento || pedido.pagamento || 'não inf.'}
                     </span>
                   </div>
 
-                  {/* ITENS PARA A COZINHA */}
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 mb-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block border-b border-slate-800 pb-1">
+                  {/* Itens do Pedido */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2 mb-3">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block border-b border-slate-200/80 pb-1">
                       Itens do Pedido:
                     </span>
                     {pedido.itens?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-xs font-semibold text-slate-100">
-                        <span>{item.quantidade || item.quantity || 1}x {item.nome || item.name || item.produto}</span>
+                      <div key={idx} className="flex justify-between text-xs font-semibold text-slate-800">
+                        <span>{item.quantidade || item.quantity || item.qtd || 1}x {item.nome || item.name || item.produto}</span>
                       </div>
                     ))}
                   </div>
 
-                  {pedido.observacoes && (
-                    <div className="bg-rose-950/40 border border-rose-800/60 p-2.5 rounded-xl text-xs text-rose-300 font-semibold mb-3">
-                      <strong>OBS:</strong> {pedido.observacoes}
+                  {(pedido.observacoes || pedido.observacao) && (
+                    <div className="bg-rose-50 border border-rose-200 p-2.5 rounded-xl text-xs text-rose-700 font-semibold mb-3">
+                      <strong>OBS:</strong> {pedido.observacoes || pedido.observacao}
                     </div>
                   )}
 
-                  {/* ENDEREÇO (Exibido ao expandir ou se for delivery) */}
+                  {/* Endereço Expansível */}
                   {estaExpandido && (
-                    <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-400 space-y-1 animate-fadeIn">
+                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 space-y-1 animate-fadeIn">
                       <p className="flex items-center gap-1"><Phone size={12} /> {pedido.telefone || pedido.cliente_telefone || 'Sem telefone'}</p>
                       <p className="flex items-start gap-1">
-                        <MapPin size={12} className="mt-0.5 shrink-0 text-amber-400" /> 
+                        <MapPin size={12} className="mt-0.5 shrink-0 text-amber-500" /> 
                         <span>{enderecoFormatado}</span>
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* BOTÃO DA COZINHA: DIZER QUE TERMINOU */}
-                <div className="border-t border-slate-800 pt-3 mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                {/* Ações */}
+                <div className="border-t border-slate-100 pt-3 mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
                   <button 
                     onClick={(e) => marcarComoPronto(e, idPedido)}
-                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <CheckCircle size={15} /> Marcar como Pronto
                   </button>

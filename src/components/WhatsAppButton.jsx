@@ -1,8 +1,22 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 
 export const WhatsAppButton = () => {
-  // Substitua pelo número real da loja com DDD (ex: 5521999999999)
+  const location = useLocation();
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+
+  // Oculta o botão se estiver nas rotas do entregador ou se o perfil logado for entregador/motoboy
+  const isModoEntregador = 
+    location.pathname.startsWith('/motoboy') || 
+    location.pathname.startsWith('/entregador') ||
+    ['entregador', 'motoboy'].includes(role);
+
+  if (isModoEntregador) {
+    return null; // Não renderiza o botão no modo entregador
+  }
+
+  // Substitua pelo número real da loja com DDD
   const numeroTelefone = '5521990066154'; 
   const mensagemInicial = encodeURIComponent('Olá! Gostaria de falar com a loja Tay Mix.');
 

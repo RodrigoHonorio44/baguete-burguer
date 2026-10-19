@@ -58,17 +58,17 @@ export const Register = () => {
   return (
     <div className="max-w-md mx-auto px-4 py-8">
       <div className="text-center mb-6">
-        <div className="inline-flex p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl mb-2">
+        <div className="inline-flex p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl mb-2">
           <UserPlus className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Cadastro de Cliente</h1>
-        <p className="text-sm text-slate-400 mt-1">Crie a sua conta segura para finalizar o pedido</p>
+        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Cadastro de Cliente</h1>
+        <p className="text-xs text-slate-500 font-semibold mt-1">Crie a sua conta segura para finalizar o pedido</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
-        <div className="grid grid-cols-2 gap-2">
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200/80 p-6 rounded-2xl space-y-4 shadow-xs">
+        <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Nome</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Nome</label>
             <input
               type="text"
               name="nome"
@@ -76,11 +76,11 @@ export const Register = () => {
               value={form.nome}
               onChange={handleChange}
               placeholder="Ex: João"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Sobrenome</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Sobrenome</label>
             <input
               type="text"
               name="sobrenome"
@@ -88,15 +88,17 @@ export const Register = () => {
               value={form.sobrenome}
               onChange={handleChange}
               placeholder="Ex: Silva"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Telefone / WhatsApp (Apenas números)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Telefone / WhatsApp (Apenas números)
+          </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
               <Phone className="w-4 h-4" />
             </div>
             <input
@@ -107,16 +109,18 @@ export const Register = () => {
               value={form.telefone}
               onChange={handleChange}
               placeholder="21975980310"
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
           </div>
           <span className="text-[10px] text-slate-500 mt-1 block">Insira o DDD + Número (Ex: 21999999999)</span>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Palavra-passe / Senha (Mín. 6 caracteres)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Palavra-passe / Senha (Mín. 6 caracteres)
+          </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -127,12 +131,12 @@ export const Register = () => {
               value={form.senha}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full pl-9 pr-10 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
             <button
               type="button"
               onClick={() => setMostrarSenha(!mostrarSenha)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
             >
               {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -142,22 +146,22 @@ export const Register = () => {
         {/* SEÇÃO DO MAPA INTERATIVO COM AUTOPREENCHIMENTO */}
         <div className="space-y-2 pt-2">
           <div className="flex justify-between items-center">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
               📍 Marque sua casa no mapa:
-              {buscandoEndereco && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+              {buscandoEndereco && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />}
             </label>
             <button
               type="button"
               onClick={capturarLocalizacaoGPS}
               disabled={loadingGeo}
-              className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-[11px] font-bold rounded-lg transition flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 text-[11px] font-bold rounded-lg transition border border-amber-300/60 flex items-center gap-1 cursor-pointer"
             >
               <Navigation className="w-3.5 h-3.5" />
               {loadingGeo ? 'A obter...' : 'Meu GPS 🎯'}
             </button>
           </div>
 
-          <div className="w-full h-52 rounded-xl overflow-hidden border border-slate-800 z-0">
+          <div className="w-full h-52 rounded-xl overflow-hidden border border-slate-200 z-0 shadow-2xs">
             <MapContainer 
               center={coordsMapa} 
               zoom={15} 
@@ -172,14 +176,14 @@ export const Register = () => {
               <LocalizadorCliques onSelecionarPonto={(lat, lng) => lidarComNovaLocalizacao(lat, lng)} />
             </MapContainer>
           </div>
-          <p className="text-[10px] text-slate-400 text-center">
+          <p className="text-[10px] text-slate-500 text-center font-medium">
             Clique no mapa ou use o GPS para preencher o endereço automaticamente.
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Rua</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Rua</label>
             <input
               type="text"
               name="rua"
@@ -187,11 +191,11 @@ export const Register = () => {
               value={form.rua}
               onChange={handleChange}
               placeholder="Nome da rua"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Número</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Número</label>
             <input
               type="text"
               name="numero"
@@ -199,13 +203,13 @@ export const Register = () => {
               value={form.numero}
               onChange={handleChange}
               placeholder="123"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Bairro</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Bairro</label>
           <input
             type="text"
             name="bairro"
@@ -213,24 +217,24 @@ export const Register = () => {
             value={form.bairro}
             onChange={handleChange}
             placeholder="Nome do bairro"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ponto de Referência (Opcional)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Ponto de Referência (Opcional)</label>
           <input
             type="text"
             name="referencia"
             value={form.referencia}
             onChange={handleChange}
             placeholder="Ex: Próximo à padaria, portão preto"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
           />
         </div>
 
         {form.latitude && (
-          <p className="text-[10px] text-emerald-400 text-center font-medium">
+          <p className="text-[10px] text-emerald-600 text-center font-bold">
             ✔ Localização e endereço sincronizados com sucesso!
           </p>
         )}
@@ -238,17 +242,19 @@ export const Register = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition mt-4 text-sm shadow-lg shadow-amber-500/10 cursor-pointer disabled:opacity-50"
+          className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition mt-4 text-sm shadow-xs cursor-pointer disabled:opacity-50"
         >
           {loading ? 'A registar...' : 'Salvar Cadastro e Continuar'}
         </button>
 
         <div className="text-center pt-2">
-          <Link to="/login" className="text-xs text-slate-400 hover:text-amber-400 transition">
-            Já tem uma conta? <span className="underline">Faça login</span>
+          <Link to="/login" className="text-xs font-semibold text-slate-500 hover:text-amber-600 transition">
+            Já tem uma conta? <span className="underline font-bold text-amber-600">Faça login</span>
           </Link>
         </div>
       </form>
     </div>
   );
 };
+
+export default Register;

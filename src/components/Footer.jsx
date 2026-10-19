@@ -1,7 +1,78 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MapPin, Clock, MessageCircle } from 'lucide-react';
+import { api } from '../services/api';
 
 export const Footer = () => {
+  const location = useLocation();
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+
+  // Estados para gerir o horário e dias de funcionamento idênticos à Navbar
+  const [configLoja, setConfigLoja] = useState({
+    horarioAbertura: '08:00',
+    horarioFechamento: '23:30',
+    diasFuncionamento: {}
+  });
+
+  // Carregar as configurações da loja do banco/localStorage
+  useEffect(() => {
+    const carregarConfig = async () => {
+      try {
+        if (typeof api.getConfiguracoesLoja === 'function') {
+          const dadosServer = await api.getConfiguracoesLoja();
+          if (dadosServer && Object.keys(dadosServer).length > 0) {
+            setConfigLoja(dadosServer);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar config da loja no rodapé:', err);
+      }
+      const salvo = localStorage.getItem('configuracoes_loja');
+      if (salvo) {
+        try { setConfigLoja(JSON.parse(salvo)); } catch (e) {}
+      }
+    };
+    carregarConfig();
+  }, []);
+
+  // Formata os dias de funcionamento de forma inteligente para o texto do rodapé
+  const formatarDiasFuncionamento = () => {
+    const diasObj = configLoja.diasFuncionamento;
+    if (!diasObj || Object.keys(diasObj).length === 0) {
+      return 'Todos os dias';
+    }
+
+    const mapaDias = {
+      segunda: 'Segunda',
+      terça: 'Terça',
+      quarta: 'Quarta',
+      quinta: 'Quinta',
+      sexta: 'Sexta',
+      sabado: 'Sábado',
+      domingo: 'Domingo'
+    };
+
+    const diasAtivos = Object.entries(diasObj)
+      .filter(([_, ativo]) => ativo)
+      .map(([dia]) => mapaDias[dia] || dia);
+
+    if (diasAtivos.length === 7) return 'Todos os dias';
+    if (diasAtivos.length === 0) return 'Fechado temporariamente';
+    
+    return diasAtivos.join(', ');
+  };
+
+  // Oculta o Footer se estiver nas rotas do entregador ou se o perfil for entregador/motoboy
+  const isModoEntregador = 
+    location.pathname.startsWith('/motoboy') || 
+    location.pathname.startsWith('/entregador') ||
+    ['entregador', 'motoboy'].includes(role);
+
+  if (isModoEntregador) {
+    return null; // Não renderiza o footer no modo entregador
+  }
+
   // Ajuste o número da loja com DDD se for diferente
   const numeroWhatsApp = '5521990066154'; 
   const mensagemWhatsApp = encodeURIComponent('Olá! Gostaria de falar com o atendimento da Tay Mix.');
@@ -24,7 +95,7 @@ export const Footer = () => {
           </p>
         </div>
 
-        {/* Coluna 2: Informações de Atendimento */}
+        {/* Coluna 2: Informações de Atendimento (Dinâmico do Banco/Storage) */}
         <div className="space-y-1.5 text-xs font-semibold text-slate-700">
           <h4 className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px]">Atendimento</h4>
           <p className="flex items-center justify-center md:justify-start gap-1.5 text-slate-600">
@@ -33,7 +104,7 @@ export const Footer = () => {
           </p>
           <p className="flex items-center justify-center md:justify-start gap-1.5 text-slate-600">
             <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Todos os dias das 08:00 às 23:30</span>
+            <span>{formatarDiasFuncionamento()} das {configLoja.horarioAbertura} às {configLoja.horarioFechamento}</span>
           </p>
           <a 
             href={`https://wa.me/${numeroWhatsApp}?text=${mensagemWhatsApp}`}
@@ -69,7 +140,7 @@ export const Footer = () => {
       {/* Linha Divisória e Direitos Autorais */}
       <div className="max-w-6xl mx-auto px-4 pt-4 border-t border-slate-200/80 text-center text-xs space-y-0.5">
         <p className="font-bold text-slate-800">
-          © {new Date().getFullYear()} TAY MIX - Açaí & Massas. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} TAY MIX - Açaí & Massas. Todos os direitos reservados.
         </p>
         <p className="text-slate-500 font-medium text-[11px]">
           Maricá - RJ

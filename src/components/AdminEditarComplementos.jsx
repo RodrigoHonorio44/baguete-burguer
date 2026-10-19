@@ -165,23 +165,26 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl mt-6 shadow-2xl">
-      <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-        <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-emerald-400" />
+    <div className="bg-white border border-slate-200/80 p-6 rounded-2xl mt-6 shadow-xs">
+      <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <Layers className="w-5 h-5 text-emerald-600" />
           Gerenciar e Editar Categorias e Adicionais Cadastrados
         </h3>
         {onFechar && (
-          <button onClick={onFechar} className="text-xs text-slate-400 hover:text-slate-200 bg-slate-800 px-3 py-1 rounded flex items-center gap-1">
+          <button 
+            onClick={onFechar} 
+            className="text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 font-semibold cursor-pointer transition flex items-center gap-1"
+          >
             <X className="w-3.5 h-3.5" /> Fechar
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="text-xs text-slate-400">Carregando categorias e itens do banco...</p>
+        <p className="text-xs text-slate-500 py-4 text-center">Carregando categorias e itens do banco...</p>
       ) : gruposComItens.length === 0 ? (
-        <p className="text-xs text-slate-500 italic">Nenhuma categoria cadastrada para este produto.</p>
+        <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma categoria cadastrada para este produto.</p>
       ) : (
         <div className="space-y-6">
           {gruposComItens.map((grupo) => {
@@ -189,52 +192,58 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
             const itens = grupo.itens || [];
 
             return (
-              <div key={grupoId} className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-4">
+              <div key={grupoId} className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 shadow-2xs">
                 {/* EDIÇÃO DA CATEGORIA */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 mb-3 border-b border-slate-700 gap-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 mb-3 border-b border-slate-200 gap-3">
                   <div className="w-full flex-1">
                     {editandoGrupoId === grupoId ? (
-                      <div className="flex flex-wrap items-center gap-2 bg-slate-900 p-3 rounded border border-amber-500">
+                      <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-amber-400 shadow-2xs">
                         <div className="flex-1 min-w-[150px]">
-                          <label className="text-[10px] text-slate-400 block">Nome da Categoria</label>
+                          <label className="text-[10px] font-bold text-slate-500 block">Nome da Categoria</label>
                           <input
                             type="text"
                             value={grupoNomeEdit}
                             onChange={(e) => setGrupoNomeEdit(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                           />
                         </div>
                         <div className="w-20">
-                          <label className="text-[10px] text-slate-400 block">Mínimo</label>
+                          <label className="text-[10px] font-bold text-slate-500 block">Mínimo</label>
                           <input
                             type="number"
                             value={grupoMinEdit}
                             onChange={(e) => setGrupoMinEdit(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                           />
                         </div>
                         <div className="w-20">
-                          <label className="text-[10px] text-slate-400 block">Máximo</label>
+                          <label className="text-[10px] font-bold text-slate-500 block">Máximo</label>
                           <input
                             type="number"
                             value={grupoMaxEdit}
                             onChange={(e) => setGrupoMaxEdit(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                           />
                         </div>
                         <div className="flex items-end gap-1 mt-4 sm:mt-0">
-                          <button onClick={() => handleSalvarGrupo(grupoId)} className="px-3 py-1 bg-amber-500 text-slate-950 font-bold rounded text-xs flex items-center gap-1">
+                          <button 
+                            onClick={() => handleSalvarGrupo(grupoId)} 
+                            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                          >
                             <Save className="w-3.5 h-3.5" /> Salvar
                           </button>
-                          <button onClick={() => setEditandoGrupoId(null)} className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">
+                          <button 
+                            onClick={() => setEditandoGrupoId(null)} 
+                            className="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg border border-slate-200 text-xs font-semibold cursor-pointer"
+                          >
                             Cancelar
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-amber-400 text-sm capitalize">{grupo.nome}</h4>
-                        <span className="text-[11px] text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                        <h4 className="font-bold text-amber-700 text-sm capitalize">{grupo.nome}</h4>
+                        <span className="text-[11px] text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-semibold shadow-2xs">
                           Mín: {grupo.minimo ?? 0} | Máx: {grupo.maximo ?? 1}
                         </span>
                         <button
@@ -244,7 +253,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
                             setGrupoMinEdit(grupo.minimo ?? 0);
                             setGrupoMaxEdit(grupo.maximo ?? 1);
                           }}
-                          className="text-slate-400 hover:text-amber-400 p-1 rounded"
+                          className="text-slate-500 hover:text-amber-600 p-1 hover:bg-slate-200/60 rounded-md transition cursor-pointer"
                           title="Editar categoria"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -256,14 +265,14 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setAdicionandoNoGrupoId(adicionandoNoGrupoId === grupoId ? null : grupoId)}
-                      className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 rounded text-xs font-bold flex items-center gap-1 transition"
+                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
                     >
                       <Plus className="w-3.5 h-3.5" /> Incluir Item
                     </button>
 
                     <button
                       onClick={() => handleExcluirGrupo(grupoId)}
-                      className="text-slate-400 hover:text-rose-400 p-1.5 bg-slate-800 rounded transition"
+                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition cursor-pointer shadow-2xs"
                       title="Excluir categoria"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -273,8 +282,8 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
 
                 {/* FORMULÁRIO DE NOVO ITEM */}
                 {adicionandoNoGrupoId === grupoId && (
-                  <form onSubmit={(e) => handleCriarItemNoGrupo(e, grupoId)} className="bg-slate-900/90 p-3 rounded-lg border border-emerald-500/50 mb-4 space-y-3">
-                    <h5 className="text-xs font-bold text-emerald-400">Adicionar novo item em "{grupo.nome}"</h5>
+                  <form onSubmit={(e) => handleCriarItemNoGrupo(e, grupoId)} className="bg-white p-3.5 rounded-xl border border-emerald-300 mb-4 space-y-3 shadow-2xs">
+                    <h5 className="text-xs font-bold text-emerald-700">Adicionar novo item em "{grupo.nome}"</h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text"
@@ -282,7 +291,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
                         placeholder="Nome do item (ex: Morango, Chocolate)"
                         value={novoItemForm.nome}
                         onChange={(e) => setNovoItemForm({ ...novoItemForm, nome: e.target.value })}
-                        className="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-100"
+                        className="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
                       />
                       <input
                         type="number"
@@ -290,19 +299,23 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
                         placeholder="Preço Adicional (R$)"
                         value={novoItemForm.preco}
                         onChange={(e) => setNovoItemForm({ ...novoItemForm, preco: e.target.value })}
-                        className="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-slate-100"
+                        className="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleFotoNovoItem}
-                        className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 cursor-pointer"
+                        className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
                       />
-                      <div className="flex gap-1">
-                        <button type="submit" className="px-3 py-1 bg-emerald-500 text-slate-950 font-bold rounded text-xs">Salvar Item</button>
-                        <button type="button" onClick={() => setAdicionandoNoGrupoId(null)} className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Cancelar</button>
+                      <div className="flex gap-1.5 shrink-0">
+                        <button type="submit" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs cursor-pointer shadow-2xs">
+                          Salvar Item
+                        </button>
+                        <button type="button" onClick={() => setAdicionandoNoGrupoId(null)} className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold cursor-pointer">
+                          Cancelar
+                        </button>
                       </div>
                     </div>
                   </form>
@@ -310,67 +323,67 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
 
                 {/* LISTA DE ITENS */}
                 {itens.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">Nenhum item cadastrado nesta categoria.</p>
+                  <p className="text-xs text-slate-400 italic py-1">Nenhum item cadastrado nesta categoria.</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     {itens.map((item) => {
                       const itemId = item._id?.$oid || item._id;
                       const precoItem = Number(item.preco ?? 0);
                       const fotoItem = item.foto || item.imagem;
 
                       return (
-                        <div key={itemId} className="flex justify-between items-center bg-slate-900 border border-slate-800 p-2 rounded-lg">
+                        <div key={itemId} className="flex justify-between items-center bg-white border border-slate-200/80 p-2.5 rounded-xl shadow-2xs">
                           {editandoItemId === itemId ? (
-                            <div className="flex flex-col gap-1 w-full pr-2">
-                              <label className="text-[9px] text-slate-400">Nome</label>
+                            <div className="flex flex-col gap-1.5 w-full pr-1">
+                              <label className="text-[9px] font-bold text-slate-500">Nome</label>
                               <input
                                 type="text"
                                 value={itemNomeEdit}
                                 onChange={(e) => setItemNomeEdit(e.target.value)}
-                                className="bg-slate-800 border border-emerald-500 rounded px-1.5 py-0.5 text-xs text-slate-100"
+                                className="bg-slate-50 border border-emerald-500 rounded-md px-2 py-1 text-xs text-slate-800"
                               />
-                              <label className="text-[9px] text-slate-400">Preço (R$)</label>
+                              <label className="text-[9px] font-bold text-slate-500">Preço (R$)</label>
                               <input
                                 type="number"
                                 step="0.01"
                                 value={itemPrecoEdit}
                                 onChange={(e) => setItemPrecoEdit(e.target.value)}
-                                className="bg-slate-800 border border-emerald-500 rounded px-1.5 py-0.5 text-xs text-slate-100"
+                                className="bg-slate-50 border border-emerald-500 rounded-md px-2 py-1 text-xs text-slate-800"
                               />
                               <div className="flex gap-1 mt-1">
-                                <button onClick={() => handleSalvarItem(itemId)} className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-bold rounded text-[10px]">Salvar</button>
-                                <button onClick={() => setEditandoItemId(null)} className="px-2 py-0.5 bg-slate-700 text-slate-300 rounded text-[10px]">Cancelar</button>
+                                <button onClick={() => handleSalvarItem(itemId)} className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded-md text-[10px] cursor-pointer shadow-2xs">Salvar</button>
+                                <button onClick={() => setEditandoItemId(null)} className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md border border-slate-200 text-[10px] cursor-pointer">Cancelar</button>
                               </div>
                             </div>
                           ) : (
                             <>
                               <div className="flex items-center gap-2 overflow-hidden">
                                 {fotoItem ? (
-                                  <img src={fotoItem} alt={item.nome} className="w-8 h-8 rounded object-cover border border-slate-700 flex-shrink-0" />
+                                  <img src={fotoItem} alt={item.nome} className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0" />
                                 ) : (
-                                  <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-slate-600 flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
                                     <ImageIcon className="w-4 h-4" />
                                   </div>
                                 )}
                                 <div className="truncate">
-                                  <p className="text-xs font-semibold text-slate-200 truncate capitalize">{item.nome}</p>
-                                  <p className="text-[10px] text-emerald-400 font-bold">+ R$ {precoItem.toFixed(2)}</p>
+                                  <p className="text-xs font-bold text-slate-800 truncate capitalize">{item.nome}</p>
+                                  <p className="text-[10px] text-emerald-600 font-extrabold">+ R$ {precoItem.toFixed(2)}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
+                              <div className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={() => { setEditandoItemId(itemId); setItemNomeEdit(item.nome); setItemPrecoEdit(precoItem); }}
-                                  className="p-1 text-slate-400 hover:text-amber-400 rounded"
+                                  className="p-1 text-slate-500 hover:text-amber-600 hover:bg-slate-100 rounded-md transition cursor-pointer"
                                   title="Editar item"
                                 >
-                                  <Edit2 className="w-3 h-3" />
+                                  <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleExcluirItem(itemId)}
-                                  className="p-1 text-slate-400 hover:text-rose-400 rounded"
+                                  className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
                                   title="Excluir item"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </>

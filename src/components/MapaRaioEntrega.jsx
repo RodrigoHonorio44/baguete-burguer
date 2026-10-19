@@ -39,15 +39,15 @@ export const MapaRaioEntrega = () => {
   const [endereco, setEndereco] = useState('Maricá, RJ');
   const [posicaoLoja, setPosicaoLoja] = useState([-22.9194, -42.8186]); 
   const [isOnline, setIsOnline] = useState(true);
-  const [pedidoMinimo, setPedidoMinimo] = useState(20.00); // Novo estado para o pedido mínimo
+  const [pedidoMinimo, setPedidoMinimo] = useState(20.00); 
   
   const [modoMapa, setModoMapa] = useState('loja');
 
   const [faixasRaio, setFaixasRaio] = useState([
     { id: 1, ativo: true, km: 3, taxa: 5.00, cor: '#10b981', fixo: false, posicao: null },   
-    { id: 2, ativo: true, km: 6, taxa: 9.00, cor: '#3b82f6', fixo: false, posicao: null },   
-    { id: 3, ativo: false, km: 9, taxa: 14.00, cor: '#f59e0b', fixo: false, posicao: null },   
-    { id: 4, ativo: false, km: 12, taxa: 20.00, cor: '#ef4444', fixo: false, posicao: null }, 
+    { id: 2, ativo: true, km: 6, taxa: 9.00, cor: '#2563eb', fixo: false, posicao: null },   
+    { id: 3, ativo: false, km: 9, taxa: 14.00, cor: '#d97706', fixo: false, posicao: null },   
+    { id: 4, ativo: false, km: 12, taxa: 20.00, cor: '#dc2626', fixo: false, posicao: null }, 
   ]);
 
   const [zonasProibidas, setZonasProibidas] = useState([]);
@@ -206,22 +206,24 @@ export const MapaRaioEntrega = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 text-slate-800">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            <Store className="text-amber-500" /> Gestão Avançada de Raios Independentes
+          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
+            <Store className="text-amber-600" /> Gestão Avançada de Raios Independentes
           </h1>
-          <p className="text-sm text-slate-400">Fixe a posição da loja como referência, desvincule e posicione cada raio individualmente no mapa.</p>
+          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+            Fixe a posição da loja como referência, desvincule e posicione cada raio individualmente no mapa.
+          </p>
         </div>
 
         <button
           type="button"
           onClick={handleToggleLojaStatus}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition cursor-pointer border ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer border shadow-2xs ${
             isOnline 
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25' 
-              : 'bg-rose-500/15 text-rose-400 border-rose-500/30 hover:bg-rose-500/25'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
+              : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
           }`}
         >
           <Power size={16} />
@@ -234,54 +236,54 @@ export const MapaRaioEntrega = () => {
         {/* Painel Esquerdo */}
         <div className="lg:col-span-1 space-y-6">
           
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
-            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
               <MapPin size={15} /> Referência da Loja
             </h2>
             <input
               type="text"
               value={endereco}
               onChange={(e) => setEndereco(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-amber-500 focus:bg-white transition"
             />
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
               O marcador principal da loja serve como sua âncora fixa para cálculo de quilometragem e referência visual.
             </p>
           </div>
 
           {/* Card de Configuração de Pedido Mínimo */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
-            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
               <DollarSign size={15} /> Pedido Mínimo de Entrega
             </h2>
             <div>
-              <label className="block text-[10px] text-slate-400 mb-1">Valor Mínimo (R$)</label>
+              <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Valor Mínimo (R$)</label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={pedidoMinimo}
                 onChange={(e) => setPedidoMinimo(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-emerald-700 font-extrabold focus:outline-none focus:border-amber-500 focus:bg-white transition"
               />
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
               Defina o valor mínimo que o carrinho precisa atingir para liberar a finalização do delivery. Se for 0, não haverá limite.
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
-            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center justify-between">
               <span>Faixas de Raio Independentes</span>
             </h2>
             
             <div className="space-y-3">
               {faixasRaio.map((faixa, index) => (
-                <div key={faixa.id} className={`border p-2.5 rounded-xl transition ${faixa.ativo ? 'bg-slate-950 border-slate-800' : 'bg-slate-950/40 border-slate-900 opacity-60'}`}>
+                <div key={faixa.id} className={`border p-3 rounded-xl transition ${faixa.ativo ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/50 border-slate-100 opacity-60'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: faixa.cor }}></span>
-                      <span className="text-xs font-bold text-slate-200">Raio {index + 1}</span>
+                      <span className="w-3 h-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: faixa.cor }}></span>
+                      <span className="text-xs font-bold text-slate-800">Raio {index + 1}</span>
                     </div>
                     
                     <div className="flex items-center gap-1.5">
@@ -289,8 +291,8 @@ export const MapaRaioEntrega = () => {
                         type="button"
                         title={faixa.fixo ? 'Centro fixado independentemente' : 'Seguindo centro da loja'}
                         onClick={() => alternarFixarRaio(index)}
-                        className={`p-1 rounded text-[10px] font-bold cursor-pointer border ${
-                          faixa.fixo ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'
+                        className={`p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border transition ${
+                          faixa.fixo ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         {faixa.fixo ? <Lock size={12} /> : <Unlock size={12} />}
@@ -299,8 +301,8 @@ export const MapaRaioEntrega = () => {
                       <button
                         type="button"
                         onClick={() => atualizarFaixa(index, 'ativo', !faixa.ativo)}
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                          faixa.ativo ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition ${
+                          faixa.ativo ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-white text-slate-500 border border-slate-200'
                         }`}
                       >
                         {faixa.ativo ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -311,25 +313,25 @@ export const MapaRaioEntrega = () => {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] text-slate-400">Distância (Km)</label>
+                      <label className="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">Distância (Km)</label>
                       <input
                         type="number"
                         step="0.5"
                         value={faixa.km}
                         disabled={!faixa.ativo}
                         onChange={(e) => atualizarFaixa(index, 'km', parseFloat(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-bold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-bold focus:outline-none focus:border-amber-500 disabled:bg-slate-100"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400">Taxa (R$)</label>
+                      <label className="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">Taxa (R$)</label>
                       <input
                         type="number"
                         step="0.50"
                         value={faixa.taxa}
                         disabled={!faixa.ativo}
                         onChange={(e) => atualizarFaixa(index, 'taxa', parseFloat(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-emerald-700 font-bold focus:outline-none focus:border-amber-500 disabled:bg-slate-100"
                       />
                     </div>
                   </div>
@@ -338,25 +340,25 @@ export const MapaRaioEntrega = () => {
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
-            <h2 className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
               <AlertTriangle size={15} /> Áreas Proibidas (Km)
             </h2>
             
             {zonasProibidas.length === 0 ? (
-              <p className="text-[11px] text-slate-500 italic">Nenhuma zona bloqueada. Selecione "🚫 Adicionar Zona Proibida" e clique no mapa.</p>
+              <p className="text-[11px] text-slate-500 italic font-medium">Nenhuma zona bloqueada. Selecione "🚫 Adicionar Zona Proibida" e clique no mapa.</p>
             ) : (
               <div className="space-y-2.5 max-h-48 overflow-y-auto">
                 {zonasProibidas.map((z, idx) => (
-                  <div key={z.id} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl space-y-2 text-xs">
+                  <div key={z.id} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-rose-400 font-bold">Zona Bloqueada #{idx + 1}</span>
-                      <button type="button" onClick={() => removerZona(z.id)} className="p-1 text-rose-400 hover:bg-rose-500/20 rounded cursor-pointer">
+                      <span className="text-rose-700 font-bold">Zona Bloqueada #{idx + 1}</span>
+                      <button type="button" onClick={() => removerZona(z.id)} className="p-1 text-rose-600 hover:bg-rose-100 rounded-lg cursor-pointer transition">
                         <Trash2 size={13} />
                       </button>
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400">Raio de Bloqueio (Km)</label>
+                      <label className="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">Raio de Bloqueio (Km)</label>
                       <input
                         type="number"
                         step="0.5"
@@ -364,7 +366,7 @@ export const MapaRaioEntrega = () => {
                         max="15"
                         value={z.raioKm}
                         onChange={(e) => atualizarZonaProibida(z.id, 'raioKm', parseFloat(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-rose-300 font-bold focus:outline-none focus:border-rose-500"
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-rose-700 font-bold focus:outline-none focus:border-rose-500"
                       />
                     </div>
                   </div>
@@ -373,13 +375,13 @@ export const MapaRaioEntrega = () => {
             )}
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-md">
-            <h2 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
               <Clock size={15} /> Funcionamento
             </h2>
             <div className="grid grid-cols-2 gap-2">
-              <input type="time" value={horarioAbertura} onChange={(e) => setHorarioAbertura(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-200" />
-              <input type="time" value={horarioFechamento} onChange={(e) => setHorarioFechamento(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-200" />
+              <input type="time" value={horarioAbertura} onChange={(e) => setHorarioAbertura(e.target.value)} className="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-semibold" />
+              <input type="time" value={horarioFechamento} onChange={(e) => setHorarioFechamento(e.target.value)} className="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-semibold" />
             </div>
             <div className="grid grid-cols-4 gap-1 text-[10px] pt-1">
               {Object.keys(diasFuncionamento).map((dia) => (
@@ -387,8 +389,8 @@ export const MapaRaioEntrega = () => {
                   key={dia}
                   type="button"
                   onClick={() => toggleDia(dia)}
-                  className={`py-1 rounded border font-medium capitalize transition cursor-pointer ${
-                    diasFuncionamento[dia] ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-600'
+                  className={`py-1 rounded-lg border font-bold capitalize transition cursor-pointer ${
+                    diasFuncionamento[dia] ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-400'
                   }`}
                 >
                   {dia.slice(0, 3)}
@@ -400,7 +402,7 @@ export const MapaRaioEntrega = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg text-xs"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs text-xs"
           >
             <Save size={16} /> {loading ? 'Salvando...' : 'Salvar Alterações'}
           </button>
@@ -408,16 +410,16 @@ export const MapaRaioEntrega = () => {
         </div>
 
         {/* Painel Direito: Mapa Interativo */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col shadow-md">
+        <div className="lg:col-span-2 bg-white border border-slate-200/80 p-4 rounded-2xl flex flex-col shadow-xs">
           
           <div className="flex flex-col gap-2 mb-3">
-            <span className="text-xs font-semibold text-slate-300">Escolha o que deseja posicionar ou alterar ao clicar no mapa:</span>
+            <span className="text-xs font-bold text-slate-700">Escolha o que deseja posicionar ou alterar ao clicar no mapa:</span>
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => setModoMapa('loja')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                  modoMapa === 'loja' ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                  modoMapa === 'loja' ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-2xs' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 📍 Fixar Posição da Loja
@@ -434,8 +436,8 @@ export const MapaRaioEntrega = () => {
                     setFaixasRaio(novas);
                     setModoMapa(`raio_${idx}`);
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                    modoMapa === `raio_${idx}` ? 'text-slate-950 border-white' : 'bg-slate-950 text-slate-400 border-slate-800'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    modoMapa === `raio_${idx}` ? 'text-white border-slate-300 shadow-2xs' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                   style={{ backgroundColor: modoMapa === `raio_${idx}` ? f.cor : undefined }}
                 >
@@ -446,8 +448,8 @@ export const MapaRaioEntrega = () => {
               <button
                 type="button"
                 onClick={() => setModoMapa('bloqueio')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                  modoMapa === 'bloqueio' ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                  modoMapa === 'bloqueio' ? 'bg-rose-600 text-white border-rose-500 shadow-2xs' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 🚫 Adicionar Zona Proibida
@@ -455,11 +457,11 @@ export const MapaRaioEntrega = () => {
             </div>
           </div>
 
-          <div className="flex-1 min-h-[550px] rounded-xl overflow-hidden border border-slate-800 z-0">
+          <div className="flex-1 min-h-[550px] rounded-xl overflow-hidden border border-slate-200/80 z-0 shadow-2xs">
             <MapContainer 
               center={posicaoLoja} 
               zoom={12} 
-              style={{ height: '100%', width: '100%', background: '#090d16' }}
+              style={{ height: '100%', width: '100%', background: '#f8fafc' }}
             >
               <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
