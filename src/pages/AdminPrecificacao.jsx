@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, Plus, Trash2, Save, Sliders, DollarSign, Percent } from 'lucide-react';
-import { api } from '../services/api';
-import toast from 'react-hot-toast';
+import React, { useState } from 'react';
+import { Calculator, Plus, Trash2, Save, Sliders, DollarSign, Percent, Edit2 } from 'lucide-react';
+import { usePrecificacao } from '../hooks/usePrecificacao';
 
 // FUNÇÃO AUXILIAR DE CÁLCULO
 const calcularSimulacao = (custoDireto, pctTaxa, rateioFixo, precoEntrada, margemEntrada, modoCalculo) => {
@@ -51,14 +50,14 @@ function PainelSimuladorDinamico({ custoDireto, taxas, precoIFoodIni = '24.90', 
           <button 
             type="button"
             onClick={() => setModoCalculo('preco')} 
-            className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 ${modoCalculo === 'preco' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}
+            className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer ${modoCalculo === 'preco' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}
           >
             <DollarSign className="w-3.5 h-3.5" /> Digitar Preço de Venda
           </button>
           <button 
             type="button"
             onClick={() => setModoCalculo('margem')} 
-            className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 ${modoCalculo === 'margem' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}
+            className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer ${modoCalculo === 'margem' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}
           >
             <Percent className="w-3.5 h-3.5" /> Informar Lucro Desejado (%)
           </button>
@@ -177,171 +176,31 @@ function PainelSimuladorDinamico({ custoDireto, taxas, precoIFoodIni = '24.90', 
 }
 
 export default function AdminPrecificacao() {
-  const [aba, setAba] = useState('simulador');
-  const [insumos, setInsumos] = useState([]);
-  const [produtosSalvos, setProdutosSalvos] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Formulários
-  const [novoNome, setNovoNome] = useState('');
-  const [novaCategoria, setNovaCategoria] = useState('acai');
-  const [novaUnidade, setNovaUnidade] = useState('kg');
-  const [precoTotalComprado, setPrecoTotalComprado] = useState('');
-  const [qtdEmbalagem, setQtdEmbalagem] = useState('1');
-
-  // Taxas
-  const [taxas, setTaxas] = useState({
-    ifoodPercentual: 26.2,
-    ifoodRateioUnidade: 1.50,
-    f99Percentual: 12.1,
-    f99RateioUnidade: 0.00
-  });
-
-  // Montador
-  const [nomeProdutoFinal, setNomeProdutoFinal] = useState('');
-  const [itensReceita, setItensReceita] = useState([]);
-  const [insumoSelecionadoId, setInsumoSelecionadoId] = useState('');
-  const [qtdUsadaInsumo, setQtdUsadaInsumo] = useState('');
-  const [unidadeMedidaSelecionada, setUnidadeMedidaSelecionada] = useState('g'); // 'g', 'ml' ou 'un'
-
-  const carregarDados = async () => {
-    try {
-      setLoading(true);
-      const dadosInsumos = await api.getInsumosPrecificacao();
-      setInsumos(Array.isArray(dadosInsumos) ? dadosInsumos : []);
-
-      const configLoja = await api.getConfiguracoesLoja();
-      if (configLoja && configLoja.taxasPrecificacao) {
-        setTaxas(configLoja.taxasPrecificacao);
-      }
-
-      if (api.getProdutosPrecificados) {
-        const dadosProds = await api.getProdutosPrecificados();
-        setProdutosSalvos(Array.isArray(dadosProds) ? dadosProds : []);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      toast.error('Erro ao carregar dados do banco.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  const handleAdicionarIngredienteFicha = () => {
-    if (!insumoSelecionadoId || !qtdUsadaInsumo || Number(qtdUsadaInsumo) <= 0) {
-      toast.error('Selecione um insumo e informe a quantidade usada!');
-      return;
-    }
-
-    const insumoObj = insumos.find(i => i._id === insumoSelecionadoId);
-    if (!insumoObj) return;
-
-    const qtd = Number(qtdUsadaInsumo);
-    let custoItem = 0;
-
-    // Se a unidade escolhida for 'g' ou 'ml', divide por 1000 para calcular proporcional ao preço do kg ou litro
-    if (unidadeMedidaSelecionada === 'g' || unidadeMedidaSelecionada === 'ml') {
-      custoItem = (Number(insumoObj.custo) / 1000) * qtd;
-    } else {
-      custoItem = Number(insumoObj.custo) * qtd; // unidades (un)
-    }
-
-    const novoItemFicha = {
-      insumoId: insumoObj._id,
-      nome: insumoObj.nome,
-      qtdUsada: qtd,
-      unidadeUsada: unidadeMedidaSelecionada,
-      custoCalculado: custoItem
-    };
-
-    setItensReceita([...itensReceita, novoItemFicha]);
-    setInsumoSelecionadoId('');
-    setQtdUsadaInsumo('');
-    toast.success(`${insumoObj.nome} adicionado à receita!`);
-  };
-
-  const handleRemoverIngredienteFicha = (index) => {
-    setItensReceita(itensReceita.filter((_, i) => i !== index));
-  };
-
-  const custoDiretoTotalProduto = itensReceita.reduce((acc, curr) => acc + curr.custoCalculado, 0);
-
-  const handleSalvarProdutoFinal = async () => {
-    if (!nomeProdutoFinal.trim()) {
-      toast.error('Digite o nome do produto final!');
-      return;
-    }
-    if (itensReceita.length === 0) {
-      toast.error('Adicione pelo menos um ingrediente ou embalagem!');
-      return;
-    }
-
-    const novoProduto = {
-      nome: nomeProdutoFinal.toLowerCase().trim(),
-      itensReceita,
-      custoDiretoTotal: custoDiretoTotalProduto,
-      criadoEm: new Date().toISOString()
-    };
-
-    try {
-      if (api.salvarProdutoPrecificado) {
-        await api.salvarProdutoPrecificado(novoProduto);
-      }
-      setProdutosSalvos([novoProduto, ...produtosSalvos]);
-      toast.success('Produto precificado salvo no banco!');
-      
-      setNomeProdutoFinal('');
-      setItensReceita([]);
-    } catch (err) {
-      toast.error('Erro ao salvar produto precificado.');
-    }
-  };
-
-  const handleSalvarInsumo = async (e) => {
-    e.preventDefault();
-    if (!novoNome || !precoTotalComprado || !qtdEmbalagem || Number(qtdEmbalagem) <= 0) {
-      toast.error('Preencha todos os campos corretamente!');
-      return;
-    }
-
-    const precoTotal = Number(precoTotalComprado);
-    const quantidade = Number(qtdEmbalagem);
-    const custoUnitarioCalculado = precoTotal / quantidade;
-
-    try {
-      await api.criarInsumoPrecificacao({
-        nome: novoNome.toLowerCase().trim(),
-        categoria: novaCategoria,
-        unidade: novaUnidade,
-        precoTotalComprado: precoTotal,
-        qtdEmbalagem: quantidade,
-        custo: custoUnitarioCalculado
-      });
-
-      toast.success(`Insumo salvo! Custo: R$ ${custoUnitarioCalculado.toFixed(2)} / ${novaUnidade}`);
-      setNovoNome('');
-      setPrecoTotalComprado('');
-      setQtdEmbalagem('1');
-      carregarDados();
-    } catch (err) {
-      toast.error('Erro ao salvar insumo no banco.');
-    }
-  };
-
-  const handleSalvarTaxas = async (e) => {
-    e.preventDefault();
-    try {
-      const configAtual = await api.getConfiguracoesLoja() || {};
-      await api.updateConfiguracoesLoja({ ...configAtual, taxasPrecificacao: taxas });
-      toast.success('Taxas salvas no banco!');
-    } catch (err) {
-      toast.error('Erro ao salvar taxas.');
-    }
-  };
+  const {
+    aba, setAba,
+    insumos, produtosSalvos, loading,
+    editandoInsumoId,
+    novoNome, setNovoNome,
+    novaCategoria, setNovaCategoria,
+    novaUnidade, setNovaUnidade,
+    precoTotalComprado, setPrecoTotalComprado,
+    qtdEmbalagem, setQtdEmbalagem,
+    taxas, setTaxas,
+    nomeProdutoFinal, setNomeProdutoFinal,
+    itensReceita,
+    insumoSelecionadoId, setInsumoSelecionadoId,
+    qtdUsadaInsumo, setQtdUsadaInsumo,
+    unidadeMedidaSelecionada, setUnidadeMedidaSelecionada,
+    custoDiretoTotalProduto,
+    handleAdicionarIngredienteFicha,
+    handleRemoverIngredienteFicha,
+    handleSalvarProdutoFinal,
+    handleSalvarInsumo,
+    handleEditarInsumo,
+    handleCancelarEdicaoInsumo,
+    handleExcluirInsumo,
+    handleSalvarTaxas
+  } = usePrecificacao();
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
@@ -354,16 +213,16 @@ export default function AdminPrecificacao() {
           </div>
           
           <div className="flex flex-wrap bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1">
-            <button onClick={() => setAba('simulador')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${aba === 'simulador' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
+            <button onClick={() => setAba('simulador')} className={`px-4 py-2 rounded-lg font-bold text-sm transition cursor-pointer ${aba === 'simulador' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
               🛠️ Montar Ficha Técnica
             </button>
-            <button onClick={() => setAba('produtos')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${aba === 'produtos' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
+            <button onClick={() => setAba('produtos')} className={`px-4 py-2 rounded-lg font-bold text-sm transition cursor-pointer ${aba === 'produtos' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
               📋 Produtos Salvos ({produtosSalvos.length})
             </button>
-            <button onClick={() => setAba('insumos')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${aba === 'insumos' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
+            <button onClick={() => setAba('insumos')} className={`px-4 py-2 rounded-lg font-bold text-sm transition cursor-pointer ${aba === 'insumos' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
               📦 Insumos / Ingredientes
             </button>
-            <button onClick={() => setAba('taxas')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${aba === 'taxas' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
+            <button onClick={() => setAba('taxas')} className={`px-4 py-2 rounded-lg font-bold text-sm transition cursor-pointer ${aba === 'taxas' ? 'bg-amber-500 text-slate-950' : 'text-slate-300'}`}>
               ⚙️ Taxas dos Apps
             </button>
           </div>
@@ -399,7 +258,7 @@ export default function AdminPrecificacao() {
                       <select 
                         value={insumoSelecionadoId} 
                         onChange={e => setInsumoSelecionadoId(e.target.value)} 
-                        className="w-full bg-slate-800 p-2 rounded text-sm text-white capitalize"
+                        className="w-full bg-slate-800 p-2 rounded text-sm text-white capitalize cursor-pointer"
                       >
                         <option value="">Selecione ingrediente/embalagem...</option>
                         {insumos.map(i => (
@@ -415,7 +274,7 @@ export default function AdminPrecificacao() {
                       <select 
                         value={unidadeMedidaSelecionada} 
                         onChange={e => setUnidadeMedidaSelecionada(e.target.value)} 
-                        className="w-full bg-slate-800 p-2 rounded text-sm text-white font-bold"
+                        className="w-full bg-slate-800 p-2 rounded text-sm text-white font-bold cursor-pointer"
                       >
                         <option value="g">Gramas (g)</option>
                         <option value="ml">Mililitros (ml)</option>
@@ -438,7 +297,7 @@ export default function AdminPrecificacao() {
                   <button 
                     type="button" 
                     onClick={handleAdicionarIngredienteFicha} 
-                    className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-400 font-bold p-2.5 rounded-lg transition text-xs flex items-center justify-center gap-2 mt-2"
+                    className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-400 font-bold p-2.5 rounded-lg transition text-xs flex items-center justify-center gap-2 mt-2 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Incluir este Insumo na Receita
                   </button>
@@ -458,7 +317,7 @@ export default function AdminPrecificacao() {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-emerald-400">R$ {item.custoCalculado.toFixed(2)}</span>
-                            <button onClick={() => handleRemoverIngredienteFicha(idx)} className="text-rose-400 hover:text-rose-300">
+                            <button onClick={() => handleRemoverIngredienteFicha(idx)} className="text-rose-400 hover:text-rose-300 cursor-pointer">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -488,7 +347,7 @@ export default function AdminPrecificacao() {
 
                 <button 
                   onClick={handleSalvarProdutoFinal} 
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-3 rounded-xl transition flex items-center justify-center gap-2"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Save className="w-5 h-5" /> Cadastrar Produto Precificado
                 </button>
@@ -533,9 +392,21 @@ export default function AdminPrecificacao() {
         ) : aba === 'insumos' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-              <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
-                <Plus className="w-5 h-5" /> Cadastrar Insumo
-              </h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                  <Plus className="w-5 h-5" /> {editandoInsumoId ? 'Editar Insumo' : 'Cadastrar Insumo'}
+                </h2>
+                {editandoInsumoId && (
+                  <button 
+                    type="button" 
+                    onClick={handleCancelarEdicaoInsumo} 
+                    className="text-xs text-rose-400 hover:underline cursor-pointer"
+                  >
+                    Cancelar Edição
+                  </button>
+                )}
+              </div>
+
               <form onSubmit={handleSalvarInsumo} className="space-y-3">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Nome do Item</label>
@@ -543,7 +414,7 @@ export default function AdminPrecificacao() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Categoria</label>
-                  <select value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)} className="w-full bg-slate-700 p-2 rounded text-sm text-white">
+                  <select value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)} className="w-full bg-slate-700 p-2 rounded text-sm text-white cursor-pointer">
                     <option value="acai">Açaí / Insumo</option>
                     <option value="embalagem">Embalagem / Garrafa</option>
                     <option value="adicional">Adicional / Fruta</option>
@@ -554,7 +425,7 @@ export default function AdminPrecificacao() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Unidade</label>
-                  <select value={novaUnidade} onChange={e => setNovaUnidade(e.target.value)} className="w-full bg-slate-700 p-2 rounded text-sm text-white">
+                  <select value={novaUnidade} onChange={e => setNovaUnidade(e.target.value)} className="w-full bg-slate-700 p-2 rounded text-sm text-white cursor-pointer">
                     <option value="kg">Quilos (kg)</option>
                     <option value="un">Unidades (un)</option>
                     <option value="l">Litros (L)</option>
@@ -572,8 +443,8 @@ export default function AdminPrecificacao() {
                   </div>
                 </div>
 
-                <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-2.5 rounded-lg transition mt-2">
-                  Salvar no Banco
+                <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-2.5 rounded-lg transition mt-2 cursor-pointer">
+                  {editandoInsumoId ? 'Salvar Alterações' : 'Salvar no Banco'}
                 </button>
               </form>
             </div>
@@ -589,6 +460,7 @@ export default function AdminPrecificacao() {
                       <th className="p-3">Preço Pago</th>
                       <th className="p-3">Qtd Pacote</th>
                       <th className="p-3">Custo Unitário</th>
+                      <th className="p-3 text-center">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700">
@@ -599,6 +471,24 @@ export default function AdminPrecificacao() {
                         <td className="p-3">R$ {Number(item.precoTotalComprado || item.custo).toFixed(2)}</td>
                         <td className="p-3">{item.qtdEmbalagem || 1} {item.unidade}</td>
                         <td className="p-3 font-bold text-amber-400">R$ {Number(item.custo).toFixed(2)} / {item.unidade}</td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEditarInsumo(item)}
+                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition cursor-pointer"
+                              title="Editar Insumo"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleExcluirInsumo(item._id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 rounded-lg transition cursor-pointer"
+                              title="Excluir Insumo"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -640,7 +530,7 @@ export default function AdminPrecificacao() {
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-3 rounded-xl transition">
+              <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold p-3 rounded-xl transition cursor-pointer">
                 Salvar Taxas no Banco
               </button>
             </form>

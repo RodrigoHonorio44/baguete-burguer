@@ -53,9 +53,25 @@ export const Motoboy = () => {
         const dataPedido = p.criadoEm || p.createdAt;
         if (!dataPedido) return false;
         const dataFormatada = new Date(dataPedido).toISOString().split('T')[0];
-        const status = p.status || 'pendente';
+        const status = (p.status || 'pendente').toLowerCase();
         
-        return dataFormatada === hoje && (status === 'pronto' || status === 'enviado' || status === 'concluido');
+        // 1. Data deve ser de hoje e status válido para motoboy
+        const dataValida = dataFormatada === hoje;
+        const statusValido = status === 'pronto' || status === 'enviado' || status === 'concluido';
+
+        if (!dataValida || !statusValido) return false;
+
+        // 2. REGRA EXATA: Exclui pedidos de retirada no balcão
+        const tipo = (p.tipo || p.entrega || '').toLowerCase();
+        const ehRetirada = tipo.includes('retirada') || (p.canal || '').toLowerCase().includes('presencial');
+        if (ehRetirada) return false;
+
+        // 3. REGRA EXATA: Exclui entregas parceiras de apps (iFood Parceiro / 99Food) cujos entregadores são terceirizados
+        const canal = (p.canal || '').toLowerCase();
+        const ehEntregaTerceirizada = canal.includes('ifood_parceiro') || canal.includes('99') || canal.includes('99food') || tipo.includes('parceira');
+        if (ehEntregaTerceirizada) return false;
+
+        return true;
       });
 
       // Contar quantos estão com status 'pronto' atualmente

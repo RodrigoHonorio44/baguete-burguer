@@ -18,9 +18,18 @@ export const useCaixa = () => {
   const [carrinhoPdv, setCarrinhoPdv] = useState([]);
   const [clientePdv, setClientePdv] = useState('');
   const [pagamentoPdv, setPagamentoPdv] = useState('dinheiro');
-  const [canalPdv, setCanalPdv] = useState('presencial');
+  const [canalPdv, setCanalPdv] = useState('presencial'); // 'presencial', 'ifood_loja', 'ifood_parceiro', '99food'
   const [tipoRetiradaPdv, setTipoRetiradaPdv] = useState('retirada'); // 'retirada' ou 'entrega'
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
+
+  // 🎯 Efeito para travar a forma de pagamento em 'app_online' quando o canal for aplicativo
+  useEffect(() => {
+    if (canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food' || canalPdv.includes('ifood') || canalPdv.includes('99')) {
+      setPagamentoPdv('app_online');
+    } else if (pagamentoPdv === 'app_online') {
+      setPagamentoPdv('dinheiro');
+    }
+  }, [canalPdv]);
 
   // --- CÁLCULOS FINANCEIROS ---
   const pedidosValidos = pedidos.filter(p => {
@@ -28,7 +37,38 @@ export const useCaixa = () => {
     return status !== 'recusado' && status !== 'cancelado';
   });
 
-  const faturamentoVendas = pedidosValidos.reduce((acc, p) => acc + Number(p.total || 0), 0);
+  // 🧮 Função auxiliar para calcular taxas de comissão e repasse líquido de cada pedido
+  const calcularValoresPedido = (p) => {
+    const totalBruto = Number(p.totalBruto || p.total || 0);
+    const canal = (p.canal || '').toLowerCase();
+
+    let comissaoApp = 0;
+
+    if (canal.includes('ifood')) {
+      // Regra iFood: 26.2% + R$ 1,50
+      const taxaPorcentagem = (totalBruto * 26.2) / 100;
+      const taxaFixa = totalBruto > 0 ? 1.50 : 0;
+      comissaoApp = taxaPorcentagem + taxaFixa;
+    } else if (canal.includes('99') || canal.includes('99food')) {
+      // Regra 99Food: 12.1%
+      comissaoApp = (totalBruto * 12.1) / 100;
+    }
+
+    const repasseLiquido = Math.max(0, totalBruto - comissaoApp);
+
+    return {
+      totalBruto,
+      comissaoApp,
+      repasseLiquido
+    };
+  };
+
+  // Faturamento contabiliza o valor líquido real repassado pelas vendas
+  const faturamentoVendas = pedidosValidos.reduce((acc, p) => {
+    const { repasseLiquido } = calcularValoresPedido(p);
+    return acc + repasseLiquido;
+  }, 0);
+
   const totalGeral = faturamentoVendas + Number(fundoCaixa || 0);
   
   const totalPix = pedidosValidos
@@ -55,12 +95,40 @@ export const useCaixa = () => {
     })
     .reduce((acc, p) => acc + Number(p.total || 0), 0);
 
+  // iFood Loja (Entrega Própria)
   const totalIfood = pedidosValidos
     .filter(p => {
       const canal = (p.canal || p.rua || '').toLowerCase();
-      return canal === 'ifood' || canal.includes('ifood');
+      const tipo = (p.tipo || p.entrega || '').toLowerCase();
+      return canal.includes('ifood') && !tipo.includes('parceira') && !tipo.includes('entregador_ifood') && !tipo.includes('parceiro') && canal !== 'ifood_parceiro';
     })
-    .reduce((acc, p) => acc + Number(p.total || 0), 0);
+    .reduce((acc, p) => {
+      const { repasseLiquido } = calcularValoresPedido(p);
+      return acc + repasseLiquido;
+    }, 0);
+
+  // iFood Entrega Parceira
+  const totalIfoodEntrega = pedidosValidos
+    .filter(p => {
+      const canal = (p.canal || '').toLowerCase();
+      const tipo = (p.tipo || p.entrega || '').toLowerCase();
+      return canal === 'ifood_parceiro' || (canal.includes('ifood') && (tipo.includes('parceira') || tipo.includes('entregador_ifood') || tipo.includes('parceiro')));
+    })
+    .reduce((acc, p) => {
+      const { repasseLiquido } = calcularValoresPedido(p);
+      return acc + repasseLiquido;
+    }, 0);
+
+  // 99Food (tratando letras maiúsculas/minúsculas e variações)
+  const total99Food = pedidosValidos
+    .filter(p => {
+      const canal = (p.canal || '').toLowerCase();
+      return canal.includes('99') || canal.includes('99food');
+    })
+    .reduce((acc, p) => {
+      const { repasseLiquido } = calcularValoresPedido(p);
+      return acc + repasseLiquido;
+    }, 0);
 
   // Carrega status do Caixa diretamente do Banco de Dados
   const carregarStatusCaixaBanco = async () => {
@@ -145,8 +213,21 @@ export const useCaixa = () => {
     }
   };
 
-  // Fechamento do Caixa enviando totais para o BANCO DE DADOS
+  // Fechamento do Caixa com verificação de comandas/pedidos em aberto
   const fecharCaixaSistema = async () => {
+    const comandasAbertas = pedidos.filter(p => {
+      const st = (p.status || 'pendente').toLowerCase();
+      return st !== 'concluido' && st !== 'entregue' && st !== 'recusado' && st !== 'cancelado';
+    });
+
+    if (comandasAbertas.length > 0) {
+      toast.error(
+        `Não é possível fechar o caixa! Existe(m) ${comandasAbertas.length} comanda(s)/pedido(s) em aberto. Finalize ou cancele antes de encerrar o expediente.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
     try {
       if (api.fecharCaixa) {
         await api.fecharCaixa({
@@ -159,6 +240,8 @@ export const useCaixa = () => {
           totalDinheiroCaixa: Number(totalDinheiroCaixa),
           totalPresencial: Number(totalPresencial),
           totalIfood: Number(totalIfood),
+          totalIfoodEntrega: Number(totalIfoodEntrega),
+          total99Food: Number(total99Food),
           totalVendasRealizadas: pedidosValidos.length,
           data: hojeStr
         });
@@ -212,7 +295,17 @@ export const useCaixa = () => {
   };
 
   const totalCarrinhoPdv = carrinhoPdv.reduce((acc, i) => acc + (Number(i.preco) * i.quantidade), 0);
-  const trocoPdv = Number(valorRecebidoPdv) - totalCarrinhoPdv;
+  
+  // 🎯 Cálculo dinâmico de taxa e repasse no PDV (Venda Manual)
+  let taxaComissaoPdv = 0;
+  if (canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv.includes('ifood')) {
+    taxaComissaoPdv = (totalCarrinhoPdv * 26.2 / 100) + (totalCarrinhoPdv > 0 ? 1.50 : 0);
+  } else if (canalPdv === '99food' || canalPdv.includes('99')) {
+    taxaComissaoPdv = (totalCarrinhoPdv * 12.1 / 100);
+  }
+  const repasseLiquidoPdv = Math.max(0, totalCarrinhoPdv - taxaComissaoPdv);
+
+  const trocoPdv = pagamentoPdv === 'dinheiro' ? Number(valorRecebidoPdv) - totalCarrinhoPdv : 0;
 
   const finalizarVendaPdv = async (e) => {
     if (e && typeof e.preventDefault === 'function') {
@@ -228,13 +321,24 @@ export const useCaixa = () => {
     }
 
     try {
-      // Se for para retirada imediata no balcão, já nasce pronto/concluído ou vai para a cozinha preparar e depois concluir direto
-      const statusInicial = (tipoRetiradaPdv === 'retirada' && canalPdv === 'presencial') ? 'preparo' : 'preparo';
+      const statusInicial = 'preparo';
+
+      let nomeClientePadrao = 'Cliente Balcão';
+      if (canalPdv === 'ifood_loja') nomeClientePadrao = 'Cliente iFood (Loja)';
+      if (canalPdv === 'ifood_parceiro') nomeClientePadrao = 'Cliente iFood (Parceiro)';
+      if (canalPdv === '99food') nomeClientePadrao = 'Cliente 99Food';
+
+      // 🎯 REGRA EXATA: Se for iFood ou 99Food, o valor financeiro do pedido gravado no caixa é o Repasse Líquido
+      const ehApp = canalPdv.includes('ifood') || canalPdv.includes('99') || canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food';
+      const valorFinalCaixa = ehApp ? repasseLiquidoPdv : totalCarrinhoPdv;
 
       const novoPedido = {
-        cliente_nome: clientePdv.trim() || (canalPdv === 'ifood' ? 'Cliente iFood' : 'Cliente Balcão'),
+        cliente_nome: clientePdv.trim() || nomeClientePadrao,
         itens: carrinhoPdv,
-        total: totalCarrinhoPdv,
+        totalBruto: totalCarrinhoPdv,
+        total: valorFinalCaixa, // 🎯 Salva o líquido oficial (ex: R$ 16,95) ou o total do balcão (ex: R$ 25,00)
+        comissaoApp: taxaComissaoPdv,
+        repasseLiquido: repasseLiquidoPdv,
         forma_pagamento: pagamentoPdv,
         pagamento: pagamentoPdv,
         status: statusInicial,
@@ -253,6 +357,8 @@ export const useCaixa = () => {
       setCarrinhoPdv([]);
       setClientePdv('');
       setValorRecebidoPdv('');
+      setCanalPdv('presencial');
+      setPagamentoPdv('dinheiro');
       carregarDados();
     } catch (error) {
       console.error(error);
@@ -276,8 +382,9 @@ export const useCaixa = () => {
     setClientePdv, pagamentoPdv, setPagamentoPdv, canalPdv, setCanalPdv,
     tipoRetiradaPdv, setTipoRetiradaPdv,
     valorRecebidoPdv, setValorRecebidoPdv, adicionarAoCarrinhoPdv, totalCarrinhoPdv,
+    taxaComissaoPdv, repasseLiquidoPdv,
     trocoPdv, finalizarVendaPdv, alterarStatus, formatarMoeda, formatarDataHora,
     pedidosValidos, totalGeral, totalPix, totalCartao, totalDinheiroCaixa,
-    totalPresencial, totalIfood, pedidosFiltrados, carregarDados
+    totalPresencial, totalIfood, totalIfoodEntrega, total99Food, pedidosFiltrados, carregarDados
   };
 };

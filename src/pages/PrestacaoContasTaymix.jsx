@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Wallet, Users, Plus, Trash2, Filter, Camera, ShieldCheck, CheckSquare, Square, BookOpen, X } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Users, Plus, Trash2, Filter, Camera, ShieldCheck, CheckSquare, Square, BookOpen, X, CreditCard, Smartphone, Store, Bike, Car } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { usePrestacaoContasTaymix } from '../hooks/usePrestacaoContasTaymix';
 import ImpressaoPrestacaoContasTaymix from '../components/ImpressaoPrestacaoContasTaymix';
@@ -33,7 +33,13 @@ export default function PrestacaoContasTaymix() {
     valorCapitalGiro,
     valorParaDividir,
     lucroSocioA,
-    lucroSocioB
+    lucroSocioB,
+    totalDinheiroCaixaAcumulado,
+    totalCartaoAcumulado,
+    totalPixAcumulado,
+    totalIfoodAcumulado,
+    totalIfoodEntrega,
+    total99Food
   } = usePrestacaoContasTaymix();
 
   return (
@@ -56,7 +62,6 @@ export default function PrestacaoContasTaymix() {
                 <BookOpen size={14} /> 📖 Manual de Ajuda
               </button>
 
-              {/* Botão Oficial de PDF */}
               <ImpressaoPrestacaoContasTaymix 
                 faturamento={totalReceitas}
                 gastos={totalDespesasOperacionais}
@@ -71,6 +76,12 @@ export default function PrestacaoContasTaymix() {
                 socio2Valor={lucroSocioB}
                 dataInicio={dataInicio}
                 dataFim={dataFim}
+                totalDinheiroCaixaAcumulado={totalDinheiroCaixaAcumulado}
+                totalCartaoAcumulado={totalCartaoAcumulado}
+                totalPixAcumulado={totalPixAcumulado}
+                totalIfoodAcumulado={totalIfoodAcumulado}
+                totalIfoodEntrega={totalIfoodEntrega}
+                total99Food={total99Food}
               />
             </div>
             <h1 className="text-2xl font-black mt-2 tracking-wide text-amber-400">TAYMIX — Controle Financeiro</h1>
@@ -158,25 +169,76 @@ export default function PrestacaoContasTaymix() {
             </p>
           </div>
 
+          {/* 🎯 CARD DE LUCRO LÍQUIDO DINÂMICO: Fica âmbar quando retido no Payback e Azul somente quando 100% quitado */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Lucro Líquido</span>
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><DollarSign size={18} /></div>
+              <span className="text-xs font-bold text-slate-500 uppercase">
+                {investimentoQuitado ? 'Lucro Líquido Real' : 'Lucro do Mês (Amortização)'}
+              </span>
+              <div className={`p-2 rounded-lg ${investimentoQuitado ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                <DollarSign size={18} />
+              </div>
             </div>
-            <p className={`text-2xl font-black ${lucroLiquido >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>
+            <p className={`text-2xl font-black ${investimentoQuitado ? 'text-blue-600' : 'text-amber-600'}`}>
               {lucroLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </p>
+            <p className="text-[10px] text-slate-500 font-medium mt-1">
+              {investimentoQuitado ? 'Liberado para distribuição' : 'Retido para pagamento do Payback'}
             </p>
           </div>
 
+          {/* CARD DE CAPITAL DE GIRO */}
           <div className="bg-amber-500 text-slate-950 p-5 rounded-2xl shadow-sm border border-amber-400">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-900">Capital de Giro ({percentualGiro}%)</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900">Capital de Giro</span>
+                <input
+                  type="number"
+                  value={percentualGiro}
+                  onChange={(e) => setPercentualGiro(Number(e.target.value))}
+                  className="w-12 bg-slate-950 text-amber-400 font-black text-xs text-center rounded p-0.5 outline-none border border-amber-600"
+                />
+                <span className="text-xs font-black text-slate-900">%</span>
+              </div>
               <div className="p-2 bg-slate-950 text-amber-400 rounded-lg"><Wallet size={18} /></div>
             </div>
             <p className="text-2xl font-black">
               {valorCapitalGiro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </p>
             <p className="text-[10px] text-slate-800 font-bold mt-1">Sempre reservado para compras e estoque</p>
+          </div>
+        </div>
+
+        {/* DETALHAMENTO DE VENDAS POR MEIO E CANAL */}
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Wallet size={18} className="text-amber-500" /> Detalhamento de Vendas por Meio e Canal
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">Dinheiro (Espécie)</span>
+              <span className="text-sm font-black text-slate-800">{totalDinheiroCaixaAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">Cartão (Créd/Déb)</span>
+              <span className="text-sm font-black text-slate-800">{totalCartaoAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">Pix</span>
+              <span className="text-sm font-black text-slate-800">{totalPixAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">iFood (Loja)</span>
+              <span className="text-sm font-black text-slate-800">{totalIfoodAcumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">iFood (Parceiro)</span>
+              <span className="text-sm font-black text-slate-800">{totalIfoodEntrega.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+              <span className="text-[10px] font-bold text-slate-500 block">99Food</span>
+              <span className="text-sm font-black text-slate-800">{total99Food.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
           </div>
         </div>
 

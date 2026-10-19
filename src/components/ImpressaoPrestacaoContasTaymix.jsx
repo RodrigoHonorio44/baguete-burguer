@@ -15,7 +15,13 @@ export const ImpressaoPrestacaoContasTaymix = ({
   socio1Valor, 
   socio2Valor, 
   dataInicio, 
-  dataFim 
+  dataFim,
+  totalDinheiroCaixaAcumulado = 0,
+  totalCartaoAcumulado = 0,
+  totalPixAcumulado = 0,
+  totalIfoodAcumulado = 0,
+  totalIfoodEntrega = 0,
+  total99Food = 0
 }) => {
 
   const gerarPDFOficial = () => {
@@ -69,11 +75,36 @@ export const ImpressaoPrestacaoContasTaymix = ({
       doc.text(valor, 196, y, { align: 'right' });
     });
 
-    // 2. Payback / Investimento Inicial
+    // 2. Detalhamento por Formas de Pagamento e Canais
     y += 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('2. Recuperação de Investimento Inicial (Payback)', 14, y);
+    doc.text('2. Detalhamento de Vendas por Meio e Canal', 14, y);
+
+    y += 4;
+    const itensCanais = [
+      ['Dinheiro (Caixa / Espécie):', `R$ ${Number(totalDinheiroCaixaAcumulado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+      ['Cartão (Crédito / Débito):', `R$ ${Number(totalCartaoAcumulado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+      ['Pix:', `R$ ${Number(totalPixAcumulado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+      ['iFood (Entrega Própria / Loja):', `R$ ${Number(totalIfoodAcumulado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+      ['iFood (Entrega Parceira):', `R$ ${Number(totalIfoodEntrega || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+      ['99Food:', `R$ ${Number(total99Food || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`]
+    ];
+
+    doc.setFontSize(9);
+    itensCanais.forEach(([label, valor]) => {
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.text(label, 14, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text(valor, 196, y, { align: 'right' });
+    });
+
+    // 3. Payback / Investimento Inicial
+    y += 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('3. Recuperação de Investimento Inicial (Payback)', 14, y);
 
     y += 6;
     doc.setFontSize(9);
@@ -92,11 +123,11 @@ export const ImpressaoPrestacaoContasTaymix = ({
     doc.setFont('helvetica', 'bold');
     doc.text(statusPayback, 196, y, { align: 'right' });
 
-    // 3. Partilha de Lucros
+    // 4. Partilha de Lucros
     y += 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('3. Partilha de Lucros da Sociedade (50% / 50%)', 14, y);
+    doc.text('4. Partilha de Lucros da Sociedade (50% / 50%)', 14, y);
 
     const itensLucro = [
       ['Total Disponível para Divisão:', `R$ ${Number(totalDisponivelDivisao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
@@ -113,11 +144,11 @@ export const ImpressaoPrestacaoContasTaymix = ({
       doc.text(valor, 196, y, { align: 'right' });
     });
 
-    // 4. Extrato Detalhado
+    // 5. Extrato Detalhado
     y += 12;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('4. Extrato Detalhado de Entradas e Saídas', 14, y);
+    doc.text('5. Extrato Detalhado de Entradas e Saídas', 14, y);
 
     y += 6;
     // Cabeçalho da tabela
@@ -127,7 +158,7 @@ export const ImpressaoPrestacaoContasTaymix = ({
     doc.setFontSize(8);
     doc.text('Data', 17, y + 5);
     doc.text('Descrição / Estabelecimento', 38, y + 5);
-    doc.text('Categoria', 120, y + 5);
+    doc.text('Categoria', 115, y + 5);
     doc.text('Valor', 193, y + 5, { align: 'right' });
 
     y += 7;
@@ -139,7 +170,7 @@ export const ImpressaoPrestacaoContasTaymix = ({
       doc.text('Nenhuma movimentação registrada no período selecionado.', 14, y);
     } else {
       extrato.forEach((item, index) => {
-        if (y > 275) { // Quebra de página automática se necessário
+        if (y > 275) {
           doc.addPage();
           y = 20;
         }
@@ -151,15 +182,26 @@ export const ImpressaoPrestacaoContasTaymix = ({
 
         const dataItem = item.data || item.criadoEm ? new Date(item.data || item.criadoEm).toLocaleDateString('pt-BR') : '-';
         const descItem = item.descricao ? item.descricao.toUpperCase() : '-';
-        const catItem = item.categoria || '-';
+        
+        // 🎯 Inclui o sufixo (INV. INICIAL) caso a notinha seja de Investimento Inicial
+        const sufixoInvestimento = item.ehInvestimentoInicial ? ' (INV. INICIAL)' : '';
+        const catItem = `${item.categoria || '-'}${sufixoInvestimento}`;
+
         const tipoSinal = item.tipo === 'Receita' || item.tipo === 'receita' ? '+' : '-';
         const valorItem = `${tipoSinal} R$ ${Number(item.valor || item.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.text(dataItem, 17, y + 4);
-        doc.text(descItem.substring(0, 38), 38, y + 4);
-        doc.text(catItem.substring(0, 25), 120, y + 4);
+        doc.text(descItem.substring(0, 36), 38, y + 4);
+
+        // Se for investimento inicial, destaca o texto levemente em cinza escuro/negrito
+        if (item.ehInvestimentoInicial) {
+          doc.setFont('helvetica', 'bold');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        doc.text(catItem.substring(0, 32), 115, y + 4);
         
         doc.setFont('helvetica', 'bold');
         if (tipoSinal === '+') {

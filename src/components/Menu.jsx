@@ -10,6 +10,14 @@ export const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [pedidoMinimo, setPedidoMinimo] = useState(20);
 
+  // Helper para formatar o nome da categoria com acentuação correta
+  const formatCategoryName = (cat) => {
+    if (!cat) return '';
+    if (cat.toLowerCase() === 'todos') return 'Todos';
+    if (cat.toLowerCase() === 'acai' || cat.toLowerCase() === 'açaí') return 'Açaí';
+    return cat;
+  };
+
   useEffect(() => {
     // 1. Carrega os produtos do cardápio
     api.getProdutos()
@@ -125,13 +133,13 @@ export const Menu = () => {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 shadow-sm capitalize ${
+                className={`px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 shadow-sm ${
                   selectedCategory === cat
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-amber-500/20'
                     : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                 }`}
               >
-                {cat}
+                {formatCategoryName(cat)}
               </button>
             ))}
           </div>
@@ -148,8 +156,8 @@ export const Menu = () => {
             {Object.entries(groupedProducts).map(([categoryName, catProducts]) => (
               catProducts.length > 0 && (
                 <div key={categoryName} className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-900 capitalize border-b border-slate-200 pb-2">
-                    {categoryName}
+                  <h3 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-2">
+                    {formatCategoryName(categoryName)}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {catProducts.map((product, index) => (

@@ -13,11 +13,23 @@ export const AdminProdutos = () => {
   const [produtoComplementosId, setProdutoComplementosId] = useState(null); // Painel de Cadastro
   const [produtoGerenciarId, setProdutoGerenciarId] = useState(null); // Painel de Edição e Gestão
 
+  // Lista dinâmica extraída dos produtos já cadastrados + padrões iniciais
+  const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([
+    'açaí / garrafas',
+    'hambúrgueres / baguetes',
+    'bebidas',
+    'porções / acompanhamentos',
+    'sobremesas'
+  ]);
+
+  const [isCriandoNovaCategoria, setIsCriandoNovaCategoria] = useState(false);
+  const [novaCategoriaInput, setNovaCategoriaInput] = useState('');
+
   const [form, setForm] = useState({
     nome: '',
     descricao: '',
     preco: '',
-    categoria: 'acai',
+    categoria: 'açaí / garrafas',
     imagem: '',
     disponivel: true,
   });
@@ -76,6 +88,15 @@ export const AdminProdutos = () => {
     try {
       const data = await api.getProdutos();
       setProdutos(data);
+
+      // Extrai categorias existentes no banco para popular o select automaticamente
+      if (Array.isArray(data)) {
+        const catsDoBanco = data.map(p => p.categoria || p.category).filter(Boolean);
+        setCategoriasDisponiveis((prev) => {
+          const combinadas = new Set([...prev, ...catsDoBanco]);
+          return Array.from(combinadas);
+        });
+      }
     } catch (err) {
       console.error(err);
       toast.error('erro ao carregar os produtos do servidor.');
@@ -89,7 +110,32 @@ export const AdminProdutos = () => {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'categoria') {
+      if (value === '__CRIAR_NOVA__') {
+        setIsCriandoNovaCategoria(true);
+        setForm({ ...form, categoria: '' });
+      } else {
+        setIsCriandoNovaCategoria(false);
+        setForm({ ...form, categoria: value });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleExcluirCategoriaSelecionada = () => {
+    if (!form.categoria) {
+      toast.error('Selecione uma categoria válida para excluir.');
+      return;
+    }
+
+    if (window.confirm(`Deseja remover a categoria "${form.categoria}" da lista?`)) {
+      const novasCategorias = categoriasDisponiveis.filter(cat => cat !== form.categoria);
+      setCategoriasDisponiveis(novasCategorias);
+      setForm({ ...form, categoria: novasCategorias[0] || '' });
+      toast.success('Categoria removida das opções!');
+    }
   };
 
   const handleFileChange = async (e) => {
@@ -109,8 +155,19 @@ export const AdminProdutos = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Se estiver a criar uma nova categoria via input livre, usa ela
+    const categoriaFinal = isCriandoNovaCategoria
+      ? novaCategoriaInput.trim().toLowerCase()
+      : form.categoria;
+
+    if (!categoriaFinal) {
+      toast.error('por favor, informe ou selecione uma categoria.');
+      return;
+    }
+
     const payload = {
       ...form,
+      categoria: categoriaFinal,
       preco: parseFloat(form.preco),
     };
 
@@ -121,8 +178,10 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', categoria: 'acai', imagem: '', disponivel: true });
+        setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'acai', imagem: '', disponivel: true });
         setEditandoId(null);
+        setIsCriandoNovaCategoria(false);
+        setNovaCategoriaInput('');
         carregarProdutos();
         return editandoId ? 'produto atualizado com sucesso!' : 'produto cadastrado com sucesso!';
       },
@@ -132,15 +191,23 @@ export const AdminProdutos = () => {
 
   const handleEdit = (prod) => {
     setEditandoId(prod._id || prod.id);
+    const catProd = prod.categoria || prod.category || 'acai';
+    
+    // Se a categoria do produto não estiver na lista padrão, adiciona para aparecer no select
+    if (!categoriasDisponiveis.includes(catProd)) {
+      setCategoriasDisponiveis(prev => [...prev, catProd]);
+    }
+
+    setIsCriandoNovaCategoria(false);
     setForm({
       nome: prod.nome || prod.name || '',
       descricao: prod.descricao || prod.description || '',
       preco: prod.preco || prod.price || '',
-      categoria: prod.categoria || 'acai',
+      categoria: catProd,
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
     });
-    toast('modo de edição ativado', { icon: '✏' });
+    toast('modo de edição ativado', { icon: '✏️' });
   };
 
   const handleToggleDisponibilidadeRapida = async (prod) => {
@@ -152,7 +219,7 @@ export const AdminProdutos = () => {
         nome: prod.nome || prod.name,
         descricao: prod.descricao || prod.description,
         preco: Number(prod.preco || prod.price),
-        categoria: prod.categoria || 'acai',
+        categoria: prod.categoria || prod.category || 'acai',
         imagem: prod.imagem || prod.image,
         disponivel: novoStatus,
       };
@@ -181,7 +248,9 @@ export const AdminProdutos = () => {
 
   const cancelarEdicao = () => {
     setEditandoId(null);
-    setForm({ nome: '', descricao: '', preco: '', categoria: 'acai', imagem: '', disponivel: true });
+    setIsCriandoNovaCategoria(false);
+    setNovaCategoriaInput('');
+    setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'acai', imagem: '', disponivel: true });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
@@ -194,7 +263,7 @@ export const AdminProdutos = () => {
         </h1>
         <button
           onClick={carregarProdutos}
-          className="p-2 bg-slate-800 text-slate-300 hover:text-slate-100 rounded-lg border border-slate-700 transition"
+          className="p-2 bg-slate-800 text-slate-300 hover:text-slate-100 rounded-lg border border-slate-700 transition cursor-pointer"
           title="atualizar lista"
         >
           <RefreshCw className="w-4 h-4" />
@@ -222,20 +291,62 @@ export const AdminProdutos = () => {
               />
             </div>
 
+            {/* Categoria com suporte a seleção, criação e exclusão */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">categoria</label>
-              <select
-                name="categoria"
-                value={form.categoria}
-                onChange={handleChange}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
-              >
-                <option value="acai">açaí / garrafas</option>
-                <option value="hamburgueres">hambúrgueres / baguetes</option>
-                <option value="bebidas">bebidas</option>
-                <option value="porcoes">porções / acompanhamentos</option>
-                <option value="sobremesas">sobremesas</option>
-              </select>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-400">categoria</label>
+                {isCriandoNovaCategoria && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCriandoNovaCategoria(false)}
+                    className="text-[11px] text-amber-500 hover:underline cursor-pointer"
+                  >
+                    &larr; voltar para lista
+                  </button>
+                )}
+              </div>
+
+              {!isCriandoNovaCategoria ? (
+                <div className="flex gap-2 items-center">
+                  <select
+                    name="categoria"
+                    value={form.categoria}
+                    onChange={handleChange}
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    {categoriasDisponiveis.map((cat, idx) => (
+                      <option key={idx} value={cat} className="bg-slate-900 text-slate-100 capitalize">
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__CRIAR_NOVA__" className="bg-slate-900 text-amber-400 font-bold">
+                      + Criar nova categoria...
+                    </option>
+                  </select>
+
+                  {/* Botão para excluir a categoria selecionada da lista */}
+                  {form.categoria && (
+                    <button
+                      type="button"
+                      onClick={handleExcluirCategoriaSelecionada}
+                      className="p-2 bg-slate-800 text-rose-400 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500 rounded-lg transition cursor-pointer"
+                      title="Excluir categoria selecionada da lista"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={novaCategoriaInput}
+                  onChange={(e) => setNovaCategoriaInput(e.target.value)}
+                  placeholder="digite o nome da nova categoria..."
+                  className="w-full bg-slate-800 border border-amber-500 rounded-lg px-3 py-2 text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  autoFocus
+                  required
+                />
+              )}
             </div>
 
             <div>
@@ -283,7 +394,7 @@ export const AdminProdutos = () => {
             <div className="flex gap-2 pt-2">
               <button
                 type="submit"
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 {editandoId ? 'salvar alterações' : 'cadastrar no banco'}
@@ -293,7 +404,7 @@ export const AdminProdutos = () => {
                 <button
                   type="button"
                   onClick={cancelarEdicao}
-                  className="px-3 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold rounded-lg text-sm transition"
+                  className="px-3 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold rounded-lg text-sm transition cursor-pointer"
                 >
                   cancelar
                 </button>
@@ -336,8 +447,8 @@ export const AdminProdutos = () => {
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-100 capitalize">{prod.nome || prod.name}</span>
-                        <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">
-                          {prod.categoria || 'acai'}
+                        <span className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700 capitalize">
+                          {prod.categoria || prod.category || 'acai'}
                         </span>
                         {!disponivel && (
                           <span className="text-[10px] bg-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded uppercase">
@@ -352,30 +463,27 @@ export const AdminProdutos = () => {
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-2">
-                      {/* Botão 1: Apenas para cadastrar novos grupos/opções */}
                       <button
                         onClick={() => { setProdutoComplementosId(id); setProdutoGerenciarId(null); }}
-                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700"
+                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700 cursor-pointer"
                         title="cadastrar novas categorias ou adicionais"
                       >
                         <Layers className="w-4 h-4 text-amber-500" />
                         <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">cadastrar</span>
                       </button>
 
-                      {/* Botão 2: Para gerenciar, renomear e editar itens já cadastrados */}
                       <button
                         onClick={() => { setProdutoGerenciarId(id); setProdutoComplementosId(null); }}
-                        className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700"
+                        className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1 bg-slate-800/80 border border-slate-700 cursor-pointer"
                         title="gerenciar e editar categorias cadastradas"
                       >
                         <Sliders className="w-4 h-4 text-emerald-400" />
                         <span className="text-[11px] font-bold text-slate-200 hidden sm:inline">gerenciar</span>
                       </button>
 
-                      {/* Botão rápido para ligar/desligar disponibilidade */}
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
-                        className={`p-2 rounded-lg transition ${
+                        className={`p-2 rounded-lg transition cursor-pointer ${
                           disponivel 
                             ? 'text-emerald-400 hover:bg-emerald-500/10' 
                             : 'text-rose-400 hover:bg-rose-500/10'
@@ -387,14 +495,14 @@ export const AdminProdutos = () => {
 
                       <button
                         onClick={() => handleEdit(prod)}
-                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
+                        className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
                         title="editar produto"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(id)}
-                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
+                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
                         title="excluir do banco"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -426,3 +534,5 @@ export const AdminProdutos = () => {
     </div>
   );
 };
+
+export default AdminProdutos;

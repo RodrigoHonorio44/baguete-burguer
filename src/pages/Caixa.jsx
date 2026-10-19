@@ -11,9 +11,10 @@ export const Caixa = () => {
     setClientePdv, pagamentoPdv, setPagamentoPdv, canalPdv, setCanalPdv,
     tipoRetiradaPdv, setTipoRetiradaPdv,
     valorRecebidoPdv, setValorRecebidoPdv, adicionarAoCarrinhoPdv, totalCarrinhoPdv,
+    taxaComissaoPdv, repasseLiquidoPdv,
     trocoPdv, finalizarVendaPdv, alterarStatus, formatarMoeda, formatarDataHora,
     pedidosValidos, totalGeral, totalPix, totalCartao, totalDinheiroCaixa,
-    totalPresencial, totalIfood, pedidosFiltrados, carregarDados, pedidos
+    totalPresencial, totalIfood, totalIfoodEntrega, total99Food, pedidosFiltrados, carregarDados, pedidos
   } = useCaixa();
 
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
@@ -42,7 +43,7 @@ export const Caixa = () => {
       await alterarStatus(pedido._id, 'preparo');
       dispararImpressao(pedido); // Imprime a comanda para a cozinha/balcão
     } catch (err) {
-      // O tratamento de erro já é feito via toast no hook
+      // O tratamento de erro é gerenciado via toast no hook
     }
   };
 
@@ -189,13 +190,13 @@ export const Caixa = () => {
       </div>
 
       {/* Canais de Venda Reais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20"><Store className="w-5 h-5" /></div>
             <div>
-              <span className="text-xs text-slate-400 block uppercase font-semibold">vendas balcão / presencial</span>
-              <span className="text-lg font-bold text-slate-100">{formatarMoeda(totalPresencial)}</span>
+              <span className="text-[10px] text-slate-400 block uppercase font-semibold">balcão / presencial</span>
+              <span className="text-base font-bold text-slate-100">{formatarMoeda(totalPresencial)}</span>
             </div>
           </div>
         </div>
@@ -204,8 +205,28 @@ export const Caixa = () => {
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20"><ShoppingBag className="w-5 h-5" /></div>
             <div>
-              <span className="text-xs text-slate-400 block uppercase font-semibold">vendas ifood / app</span>
-              <span className="text-lg font-bold text-slate-100">{formatarMoeda(totalIfood)}</span>
+              <span className="text-[10px] text-slate-400 block uppercase font-semibold">ifood (loja)</span>
+              <span className="text-base font-bold text-slate-100">{formatarMoeda(totalIfood)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20"><Truck className="w-5 h-5" /></div>
+            <div>
+              <span className="text-[10px] text-slate-400 block uppercase font-semibold">ifood (parceiro)</span>
+              <span className="text-base font-bold text-slate-100">{formatarMoeda(totalIfoodEntrega)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20"><ShoppingBag className="w-5 h-5" /></div>
+            <div>
+              <span className="text-[10px] text-slate-400 block uppercase font-semibold">99food</span>
+              <span className="text-base font-bold text-slate-100">{formatarMoeda(total99Food)}</span>
             </div>
           </div>
         </div>
@@ -284,6 +305,7 @@ export const Caixa = () => {
                         <div className="flex items-center justify-center gap-1.5">
                           <ComandaImpressao pedido={p} iconeApenas={true} />
 
+                          {/* 1. SE ESTIVER PENDENTE: Aceitar e Enviar para a Cozinha */}
                           {statusAtual === 'pendente' && (
                             <button
                               onClick={() => aceitarPedidoEEnviarCozinha(p)}
@@ -293,8 +315,15 @@ export const Caixa = () => {
                             </button>
                           )}
 
-                          {/* SE FOR RETIRADA NO BALCÃO E ESTIVER PRONTO, VAI DIRETO PARA CONCLUÍDO (SEM MOTOBOY) */}
-                          {(statusAtual === 'preparo' || statusAtual === 'pronto') && isBalcaoRetirada && (
+                          {/* 2. SE ESTIVER EM PREPARO NA COZINHA: Exibe aviso e BLOQUEIA o botão de despacho */}
+                          {statusAtual === 'preparo' && (
+                            <span className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 inline-flex items-center gap-1">
+                              <Clock size={12} className="animate-spin" /> Na Cozinha...
+                            </span>
+                          )}
+
+                          {/* 3. SÓ LIBERA O DESPACHO SE O PEDIDO ESTIVER PRONTO! */}
+                          {statusAtual === 'pronto' && isBalcaoRetirada && (
                             <button
                               onClick={() => alterarStatus(p._id, 'concluido')}
                               title="Marcar como Retirado no Balcão"
@@ -304,17 +333,17 @@ export const Caixa = () => {
                             </button>
                           )}
 
-                          {/* SE FOR DELIVERY, SEGUE PARA O MOTOBOY */}
-                          {(statusAtual === 'preparo' || statusAtual === 'pronto') && !isBalcaoRetirada && (
+                          {statusAtual === 'pronto' && !isBalcaoRetirada && (
                             <button
                               onClick={() => alterarStatus(p._id, 'enviado')}
                               title="Enviar com o Motoboy"
-                              className="px-2.5 py-1 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow"
                             >
                               <Truck size={12} /> Despachar Moto
                             </button>
                           )}
 
+                          {/* 4. SE ESTIVER A CAMINHO / ENVIADO: Botão de Confirmar Entrega */}
                           {statusAtual === 'enviado' && (
                             <button
                               onClick={() => alterarStatus(p._id, 'concluido')}
@@ -325,6 +354,7 @@ export const Caixa = () => {
                             </button>
                           )}
 
+                          {/* 5. SE ESTIVER FINALIZADO */}
                           {isFinalizado && (
                             <span className="text-[11px] text-emerald-400 font-bold inline-flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                               <CheckCircle2 size={13} /> Finalizado
@@ -386,39 +416,86 @@ export const Caixa = () => {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE FECHO DE CAIXA */}
-      {modalConfirmacaoAberto && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
-            <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-500/20">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-100 mb-1">Fechar Caixa</h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Tens a certeza que pretendes fechar o caixa de hoje? Esta ação irá encerrar as operações.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setModalConfirmacaoAberto(false)}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
-              >
-                Não
-              </button>
-              <button
-                onClick={() => {
-                  setModalConfirmacaoAberto(false);
-                  fecharCaixaSistema();
-                }}
-                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow"
-              >
-                Sim, Fechar
-              </button>
+      {/* MODAL DE CONFIRMAÇÃO DE FECHO DE CAIXA COM VALIDAÇÃO DE PENDÊNCIAS */}
+      {modalConfirmacaoAberto && (() => {
+        // Filtra os pedidos que ainda não foram concluídos/entregues/cancelados
+        const pedidosAbertos = (pedidos || []).filter(p => {
+          const st = (p.status || 'pendente').toLowerCase();
+          return st !== 'concluido' && st !== 'entregue' && st !== 'recusado' && st !== 'cancelado';
+        });
+
+        const temPendencias = pedidosAbertos.length > 0;
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-6 text-center">
+              
+              {temPendencias ? (
+                <>
+                  <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-500/30 animate-pulse">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-amber-400 mb-1">
+                    Não é possível fechar o caixa!
+                  </h3>
+                  <p className="text-xs text-slate-300 mb-4">
+                    Existe(m) <strong className="text-amber-400">{pedidosAbertos.length} pedido(s)/comanda(s)</strong> em aberto. Finalize ou cancele todos antes de encerrar o expediente.
+                  </p>
+
+                  {/* Lista com os IDs e nomes dos pedidos que impedem o fecho */}
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-left mb-6 space-y-2 max-h-36 overflow-y-auto">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Pedidos Pendentes:</span>
+                    {pedidosAbertos.map((p) => (
+                      <div key={p._id} className="flex justify-between items-center text-xs border-b border-slate-800/60 pb-1">
+                        <span className="font-mono text-amber-400 font-bold">#{p._id?.slice(-4)}</span>
+                        <span className="text-slate-200 font-semibold truncate max-w-[150px]">{p.cliente_nome || 'Cliente'}</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold uppercase">{p.status}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setModalConfirmacaoAberto(false)}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shadow transition"
+                  >
+                    Entendido, Voltar para as Comandas
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-500/20">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 mb-1">Fechar Caixa de Hoje</h3>
+                  <p className="text-xs text-slate-400 mb-6">
+                    Todas as comandas estão concluídas! Tens a certeza de que pretendes encerrar as operações e fechar o caixa?
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => setModalConfirmacaoAberto(false)}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setModalConfirmacaoAberto(false);
+                        fecharCaixaSistema();
+                      }}
+                      className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow transition"
+                    >
+                      Sim, Fechar Caixa
+                    </button>
+                  </div>
+                </>
+              )}
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* MODAL DE REGISTO DE VENDA (BALCÃO OU IFOOD) COM OPÇÃO DE RETIRADA */}
+      {/* MODAL DE REGISTO DE VENDA (PDV) COM CANAIS DE APP E REPASSE LÍQUIDO */}
       {modalPdvAberto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -438,10 +515,12 @@ export const Caixa = () => {
                   <select
                     value={canalPdv}
                     onChange={(e) => setCanalPdv(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 text-sm font-bold focus:outline-none focus:border-amber-500"
                   >
                     <option value="presencial">Balcão / Presencial</option>
-                    <option value="ifood">iFood / App</option>
+                    <option value="ifood_loja">iFood (Entrega Própria)</option>
+                    <option value="ifood_parceiro">iFood (Entrega Parceira)</option>
+                    <option value="99food">99Food</option>
                   </select>
                 </div>
 
@@ -505,16 +584,25 @@ export const Caixa = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Forma de Pagamento</label>
-                  <select
-                    value={pagamentoPdv}
-                    onChange={(e) => setPagamentoPdv(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="pix">Pix</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                  </select>
+                  {canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food' ? (
+                    <input
+                      type="text"
+                      value="Pagamento via App / Online"
+                      disabled
+                      className="w-full bg-slate-800 border border-slate-700 text-amber-400 font-bold rounded-xl px-3 py-2 text-sm cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      value={pagamentoPdv}
+                      onChange={(e) => setPagamentoPdv(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="pix">Pix</option>
+                      <option value="cartao_debito">Cartão de Débito</option>
+                      <option value="cartao_credito">Cartão de Crédito</option>
+                    </select>
+                  )}
                 </div>
 
                 {pagamentoPdv === 'dinheiro' && (
@@ -538,6 +626,24 @@ export const Caixa = () => {
                   <span className="text-lg font-extrabold text-emerald-400">
                     {trocoPdv >= 0 ? formatarMoeda(trocoPdv) : 'Valor insuficiente'}
                   </span>
+                </div>
+              )}
+
+              {/* RESUMO DE COMISSÃO E REPASSE LÍQUIDO DO APP */}
+              {(canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food') && (
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span>Total Bruto da Venda:</span>
+                    <span className="font-bold text-slate-200">{formatarMoeda(totalCarrinhoPdv)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-rose-400">
+                    <span>Comissão App ({canalPdv.includes('ifood') ? '26.2% + R$ 1,50' : '12.1%'}):</span>
+                    <span className="font-bold">- {formatarMoeda(taxaComissaoPdv)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1.5 border-t border-slate-800 text-amber-400 font-bold">
+                    <span>Repasse Líquido (Entra no Caixa):</span>
+                    <span className="text-sm">{formatarMoeda(repasseLiquidoPdv)}</span>
+                  </div>
                 </div>
               )}
             </div>

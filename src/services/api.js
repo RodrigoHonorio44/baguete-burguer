@@ -178,6 +178,16 @@ export const api = {
     return await response.json();
   },
 
+  getHistoricoCaixa: async () => {
+    // Aponta para a rota genérica /api/caixa do backend que busca a coleção completa no MongoDB
+    const response = await fetch(`${API_URL}/caixa`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
   abrirCaixa: async (payload) => {
     const response = await fetch(`${API_URL}/caixa/abrir`, {
       method: 'POST',

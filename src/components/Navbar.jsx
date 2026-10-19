@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp } from 'lucide-react';
+import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -11,7 +11,9 @@ export const Navbar = () => {
   const totalItens = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEntregador, setIsEntregador] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [nomeUsuario, setNomeUsuario] = useState('');
   const [temAlertaPedidos, setTemAlertaPedidos] = useState(false);
   const [pedidosPendentesCount, setPedidosPendentesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -27,17 +29,33 @@ export const Navbar = () => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); 
     
+    // Tenta obter o nome do usuário salvo no localStorage (seja objeto user ou nome direto)
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.nome) setNomeUsuario(parsed.nome);
+      } catch (e) {}
+    }
+
     if (token) {
       setIsLoggedIn(true);
       const normalizedRole = role ? role.toLowerCase() : '';
+      
       if (['root', 'admin', 'adm'].includes(normalizedRole)) {
         setIsAdmin(true);
+        setIsEntregador(false);
+      } else if (['entregador', 'motoboy'].includes(normalizedRole)) {
+        setIsEntregador(true);
+        setIsAdmin(false);
       } else {
         setIsAdmin(false);
+        setIsEntregador(false);
       }
     } else {
       setIsLoggedIn(false);
       setIsAdmin(false);
+      setIsEntregador(false);
     }
   }, []);
 
@@ -86,6 +104,8 @@ export const Navbar = () => {
 
   // Verificação de alertas para pedidos
   useEffect(() => {
+    if (isEntregador) return; // Entregador não precisa verificar pedidos gerais
+
     const verificarPedidos = async () => {
       try {
         const response = await api.getPedidos();
@@ -129,16 +149,47 @@ export const Navbar = () => {
     verificarPedidos();
     const intervalo = setInterval(verificarPedidos, 6000);
     return () => clearInterval(intervalo);
-  }, [isAdmin, isLoggedIn]);
+  }, [isAdmin, isLoggedIn, isEntregador]);
 
   const handleLogout = () => {
     localStorage.clear();
     setIsAdmin(false);
+    setIsEntregador(false);
     setIsLoggedIn(false);
     toast.success('Sessão encerrada com sucesso!');
     navigate('/');
     window.location.reload();
   };
+
+  // 🛵 SE FOR ENTREGADOR: Exibe apenas o logo e o botão de deslogar
+  if (isEntregador) {
+    return (
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-45">
+        <div className="max-w-7xl mx-auto px-4 py-3 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-1 rounded-full border-2 border-purple-500 shadow-xl flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Tay Mix Açaí" className="w-12 h-12 rounded-full object-cover shadow-inner" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-xl text-purple-400 tracking-tight leading-none capitalize">
+                painel entregador
+              </span>
+              <span className="text-xs text-slate-300 font-bold mt-0.5 capitalize">
+                {nomeUsuario || 'Entregador Parceiro'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer shadow"
+          >
+            <LogOut className="w-4 h-4" /> Sair da Conta
+          </button>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-45">
@@ -230,12 +281,10 @@ export const Navbar = () => {
           {/* APENAS EXIBE O MENU ADMIN SE ESTIVER LOGADO COMO ADMINISTRADOR */}
           {isLoggedIn && isAdmin && (
             <>
-              {/* Comandas / Cozinha sem o alerta de pendente */}
               <Link to="/comandas" className="hover:text-amber-400 transition flex items-center gap-1">
                 <ClipboardList className="w-4 h-4" /> comandas
               </Link>
 
-              {/* Caixa com a notificação do pedido pendente do Delivery */}
               <Link to="/caixa" className="relative hover:text-amber-400 transition flex items-center gap-1">
                 <DollarSign className="w-4 h-4" /> caixa
                 {pedidosPendentesCount > 0 && (
@@ -263,7 +312,7 @@ export const Navbar = () => {
             </>
           )}
 
-          {/* SE NÃO FOR ADMIN (CLIENTE LOGADO OU VISITANTE) */}
+          {/* SE NÃO FOR ADMIN */}
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
