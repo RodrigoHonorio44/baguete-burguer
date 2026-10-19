@@ -7,7 +7,8 @@ export const Footer = () => {
   const mensagemWhatsApp = encodeURIComponent('Olá! Gostaria de falar com o atendimento da Tay Mix.');
 
   return (
-    <footer className="border-t border-slate-200/80 bg-slate-100/70 py-8 text-slate-700">
+    // pb-24 garante espaçamento extra no mobile para não sobrepor o botão flutuante
+    <footer className="border-t border-slate-200/80 bg-slate-100/70 pt-8 pb-24 md:pb-8 text-slate-700">
       <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 text-center md:text-left">
         
         {/* Coluna 1: Marca */}
