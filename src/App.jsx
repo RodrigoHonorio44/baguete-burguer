@@ -5,13 +5,15 @@ import { CartProvider } from './context/CartContext';
 import { Navbar } from './components/Navbar';
 import { CartDrawer } from './components/CartDrawer';
 import { AppRoutes } from './routes/AppRoutes';
-import { Footer } from './components/Footer'; // Importação do componente Footer atualizado
+import { Footer } from './components/Footer';
+import { WhatsAppButton } from './components/WhatsAppButton'; // Importação do botão do WhatsApp
 
 export default function App() {
   return (
     <BrowserRouter>
       <CartProvider>
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+        {/* Container Principal */}
+        <div className="min-h-screen bg-white text-slate-800 flex flex-col justify-between relative">
           <div>
             <Navbar />
             <main>
@@ -20,30 +22,34 @@ export default function App() {
           </div>
           <CartDrawer />
           
-          {/* Footer Atualizado */}
+          {/* Botão Flutuante do WhatsApp */}
+          <WhatsAppButton />
+
+          {/* Footer no modo claro */}
           <Footer />
         </div>
         
-        {/* Configuração global do Toast */}
+        {/* Configuração global do Toast adaptada para o modo claro */}
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: '#090d16',
-              color: '#f8fafc',
-              border: '1px solid #1e293b',
+              background: '#ffffff',
+              color: '#0f172a',
+              border: '1px solid #e2e8f0',
               fontSize: '14px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             },
             success: {
               iconTheme: {
                 primary: '#10b981',
-                secondary: '#090d16',
+                secondary: '#ffffff',
               },
             },
             error: {
               iconTheme: {
                 primary: '#f43f5e',
-                secondary: '#090d16',
+                secondary: '#ffffff',
               },
             },
           }}

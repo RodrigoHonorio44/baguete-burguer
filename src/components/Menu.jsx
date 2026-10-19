@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ProductCardExpandable } from './ProductCardExpandable';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Utensils, GlassWater, Sparkles, CupSoda } from 'lucide-react';
 
 export const Menu = () => {
   const [products, setProducts] = useState([]);
@@ -10,12 +10,24 @@ export const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [pedidoMinimo, setPedidoMinimo] = useState(20);
 
-  // Helper para formatar o nome da categoria com acentuação correta
+  // Helper para formatar o nome da categoria com acentuação e ícones visuais
   const formatCategoryName = (cat) => {
     if (!cat) return '';
-    if (cat.toLowerCase() === 'todos') return 'Todos';
-    if (cat.toLowerCase() === 'acai' || cat.toLowerCase() === 'açaí') return 'Açaí';
+    const lower = cat.toLowerCase();
+    if (lower === 'todos') return 'Todos';
+    if (lower === 'acai' || lower === 'açaí') return 'Açaí';
+    if (lower === 'massas' || lower === 'massa') return 'Massas';
     return cat;
+  };
+
+  // Helper para retornar ícones adequados de acordo com a categoria
+  const getCategoryIcon = (cat) => {
+    const lower = cat.toLowerCase();
+    if (lower === 'todos') return <Sparkles className="w-4 h-4" />;
+    if (lower.includes('açaí') || lower.includes('acai')) return <GlassWater className="w-4 h-4" />;
+    if (lower.includes('massa') || lower.includes('pasta')) return <Utensils className="w-4 h-4" />;
+    if (lower.includes('bebida')) return <CupSoda className="w-4 h-4" />;
+    return <Utensils className="w-4 h-4" />;
   };
 
   useEffect(() => {
@@ -98,14 +110,14 @@ export const Menu = () => {
     }, {});
 
   return (
-    <div className="w-full bg-white text-slate-800 pb-16">
+    <div className="w-full bg-slate-50/50 text-slate-800 pb-16">
       {/* Topo do cardápio colado no banner */}
-      <div className="max-w-6xl mx-auto px-4 pt-6">
-        <section className="mb-6 text-center">
+      <div className="max-w-6xl mx-auto px-4 pt-8 text-center">
+        <section className="mb-6">
           
           {/* Banner de Aviso de Pedido Mínimo */}
           {pedidoMinimo > 0 && (
-            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-800 px-4 py-1.5 rounded-full text-xs md:text-sm font-bold mb-3 shadow-xs">
+            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-900 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold mb-4 shadow-xs">
               <ShoppingBag className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 Entregas em Maricá &bull; Pedido mínimo para delivery: <strong>R$ {pedidoMinimo.toFixed(2)}</strong>
@@ -113,51 +125,56 @@ export const Menu = () => {
             </div>
           )}
 
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">
-            Cardápio
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-1 tracking-tight">
+            Nosso Cardápio
           </h2>
-          <p className="text-slate-500 text-xs md:text-sm">
-            Faça seu pedido online de forma rápida e fácil.
+          <p className="text-slate-500 text-xs md:text-sm font-medium">
+            Escolha os seus favoritos de Açaí e Massas e faça seu pedido online.
           </p>
         </section>
       </div>
 
       {/* Container de Categorias Estilo iFood */}
-      <div className="sticky top-0 z-25 bg-white/95 backdrop-blur-md py-3 px-4 mb-8 border-b border-slate-100 shadow-sm">
+      <div className="sticky top-0 z-25 bg-white/95 backdrop-blur-md py-3 px-4 mb-8 border-y border-slate-200/80 shadow-xs">
         <div className="max-w-6xl mx-auto">
           <div 
-            className="flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth"
+            className="flex items-center gap-2.5 overflow-x-auto scrollbar-none scroll-smooth py-1"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 shadow-sm ${
-                  selectedCategory === cat
-                    ? 'bg-amber-500 text-slate-950 font-bold shadow-amber-500/20'
-                    : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                }`}
-              >
-                {formatCategoryName(cat)}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs md:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 border ${
+                    isSelected
+                      ? 'bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-500/20 scale-102'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  {getCategoryIcon(cat)}
+                  <span>{formatCategoryName(cat)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
         {loading ? (
-          <div className="text-center py-12 text-slate-400">carregando cardápio do servidor...</div>
+          <div className="text-center py-16 text-slate-400 font-medium">Carregando cardápio do servidor...</div>
         ) : error ? (
-          <div className="text-center py-12 text-rose-500">{error}</div>
+          <div className="text-center py-16 text-rose-500 font-semibold">{error}</div>
         ) : selectedCategory === 'todos' ? (
-          <div className="space-y-10">
+          <div className="space-y-12">
             {Object.entries(groupedProducts).map(([categoryName, catProducts]) => (
               catProducts.length > 0 && (
                 <div key={categoryName} className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-2">
-                    {formatCategoryName(categoryName)}
+                  <h3 className="text-xl font-extrabold text-slate-900 border-b border-slate-200/80 pb-2 flex items-center gap-2">
+                    {getCategoryIcon(categoryName)}
+                    <span>{formatCategoryName(categoryName)}</span>
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {catProducts.map((product, index) => (

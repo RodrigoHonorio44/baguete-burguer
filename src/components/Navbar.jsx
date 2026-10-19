@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp, Truck } from 'lucide-react';
+import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -29,7 +29,7 @@ export const Navbar = () => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); 
     
-    // Tenta obter o nome do usuário salvo no localStorage (seja objeto user ou nome direto)
+    // Tenta obter o nome do usuário salvo no localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -104,7 +104,7 @@ export const Navbar = () => {
 
   // Verificação de alertas para pedidos
   useEffect(() => {
-    if (isEntregador) return; // Entregador não precisa verificar pedidos gerais
+    if (isEntregador) return;
 
     const verificarPedidos = async () => {
       try {
@@ -161,20 +161,20 @@ export const Navbar = () => {
     window.location.reload();
   };
 
-  // 🛵 SE FOR ENTREGADOR: Exibe apenas o logo e o botão de deslogar
+  // 🛵 SE FOR ENTREGADOR: Exibe layout limpo para entregadores
   if (isEntregador) {
     return (
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-45">
-        <div className="max-w-7xl mx-auto px-4 py-3 h-20 flex items-center justify-between">
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 py-3 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-1 rounded-full border-2 border-purple-500 shadow-xl flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Tay Mix Açaí" className="w-12 h-12 rounded-full object-cover shadow-inner" />
+            <div className="bg-amber-50 p-1 rounded-full border border-amber-300 shadow-xs flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Tay Mix" className="w-10 h-10 rounded-full object-cover" />
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-xl text-purple-400 tracking-tight leading-none capitalize">
+              <span className="font-black text-lg text-amber-600 tracking-tight leading-none capitalize">
                 painel entregador
               </span>
-              <span className="text-xs text-slate-300 font-bold mt-0.5 capitalize">
+              <span className="text-xs text-slate-500 font-bold mt-0.5 capitalize">
                 {nomeUsuario || 'Entregador Parceiro'}
               </span>
             </div>
@@ -182,7 +182,7 @@ export const Navbar = () => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer shadow"
+            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer shadow-xs"
           >
             <LogOut className="w-4 h-4" /> Sair da Conta
           </button>
@@ -192,51 +192,52 @@ export const Navbar = () => {
   }
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-45">
-      <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-0 md:h-24 flex flex-col md:flex-row items-center justify-between gap-3">
+    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-xs transition-all">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 py-2 md:py-0 md:h-20 flex flex-col md:flex-row items-center justify-between gap-3">
         
-        {/* Esquerda: Logo, Menu Hamburguer e Status/Horário no PC */}
+        {/* Esquerda: Logo, Menu Hamburguer e Status no PC */}
         <div className="w-full md:w-auto flex items-center justify-between md:justify-start gap-4">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 text-slate-300 hover:text-amber-400 focus:outline-none"
+              className="md:hidden p-1.5 text-slate-700 hover:text-amber-600 focus:outline-none"
               aria-label="Abrir Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="bg-white p-1 rounded-full border-2 md:border-3 border-amber-500 shadow-xl flex items-center justify-center shrink-0">
+              <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-xs flex items-center justify-center shrink-0">
                 <img
-                  src="/logo.png"
-                  alt="Tay Mix Açaí"
-                  className="w-12 h-12 md:w-20 md:h-20 rounded-full object-cover transition-transform group-hover:scale-105 shadow-inner"
+                  src="/logoaçai8.png"
+                  alt="Tay Mix Açaí & Massas"
+                  className="w-10 h-10 md:w-14 md:h-14 rounded-full object-cover transition-transform group-hover:scale-105"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-xl md:text-3xl text-amber-400 tracking-tight leading-none capitalize drop-shadow-md">
-                  tay mix
+                <span className="font-black text-xl md:text-2xl text-slate-900 tracking-tight leading-none capitalize">
+                  tay <span className="text-amber-500">mix</span>
                 </span>
-                <span className="text-[10px] md:text-sm text-slate-100 font-bold tracking-wide mt-1">
-                  açaí cremoso & delivery
+                <span className="text-[10px] md:text-xs text-slate-500 font-bold tracking-wide uppercase mt-1">
+                  açaí &bull; massas &bull; delivery
                 </span>
               </div>
             </Link>
           </div>
 
           {/* Badge de Status da Loja no PC */}
-          <div className="hidden md:flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs ml-2">
-            <span className="relative flex h-2.5 w-2.5">
-              {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-            </span>
-            <span className={`font-extrabold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <div className="hidden md:flex items-center gap-2 bg-slate-100/80 border border-slate-200 px-3 py-1.5 rounded-full text-xs ml-2">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              lojaAberta 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                : 'bg-rose-100 text-rose-800 border border-rose-300'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
               {lojaAberta ? 'ABERTO' : 'FECHADO'}
             </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-300 flex items-center gap-1 font-medium">
-              <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+            <span className="text-slate-300">|</span>
+            <span className="text-slate-600 flex items-center gap-1 font-semibold">
+              <Clock className="w-3.5 h-3.5 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
             </span>
           </div>
 
@@ -244,11 +245,11 @@ export const Navbar = () => {
           <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-2 cursor-pointer"
+              className="relative p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs cursor-pointer shadow-xs"
             >
-              <ShoppingBag className="w-5 h-5 text-amber-500" />
+              <ShoppingBag className="w-4 h-4" />
               {totalItens > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="bg-white text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
                   {totalItens}
                 </span>
               )}
@@ -257,57 +258,57 @@ export const Navbar = () => {
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium cursor-pointer"
-                title="terminar sessão"
+                className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-200 flex items-center gap-1 text-xs font-bold cursor-pointer"
+                title="Sair da conta"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-slate-500" />
               </button>
             ) : (
               <Link
                 to="/login"
-                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-1 text-xs font-medium"
-                title="entrar na conta"
+                className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition flex items-center gap-1 text-xs font-bold"
+                title="Entrar na conta"
               >
-                <LogIn className="w-4 h-4 text-amber-500" />
+                <LogIn className="w-4 h-4" />
               </Link>
             )}
           </div>
         </div>
 
         {/* Centro: Navegação Desktop */}
-        <nav className="hidden md:flex items-center gap-4 text-sm text-slate-300 font-medium">
-          <Link to="/" className="hover:text-amber-400 transition">cardápio</Link>
+        <nav className="hidden md:flex items-center gap-4 text-xs md:text-sm text-slate-600 font-bold">
+          <Link to="/" className="hover:text-amber-600 transition">cardápio</Link>
           
           {/* APENAS EXIBE O MENU ADMIN SE ESTIVER LOGADO COMO ADMINISTRADOR */}
           {isLoggedIn && isAdmin && (
             <>
-              <Link to="/comandas" className="hover:text-amber-400 transition flex items-center gap-1">
-                <ClipboardList className="w-4 h-4" /> comandas
+              <Link to="/comandas" className="hover:text-amber-600 transition flex items-center gap-1">
+                <ClipboardList className="w-4 h-4 text-slate-400" /> comandas
               </Link>
 
-              <Link to="/caixa" className="relative hover:text-amber-400 transition flex items-center gap-1">
-                <DollarSign className="w-4 h-4" /> caixa
+              <Link to="/caixa" className="relative hover:text-amber-600 transition flex items-center gap-1">
+                <DollarSign className="w-4 h-4 text-slate-400" /> caixa
                 {pedidosPendentesCount > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
+                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
                     {pedidosPendentesCount}
                   </span>
                 )}
               </Link>
 
-              <Link to="/admin/produtos" className="hover:text-amber-400 transition flex items-center gap-1">
-                <Package className="w-4 h-4" /> produtos
+              <Link to="/admin/produtos" className="hover:text-amber-600 transition flex items-center gap-1">
+                <Package className="w-4 h-4 text-slate-400" /> produtos
               </Link>
 
-              <Link to="/configuracoes/entrega" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                <MapPin className="w-4 h-4" /> raio de entrega
+              <Link to="/configuracoes/entrega" className="hover:text-amber-700 transition flex items-center gap-1 text-amber-800 bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-200">
+                <MapPin className="w-4 h-4 text-amber-600" /> raio de entrega
               </Link>
 
-              <Link to="/admin/precificacao" className="hover:text-amber-400 transition flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                <Calculator className="w-4 h-4" /> precificação
+              <Link to="/admin/precificacao" className="hover:text-emerald-700 transition flex items-center gap-1 text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-lg border border-emerald-200">
+                <Calculator className="w-4 h-4 text-emerald-600" /> precificação
               </Link>
 
-              <Link to="/admin/financeiro" className="hover:text-amber-400 transition flex items-center gap-1 text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-bold">
-                <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro
+              <Link to="/admin/financeiro" className="hover:text-amber-800 transition flex items-center gap-1 text-amber-900 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300 font-bold">
+                <TrendingUp className="w-4 h-4 text-amber-600" /> financeiro
               </Link>
             </>
           )}
@@ -316,8 +317,8 @@ export const Navbar = () => {
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
-                <Link to="/meus-pedidos" className="relative hover:text-amber-400 transition flex items-center gap-1">
-                  <Clock className="w-4 h-4" /> meus pedidos
+                <Link to="/meus-pedidos" className="relative hover:text-amber-600 transition flex items-center gap-1">
+                  <Clock className="w-4 h-4 text-slate-400" /> meus pedidos
                   {temAlertaPedidos && (
                     <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -327,24 +328,24 @@ export const Navbar = () => {
                 </Link>
               )}
               {!isLoggedIn && (
-                <Link to="/cadastro" className="hover:text-amber-400 transition flex items-center gap-1">
-                  <UserPlus className="w-4 h-4" /> cadastro
+                <Link to="/cadastro" className="hover:text-amber-600 transition flex items-center gap-1">
+                  <UserPlus className="w-4 h-4 text-slate-400" /> cadastro
                 </Link>
               )}
             </>
           )}
         </nav>
 
-        {/* Direita: Carrinho/Sessão Desktop */}
+        {/* Direita: Carrinho e Sessão Desktop */}
         <div className="hidden md:flex items-center gap-2.5">
           <button
             onClick={() => setIsCartOpen(true)}
-            className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-2 cursor-pointer"
+            className="relative flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-95"
           >
-            <ShoppingBag className="w-5 h-5 text-amber-500" />
-            <span className="text-xs font-bold hidden sm:inline">carrinho</span>
+            <ShoppingBag className="w-4 h-4" />
+            <span>carrinho</span>
             {totalItens > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="bg-white text-emerald-700 text-[11px] font-black px-2 py-0.5 rounded-full">
                 {totalItens}
               </span>
             )}
@@ -353,20 +354,20 @@ export const Navbar = () => {
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
-              className="p-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 rounded-lg transition border border-rose-900/50 flex items-center gap-1 text-xs font-medium cursor-pointer"
-              title="terminar sessão"
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              title="Sair da conta"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">sair</span>
+              <LogOut className="w-4 h-4 text-slate-500" />
+              <span>sair</span>
             </button>
           ) : (
             <Link
               to="/login"
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 rounded-lg transition border border-slate-700 flex items-center gap-1 text-xs font-medium"
-              title="entrar na conta"
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs"
+              title="Entrar na conta"
             >
-              <LogIn className="w-4 h-4 text-amber-500" />
-              <span className="hidden sm:inline">entrar</span>
+              <LogIn className="w-4 h-4" />
+              <span>entrar</span>
             </Link>
           )}
         </div>
@@ -374,50 +375,49 @@ export const Navbar = () => {
       </div>
 
       {/* Linha Inferior Mobile Centralizada */}
-      <div className="flex md:hidden w-full bg-slate-950 border-t border-slate-800 py-1.5 px-3 items-center justify-center gap-2 text-xs">
-        <span className="relative flex h-2.5 w-2.5">
-          {lojaAberta && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-        </span>
-        <span className={`font-extrabold ${lojaAberta ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <div className="flex md:hidden w-full bg-slate-50 border-t border-slate-200 py-1.5 px-3 items-center justify-center gap-2 text-xs">
+        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          lojaAberta ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
           {lojaAberta ? 'ABERTO' : 'FECHADO'}
         </span>
-        <span className="text-slate-600">•</span>
-        <span className="text-slate-300 flex items-center gap-1 font-medium">
-          <Clock className="w-3 h-3 text-amber-500" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+        <span className="text-slate-300">•</span>
+        <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
+          <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
         </span>
       </div>
 
       {/* Menu Mobile Expandido */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-950 border-t border-slate-800 px-4 py-3 space-y-3 text-sm text-slate-300 font-medium">
-          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
+        <div className="md:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg">
+          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
             cardápio
           </Link>
           
           {/* SÓ MOSTRA SE ESTIVER LOGADO COMO ADMINISTRADOR */}
           {isLoggedIn && isAdmin && (
             <>
-              <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                <ClipboardList className="w-4 h-4 text-amber-500" /> comandas
+              <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+                <ClipboardList className="w-4 h-4 text-slate-400" /> comandas
               </Link>
               
-              <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                <span className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-amber-500" /> caixa</span>
+              <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+                <span className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-slate-400" /> caixa</span>
                 {pedidosPendentesCount > 0 && <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">{pedidosPendentesCount} novos</span>}
               </Link>
 
-              <Link to="/admin/produtos" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                <Package className="w-4 h-4 text-amber-500" /> produtos
+              <Link to="/admin/produtos" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+                <Package className="w-4 h-4 text-slate-400" /> produtos
               </Link>
-              <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-400 transition">
-                <MapPin className="w-4 h-4" /> raio de entrega
+              <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-50 text-amber-800 transition">
+                <MapPin className="w-4 h-4 text-amber-600" /> raio de entrega
               </Link>
-              <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 transition">
-                <Calculator className="w-4 h-4" /> precificação
+              <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-emerald-50 text-emerald-800 transition">
+                <Calculator className="w-4 h-4 text-emerald-600" /> precificação
               </Link>
-              <Link to="/admin/financeiro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-300 font-bold transition">
-                <TrendingUp className="w-4 h-4 text-amber-400" /> financeiro / prestação
+              <Link to="/admin/financeiro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-100 text-amber-900 font-bold transition">
+                <TrendingUp className="w-4 h-4 text-amber-600" /> financeiro
               </Link>
             </>
           )}
@@ -426,13 +426,13 @@ export const Navbar = () => {
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (
-                <Link to="/meus-pedidos" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                  <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> meus pedidos</span>
+                <Link to="/meus-pedidos" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+                  <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400" /> meus pedidos</span>
                 </Link>
               )}
               {!isLoggedIn && (
-                <Link to="/cadastro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-slate-800 hover:text-amber-400 transition">
-                  <UserPlus className="w-4 h-4 text-amber-500" /> cadastro
+                <Link to="/cadastro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
+                  <UserPlus className="w-4 h-4 text-slate-400" /> cadastro
                 </Link>
               )}
             </>
