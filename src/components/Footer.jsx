@@ -3,7 +3,7 @@ import { MapPin, Clock, MessageCircle } from 'lucide-react';
 
 export const Footer = () => {
   // Ajuste o número da loja com DDD se for diferente
-  const numeroWhatsApp = '5521999999999'; 
+  const numeroWhatsApp = '5521990066154'; 
   const mensagemWhatsApp = encodeURIComponent('Olá! Gostaria de falar com o atendimento da Tay Mix.');
 
   return (
