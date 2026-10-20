@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sparkles, Zap, ShieldCheck, Heart } from 'lucide-react';
 
 export const Banner = () => {
@@ -11,6 +10,8 @@ export const Banner = () => {
           src="/banner-bg.jpg"
           alt="Açaí e Massas Tay Mix"
           className="w-full h-full object-cover object-center"
+          fetchPriority="high"
+          decoding="async"
         />
         {/* Overlay escuro balanceado para garantir leitura sem escurecer demais a foto */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30"></div>

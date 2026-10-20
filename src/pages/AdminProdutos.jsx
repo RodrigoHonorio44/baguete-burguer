@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers, Sliders } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -75,7 +75,10 @@ export const AdminProdutos = () => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          const webpDataUrl = canvas.toDataURL('image/webp', 0.75);
+          const dataUrl = webpDataUrl.startsWith('data:image/webp')
+            ? webpDataUrl
+            : canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
         };
         img.onerror = (error) => reject(error);

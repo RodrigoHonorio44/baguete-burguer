@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Minus, ChevronDown, ChevronUp, EyeOff, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
@@ -197,6 +197,10 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 src={imagem}
                 alt={nome}
                 className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover shadow-sm border border-slate-100"
+                width="500"
+                height="500"
+                loading="lazy"
+                decoding="async"
               />
             </div>
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-200 transition-colors">
@@ -228,6 +232,10 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 src={imagem}
                 alt={nome}
                 className="w-full h-72 md:h-[400px] object-contain object-center rounded-xl shadow-sm transition-transform duration-300"
+                width="500"
+                height="500"
+                loading="lazy"
+                decoding="async"
               />
             </div>
 
@@ -280,7 +288,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                                 <div key={itemId} className="flex items-center justify-between p-2.5 rounded-lg bg-white hover:bg-slate-50 transition border border-slate-100">
                                   <div className="flex items-center gap-3">
                                     {item.foto && (
-                                      <img src={item.foto} alt={item.nome} className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
+                                      <img src={item.foto} alt={item.nome} width="40" height="40" loading="lazy" decoding="async" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
                                     )}
                                     <div>
                                       <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
