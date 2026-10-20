@@ -169,7 +169,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   return (
     <div className={`bg-white border ${disponivel ? 'border-slate-200/80 hover:border-slate-300 shadow-sm hover:shadow-md' : 'border-rose-200 opacity-75 bg-rose-50/20'} rounded-2xl overflow-hidden transition-all duration-300 relative group mb-4 ${isExpanded ? 'col-span-full' : ''}`}>
       
-      {/* 1. VISUALIZAÇÃO FECHADA: Só aparece se !isExpanded */}
+      {/* 1. VISUALIZAÇÃO FECHADA */}
       {!isExpanded && (
         <div 
           onClick={handleToggleExpand}
@@ -206,11 +206,11 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
         </div>
       )}
 
-      {/* 2. VISUALIZAÇÃO ABERTA: Substitui completamente o topo */}
+      {/* 2. VISUALIZAÇÃO ABERTA (ESTENDIDA) */}
       {isExpanded && (
         <div className="bg-white p-5 md:p-6 relative">
           
-          {/* Botão de Fechar no Canto Superior Direito */}
+          {/* Botão de Fechar */}
           <button
             onClick={handleToggleExpand}
             className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
@@ -222,16 +222,16 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           {/* Grid de 2 Colunas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             
-            {/* Coluna Esquerda: Foto Grande */}
-            <div className="w-full">
+            {/* Coluna Esquerda: Foto Inteira sem Zoom (object-contain) */}
+            <div className="w-full flex items-center justify-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/80 p-4">
               <img
                 src={imagem}
                 alt={nome}
-                className="w-full h-64 md:h-96 object-cover rounded-xl shadow-sm border border-slate-200 sticky top-4"
+                className="w-full h-72 md:h-[400px] object-contain object-center rounded-xl shadow-sm transition-transform duration-300"
               />
             </div>
 
-            {/* Coluna Direita: Título, Descrição, Adicionais e Ações */}
+            {/* Coluna Direita: Detalhes e Ações */}
             <div className="flex flex-col h-full justify-between pr-8 md:pr-0">
               <div>
                 <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 mb-2 capitalize">{nome}</h3>

@@ -343,6 +343,17 @@ export const api = {
     return data;
   },
 
+  atualizarProdutoPrecificado: async (id, payload) => {
+    const response = await fetch(`${API_URL}/produtos-precificados/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao atualizar produto precificado');
+    return data;
+  },
+
   excluirProdutoPrecificado: async (id) => {
     const response = await fetch(`${API_URL}/produtos-precificados/${id}`, {
       method: 'DELETE',

@@ -7,7 +7,7 @@ export default function AdminPrecificacao() {
   const {
     aba, setAba,
     insumos, produtosSalvos, loading,
-    editandoInsumoId,
+    editandoInsumoId, editandoProdutoId,
     novoNome, setNovoNome,
     novaCategoria, setNovaCategoria,
     novaUnidade, setNovaUnidade,
@@ -22,6 +22,8 @@ export default function AdminPrecificacao() {
     custoDiretoTotalProduto,
     handleAdicionarIngredienteFicha,
     handleRemoverIngredienteFicha,
+    handleEditarProdutoFinal,
+    handleCancelarEdicaoProduto,
     handleSalvarProdutoFinal,
     handleExcluirProdutoFinal,
     handleSalvarInsumo,
@@ -74,9 +76,20 @@ export default function AdminPrecificacao() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* MONTAGEM DE RECEITA */}
               <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 space-y-5 shadow-xs">
-                <h2 className="text-base font-bold text-amber-700 tracking-wider flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-amber-600" /> Montar Receita do Produto Final
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-amber-700 tracking-wider flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-amber-600" /> {editandoProdutoId ? 'Editar Receita do Produto' : 'Montar Receita do Produto Final'}
+                  </h2>
+                  {editandoProdutoId && (
+                    <button 
+                      type="button" 
+                      onClick={handleCancelarEdicaoProduto}
+                      className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
 
                 <div>
                   <label className="text-xs text-slate-600 block mb-1 font-bold">Nome do Produto Final</label>
@@ -102,7 +115,7 @@ export default function AdminPrecificacao() {
                         <option value="">Selecione ingrediente/embalagem...</option>
                         {insumos.map(i => (
                           <option key={i._id} value={i._id}>
-                            {i.nome} ({'R' + '\$'} {Number(i.custo).toFixed(2)}/{i.unidade})
+                            {i.nome} (R$ {Number(i.custo).toFixed(2)}/{i.unidade})
                           </option>
                         ))}
                       </select>
@@ -118,6 +131,7 @@ export default function AdminPrecificacao() {
                         <option value="g">Gramas (g)</option>
                         <option value="ml">Mililitros (ml)</option>
                         <option value="un">Unidade (un)</option>
+                        <option value="kg">Quilos (kg)</option>
                       </select>
                     </div>
                   </div>
@@ -155,7 +169,7 @@ export default function AdminPrecificacao() {
                             <span className="text-slate-500 font-medium ml-2">({item.qtdUsada} {item.unidadeUsada})</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-emerald-600">{'R' + '\$'} {item.custoCalculado.toFixed(2)}</span>
+                            <span className="font-bold text-emerald-600">R$ {item.custoCalculado.toFixed(2)}</span>
                             <button onClick={() => handleRemoverIngredienteFicha(idx)} className="text-rose-600 hover:text-rose-800 cursor-pointer transition">
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -174,13 +188,13 @@ export default function AdminPrecificacao() {
                   
                   <div className="p-4 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
                     <p className="text-[11px] text-slate-500 font-bold uppercase">CUSTO DIRETO TOTAL (INSUMOS):</p>
-                    <p className="text-3xl font-black text-emerald-600">{'R' + '\$'} {custoDiretoTotalProduto.toFixed(2)}</p>
+                    <p className="text-3xl font-black text-emerald-600">R$ {custoDiretoTotalProduto.toFixed(2)}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl space-y-1.5 border border-slate-200 text-xs font-medium">
                     <p className="text-amber-800 font-bold text-[11px]">REGRAS APLICADAS:</p>
-                    <p className="text-slate-700">iFood: <strong className="text-slate-900 font-bold">{taxas.ifoodPercentual}%</strong> + Rateio <strong className="text-slate-900 font-bold">{'R' + '\$'} {taxas.ifoodRateioUnidade.toFixed(2)}</strong></p>
-                    <p className="text-slate-700">99Food: <strong className="text-slate-900 font-bold">{taxas.f99Percentual}%</strong> + Rateio <strong className="text-slate-900 font-bold">{'R' + '\$'} {taxas.f99RateioUnidade.toFixed(2)}</strong></p>
+                    <p className="text-slate-700">iFood: <strong className="text-slate-900 font-bold">{taxas.ifoodPercentual}%</strong> + Rateio <strong className="text-slate-900 font-bold">R$ {taxas.ifoodRateioUnidade.toFixed(2)}</strong></p>
+                    <p className="text-slate-700">99Food: <strong className="text-slate-900 font-bold">{taxas.f99Percentual}%</strong> + Rateio <strong className="text-slate-900 font-bold">R$ {taxas.f99RateioUnidade.toFixed(2)}</strong></p>
                   </div>
                 </div>
 
@@ -188,7 +202,7 @@ export default function AdminPrecificacao() {
                   onClick={handleSalvarProdutoFinal} 
                   className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold p-3.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs text-xs"
                 >
-                  <Save className="w-5 h-5" /> Cadastrar Produto Precificado
+                  <Save className="w-5 h-5" /> {editandoProdutoId ? 'Salvar Alterações do Produto' : 'Cadastrar Produto Precificado'}
                 </button>
               </div>
             </div>
@@ -208,7 +222,7 @@ export default function AdminPrecificacao() {
               <>
                 {/* LISTA COMPACTA DOS PRODUTOS SALVOS */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2 shadow-xs">
-                  <p className="text-xs text-slate-500 font-bold px-1 mb-2">Clique em um produto para simular e visualizar seus valores:</p>
+                  <p className="text-xs text-slate-500 font-bold px-1 mb-2">Clique em um produto para simular ou no lápis para editar:</p>
                   
                   <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto pr-1">
                     {produtosSalvos.map((p) => {
@@ -233,10 +247,24 @@ export default function AdminPrecificacao() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg font-bold text-xs border border-emerald-200">
-                              Custo Direto: {'R' + '\$'} {p.custoDiretoTotal.toFixed(2)}
+                              Custo Direto: R$ {p.custoDiretoTotal.toFixed(2)}
                             </span>
+                            
+                            {/* BOTÃO DE EDITAR PRODUTO */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditarProdutoFinal(p);
+                              }}
+                              className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg transition border border-amber-200 cursor-pointer"
+                              title="Editar Ficha Técnica do Produto"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* BOTÃO DE EXCLUIR PRODUTO */}
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -305,6 +333,7 @@ export default function AdminPrecificacao() {
                   <label className="text-xs text-slate-600 block mb-1 font-bold">Unidade</label>
                   <select value={novaUnidade} onChange={e => setNovaUnidade(e.target.value)} className="w-full bg-slate-50 border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-semibold cursor-pointer focus:outline-none focus:border-amber-500">
                     <option value="kg">Quilos (kg)</option>
+                    <option value="g">Gramas (g)</option>
                     <option value="un">Unidades (un)</option>
                     <option value="l">Litros (L)</option>
                   </select>
@@ -312,7 +341,7 @@ export default function AdminPrecificacao() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-slate-600 block mb-1 font-bold">Preço Pago ({'R' + '\$'})</label>
+                    <label className="text-xs text-slate-600 block mb-1 font-bold">Preço Pago (R$)</label>
                     <input type="number" step="0.01" value={precoTotalComprado} onChange={e => setPrecoTotalComprado(e.target.value)} placeholder="Ex: 80.00" className="w-full bg-slate-50 border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-amber-500" required />
                   </div>
                   <div>
@@ -346,9 +375,9 @@ export default function AdminPrecificacao() {
                       <tr key={item._id} className="hover:bg-slate-50 transition">
                         <td className="p-3 font-bold text-slate-800 capitalize">{item.nome}</td>
                         <td className="p-3 capitalize text-slate-500">{item.categoria}</td>
-                        <td className="p-3">{'R' + '\$'} {Number(item.precoTotalComprado || item.custo).toFixed(2)}</td>
+                        <td className="p-3">R$ {Number(item.precoTotalComprado || item.custo).toFixed(2)}</td>
                         <td className="p-3">{item.qtdEmbalagem || 1} {item.unidade}</td>
-                        <td className="p-3 font-bold text-amber-700">{'R' + '\$'} {Number(item.custo).toFixed(2)} / {item.unidade}</td>
+                        <td className="p-3 font-bold text-amber-700">R$ {Number(item.custo).toFixed(2)} / {item.unidade}</td>
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -388,7 +417,7 @@ export default function AdminPrecificacao() {
                     <input type="number" step="0.1" value={taxas.ifoodPercentual} onChange={e => setTaxas({...taxas, ifoodPercentual: Number(e.target.value)})} className="w-full bg-white border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:border-amber-500" />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-600 block mb-1 font-bold">Rateio por Unidade ({'R' + '\$'})</label>
+                    <label className="text-xs text-slate-600 block mb-1 font-bold">Rateio por Unidade (R$)</label>
                     <input type="number" step="0.10" value={taxas.ifoodRateioUnidade} onChange={e => setTaxas({...taxas, ifoodRateioUnidade: Number(e.target.value)})} className="w-full bg-white border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:border-amber-500" />
                   </div>
                 </div>
@@ -402,7 +431,7 @@ export default function AdminPrecificacao() {
                     <input type="number" step="0.1" value={taxas.f99Percentual} onChange={e => setTaxas({...taxas, f99Percentual: Number(e.target.value)})} className="w-full bg-white border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:border-amber-500" />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-600 block mb-1 font-bold">Rateio por Unidade ({'R' + '\$'})</label>
+                    <label className="text-xs text-slate-600 block mb-1 font-bold">Rateio por Unidade (R$)</label>
                     <input type="number" step="0.10" value={taxas.f99RateioUnidade} onChange={e => setTaxas({...taxas, f99RateioUnidade: Number(e.target.value)})} className="w-full bg-white border border-slate-300 p-2 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:border-amber-500" />
                   </div>
                 </div>

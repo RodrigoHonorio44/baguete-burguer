@@ -16,6 +16,9 @@ export const usePrecificacao = () => {
   const [precoTotalComprado, setPrecoTotalComprado] = useState('');
   const [qtdEmbalagem, setQtdEmbalagem] = useState('1');
 
+  // Estado para Edição de Produto Precificado
+  const [editandoProdutoId, setEditandoProdutoId] = useState(null);
+
   // Taxas
   const [taxas, setTaxas] = useState({
     ifoodPercentual: 26.2,
@@ -58,6 +61,7 @@ export const usePrecificacao = () => {
     carregarDados();
   }, []);
 
+  // --- ADICIONAR INGREDIENTE COM LÓGICA COMPLETA DE CONVERSÃO DE UNIDADES ---
   const handleAdicionarIngredienteFicha = () => {
     if (!insumoSelecionadoId || !qtdUsadaInsumo || Number(qtdUsadaInsumo) <= 0) {
       toast.error('Selecione um insumo e informe a quantidade usada!');
@@ -68,12 +72,38 @@ export const usePrecificacao = () => {
     if (!insumoObj) return;
 
     const qtd = Number(qtdUsadaInsumo);
+    const custoBase = Number(insumoObj.custo);
+    const unidadeCadastro = (insumoObj.unidade || 'kg').toLowerCase();
+    const unidadeUsada = unidadeMedidaSelecionada.toLowerCase();
+
     let custoItem = 0;
 
-    if (unidadeMedidaSelecionada === 'g' || unidadeMedidaSelecionada === 'ml') {
-      custoItem = (Number(insumoObj.custo) / 1000) * qtd;
+    if (unidadeCadastro === 'kg') {
+      if (unidadeUsada === 'g') {
+        custoItem = (custoBase / 1000) * qtd;
+      } else {
+        custoItem = custoBase * qtd;
+      }
+    } else if (unidadeCadastro === 'g') {
+      if (unidadeUsada === 'kg') {
+        custoItem = (custoBase * 1000) * qtd;
+      } else {
+        custoItem = custoBase * qtd;
+      }
+    } else if (unidadeCadastro === 'l') {
+      if (unidadeUsada === 'ml') {
+        custoItem = (custoBase / 1000) * qtd;
+      } else {
+        custoItem = custoBase * qtd;
+      }
+    } else if (unidadeCadastro === 'ml') {
+      if (unidadeUsada === 'l') {
+        custoItem = (custoBase * 1000) * qtd;
+      } else {
+        custoItem = custoBase * qtd;
+      }
     } else {
-      custoItem = Number(insumoObj.custo) * qtd;
+      custoItem = custoBase * qtd;
     }
 
     const novoItemFicha = {
@@ -96,7 +126,22 @@ export const usePrecificacao = () => {
 
   const custoDiretoTotalProduto = itensReceita.reduce((acc, curr) => acc + curr.custoCalculado, 0);
 
-  // --- FUNÇÃO PARA SALVAR E PERSISTIR PRODUTO FINAL NO BANCO ---
+  // --- ATIVAR MODO DE EDIÇÃO DO PRODUTO ---
+  const handleEditarProdutoFinal = (produto) => {
+    setEditandoProdutoId(produto._id);
+    setNomeProdutoFinal(produto.nome || '');
+    setItensReceita(produto.itensReceita || []);
+    setAba('simulador');
+    toast('Modo de edição do produto ativado!', { icon: '✏️' });
+  };
+
+  const handleCancelarEdicaoProduto = () => {
+    setEditandoProdutoId(null);
+    setNomeProdutoFinal('');
+    setItensReceita([]);
+  };
+
+  // --- FUNÇÃO PARA SALVAR OU ATUALIZAR PRODUTO FINAL NO BANCO ---
   const handleSalvarProdutoFinal = async () => {
     if (!nomeProdutoFinal.trim()) {
       toast.error('Digite o nome do produto final!');
@@ -107,26 +152,34 @@ export const usePrecificacao = () => {
       return;
     }
 
-    const novoProduto = {
+    const payload = {
       nome: nomeProdutoFinal.toLowerCase().trim(),
       itensReceita,
       custoDiretoTotal: custoDiretoTotalProduto,
-      criadoEm: new Date().toISOString()
+      atualizadoEm: new Date().toISOString()
     };
 
     try {
-      if (typeof api.salvarProdutoPrecificado === 'function') {
-        await api.salvarProdutoPrecificado(novoProduto);
-      } else if (typeof api.criarProdutoPrecificado === 'function') {
-        await api.criarProdutoPrecificado(novoProduto);
+      if (editandoProdutoId) {
+        if (typeof api.atualizarProdutoPrecificado === 'function') {
+          await api.atualizarProdutoPrecificado(editandoProdutoId, payload);
+        }
+        toast.success('Produto precificado atualizado com sucesso!');
       } else {
-        throw new Error('Função de salvamento de produto não encontrada na API.');
+        if (typeof api.salvarProdutoPrecificado === 'function') {
+          await api.salvarProdutoPrecificado(payload);
+        } else if (typeof api.criarProdutoPrecificado === 'function') {
+          await api.criarProdutoPrecificado(payload);
+        } else {
+          throw new Error('Função de salvamento de produto não encontrada na API.');
+        }
+        toast.success('Produto precificado salvo no banco com sucesso!');
       }
 
-      toast.success('Produto precificado salvo no banco com sucesso!');
+      setEditandoProdutoId(null);
       setNomeProdutoFinal('');
       setItensReceita([]);
-      carregarDados(); // Recarrega do banco para atualizar a listagem
+      carregarDados();
     } catch (err) {
       console.error('Erro ao salvar produto precificado:', err);
       toast.error('Erro ao salvar produto precificado no banco.');
@@ -236,6 +289,7 @@ export const usePrecificacao = () => {
     aba, setAba,
     insumos, produtosSalvos, loading,
     editandoInsumoId,
+    editandoProdutoId,
     novoNome, setNovoNome,
     novaCategoria, setNovaCategoria,
     novaUnidade, setNovaUnidade,
@@ -250,6 +304,8 @@ export const usePrecificacao = () => {
     custoDiretoTotalProduto,
     handleAdicionarIngredienteFicha,
     handleRemoverIngredienteFicha,
+    handleEditarProdutoFinal,
+    handleCancelarEdicaoProduto,
     handleSalvarProdutoFinal,
     handleExcluirProdutoFinal,
     handleSalvarInsumo,

@@ -54,7 +54,7 @@ export default function PainelSimuladorDinamico({ custoDireto, taxas, precoIFood
             <span className="text-base font-black text-slate-800 capitalize">{produtoNome}</span>
           </div>
           <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-xl font-bold text-xs border border-emerald-200">
-            Custo Base: R\$ {custoDireto.toFixed(2)}
+            Custo Base: R$ {custoDireto.toFixed(2)}
           </span>
         </div>
       )}
@@ -114,7 +114,7 @@ export default function PainelSimuladorDinamico({ custoDireto, taxas, precoIFood
 
           {modoCalculo === 'preco' && (
             <div>
-              <label className="text-xs text-slate-600 block mb-1 font-bold">Preço de Venda Simulado (R\$)</label>
+              <label className="text-xs text-slate-600 block mb-1 font-bold">Preço de Venda Simulado (R$)</label>
               <input 
                 type="text" 
                 value={precoIF} 
@@ -127,23 +127,23 @@ export default function PainelSimuladorDinamico({ custoDireto, taxas, precoIFood
           <div className="space-y-2 text-xs bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs font-medium">
             <div className="flex justify-between text-slate-700">
               <span>Preço Final ao Cliente:</span>
-              <strong className="text-slate-900 text-sm font-bold">R\$ {calcIFood.precoVenda.toFixed(2)}</strong>
+              <strong className="text-slate-900 text-sm font-bold">R$ {calcIFood.precoVenda.toFixed(2)}</strong>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Comissão iFood ({taxas.ifoodPercentual}%):</span>
-              <span className="text-rose-600 font-bold">R\$ {calcIFood.descontoApp.toFixed(2)}</span>
+              <span className="text-rose-600 font-bold">R$ {calcIFood.descontoApp.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-slate-700 pt-1 border-t border-slate-100">
               <span>Repasse Líquido (Recebe na Conta):</span>
-              <strong className="text-emerald-600 text-sm font-bold">R\$ {calcIFood.repasseLiquido.toFixed(2)}</strong>
+              <strong className="text-emerald-600 text-sm font-bold">R$ {calcIFood.repasseLiquido.toFixed(2)}</strong>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Custo Total Produto + Rateio:</span>
-              <span className="text-slate-800 font-semibold">R\$ {calcIFood.custoTotal.toFixed(2)}</span>
+              <span className="text-slate-800 font-semibold">R$ {calcIFood.custoTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-sm">
               <span className="text-amber-800 font-bold">Lucro Líquido Real:</span>
-              <span className="font-bold text-emerald-600 text-base">R\$ {calcIFood.lucroLiquido.toFixed(2)} ({calcIFood.margemRealPct.toFixed(0)}%)</span>
+              <span className="font-bold text-emerald-600 text-base">R$ {calcIFood.lucroLiquido.toFixed(2)} ({calcIFood.margemRealPct.toFixed(0)}%)</span>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function PainelSimuladorDinamico({ custoDireto, taxas, precoIFood
 
           {modoCalculo === 'preco' && (
             <div>
-              <label className="text-xs text-slate-600 block mb-1 font-bold">Preço de Venda Simulado (R\$)</label>
+              <label className="text-xs text-slate-600 block mb-1 font-bold">Preço de Venda Simulado (R$)</label>
               <input 
                 type="text" 
                 value={preco99} 
@@ -172,23 +172,23 @@ export default function PainelSimuladorDinamico({ custoDireto, taxas, precoIFood
           <div className="space-y-2 text-xs bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs font-medium">
             <div className="flex justify-between text-slate-700">
               <span>Preço Final ao Cliente:</span>
-              <strong className="text-slate-900 text-sm font-bold">R\$ {calc99.precoVenda.toFixed(2)}</strong>
+              <strong className="text-slate-900 text-sm font-bold">R$ {calc99.precoVenda.toFixed(2)}</strong>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Comissão 99Food ({taxas.f99Percentual}%):</span>
-              <span className="text-rose-600 font-bold">R\$ {calc99.descontoApp.toFixed(2)}</span>
+              <span className="text-rose-600 font-bold">R$ {calc99.descontoApp.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-slate-700 pt-1 border-t border-slate-100">
               <span>Repasse Líquido (Recebe na Conta):</span>
-              <strong className="text-emerald-600 text-sm font-bold">R\$ {calc99.repasseLiquido.toFixed(2)}</strong>
+              <strong className="text-emerald-600 text-sm font-bold">R$ {calc99.repasseLiquido.toFixed(2)}</strong>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>Custo Total Produto:</span>
-              <span className="text-slate-800 font-semibold">R\$ {calc99.custoTotal.toFixed(2)}</span>
+              <span className="text-slate-800 font-semibold">R$ {calc99.custoTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-sm">
               <span className="text-amber-800 font-bold">Lucro Líquido Real:</span>
-              <span className="font-bold text-emerald-600 text-base">R\$ {calc99.lucroLiquido.toFixed(2)} ({calc99.margemRealPct.toFixed(0)}%)</span>
+              <span className="font-bold text-emerald-600 text-base">R$ {calc99.lucroLiquido.toFixed(2)} ({calc99.margemRealPct.toFixed(0)}%)</span>
             </div>
           </div>
         </div>
