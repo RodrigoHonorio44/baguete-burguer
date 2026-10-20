@@ -179,7 +179,6 @@ export const api = {
   },
 
   getHistoricoCaixa: async () => {
-    // Aponta para a rota genérica /api/caixa do backend que busca a coleção completa no MongoDB
     const response = await fetch(`${API_URL}/caixa`, {
       headers: getHeaders()
     });
@@ -320,6 +319,37 @@ export const api = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Erro ao excluir insumo');
+    return data;
+  },
+
+  // --- PRODUTOS PRECIFICADOS E FICHAS TÉCNICAS (PERSISTIDOS NO MONGODB) ---
+  getProdutosPrecificados: async () => {
+    const response = await fetch(`${API_URL}/produtos-precificados`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar produtos precificados');
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  salvarProdutoPrecificado: async (payload) => {
+    const response = await fetch(`${API_URL}/produtos-precificados`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao salvar produto precificado');
+    return data;
+  },
+
+  excluirProdutoPrecificado: async (id) => {
+    const response = await fetch(`${API_URL}/produtos-precificados/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao excluir produto precificado');
     return data;
   },
 

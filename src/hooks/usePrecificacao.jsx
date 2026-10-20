@@ -42,7 +42,7 @@ export const usePrecificacao = () => {
         setTaxas(configLoja.taxasPrecificacao);
       }
 
-      if (api.getProdutosPrecificados) {
+      if (typeof api.getProdutosPrecificados === 'function') {
         const dadosProds = await api.getProdutosPrecificados();
         setProdutosSalvos(Array.isArray(dadosProds) ? dadosProds : []);
       }
@@ -96,6 +96,7 @@ export const usePrecificacao = () => {
 
   const custoDiretoTotalProduto = itensReceita.reduce((acc, curr) => acc + curr.custoCalculado, 0);
 
+  // --- FUNÇÃO PARA SALVAR E PERSISTIR PRODUTO FINAL NO BANCO ---
   const handleSalvarProdutoFinal = async () => {
     if (!nomeProdutoFinal.trim()) {
       toast.error('Digite o nome do produto final!');
@@ -114,15 +115,36 @@ export const usePrecificacao = () => {
     };
 
     try {
-      if (api.salvarProdutoPrecificado) {
+      if (typeof api.salvarProdutoPrecificado === 'function') {
         await api.salvarProdutoPrecificado(novoProduto);
+      } else if (typeof api.criarProdutoPrecificado === 'function') {
+        await api.criarProdutoPrecificado(novoProduto);
+      } else {
+        throw new Error('Função de salvamento de produto não encontrada na API.');
       }
-      setProdutosSalvos([novoProduto, ...produtosSalvos]);
-      toast.success('Produto precificado salvo no banco!');
+
+      toast.success('Produto precificado salvo no banco com sucesso!');
       setNomeProdutoFinal('');
       setItensReceita([]);
+      carregarDados(); // Recarrega do banco para atualizar a listagem
     } catch (err) {
-      toast.error('Erro ao salvar produto precificado.');
+      console.error('Erro ao salvar produto precificado:', err);
+      toast.error('Erro ao salvar produto precificado no banco.');
+    }
+  };
+
+  // --- FUNÇÃO PARA EXCLUIR PRODUTO PRECIFICADO DO BANCO ---
+  const handleExcluirProdutoFinal = async (id) => {
+    if (!window.confirm('Tem certeza que deseja excluir este produto salvo?')) return;
+    try {
+      if (typeof api.excluirProdutoPrecificado === 'function') {
+        await api.excluirProdutoPrecificado(id);
+      }
+      toast.success('Produto precificado removido com sucesso!');
+      carregarDados();
+    } catch (err) {
+      console.error('Erro ao excluir produto precificado:', err);
+      toast.error('Erro ao excluir produto precificado.');
     }
   };
 
@@ -229,6 +251,7 @@ export const usePrecificacao = () => {
     handleAdicionarIngredienteFicha,
     handleRemoverIngredienteFicha,
     handleSalvarProdutoFinal,
+    handleExcluirProdutoFinal,
     handleSalvarInsumo,
     handleEditarInsumo,
     handleCancelarEdicaoInsumo,
