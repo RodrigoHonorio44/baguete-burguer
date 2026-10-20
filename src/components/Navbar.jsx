@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, ClipboardList, DollarSign, Package, UserPlus, LogOut, LogIn, Clock, MapPin, Menu, X, Calculator, TrendingUp } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  ClipboardList, 
+  DollarSign, 
+  Package, 
+  UserPlus, 
+  LogOut, 
+  LogIn, 
+  Clock, 
+  Menu, 
+  X, 
+  Calculator, 
+  TrendingUp,
+  Settings
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
@@ -18,7 +32,6 @@ export const Navbar = () => {
   const [pedidosPendentesCount, setPedidosPendentesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Estados para gerir o status, horário e dias de funcionamento
   const [configLoja, setConfigLoja] = useState({
     horarioAbertura: '08:00',
     horarioFechamento: '23:30',
@@ -29,7 +42,6 @@ export const Navbar = () => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); 
     
-    // Tenta obter o nome do usuário salvo no localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -59,7 +71,6 @@ export const Navbar = () => {
     }
   }, []);
 
-  // Carregar as configurações da loja
   useEffect(() => {
     const carregarConfig = async () => {
       try {
@@ -81,7 +92,6 @@ export const Navbar = () => {
     carregarConfig();
   }, []);
 
-  // Cálculo automático se a loja está aberta
   const calcularStatusAutomatico = () => {
     const agora = new Date();
     const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
@@ -102,7 +112,6 @@ export const Navbar = () => {
 
   const lojaAberta = calcularStatusAutomatico();
 
-  // Verificação de alertas para pedidos
   useEffect(() => {
     if (isEntregador) return;
 
@@ -112,7 +121,7 @@ export const Navbar = () => {
         const todosPedidos = Array.isArray(response) ? response : response?.data || [];
         const hoje = new Date().toISOString().split('T')[0];
 
-        if (isAdmin) {
+        if (isLoggedIn && isAdmin) {
           const ativos = todosPedidos.filter(p => {
             const dataBruta = p.criadoEm || p.createdAt;
             if (!dataBruta) return false;
@@ -161,8 +170,7 @@ export const Navbar = () => {
     window.location.reload();
   };
 
-  // 🛵 LAYOUT ENTREGADOR
-  if (isEntregador) {
+  if (isLoggedIn && isEntregador) {
     return (
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 py-3 h-16 md:h-20 flex items-center justify-between">
@@ -225,7 +233,6 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Badge de Status da Loja (Visível em Desktop e Telas Grandes) */}
           <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/80 px-2.5 py-1 rounded-full text-xs shrink-0">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
               lojaAberta 
@@ -241,9 +248,8 @@ export const Navbar = () => {
             </span>
           </div>
 
-          {/* Ações Rápidas no Mobile */}
           <div className="flex lg:hidden items-center gap-2">
-            {!isAdmin && (
+            {(!isLoggedIn || !isAdmin) && (
               <button
                 onClick={() => setIsCartOpen(true)}
                 className="relative p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center gap-1 font-bold text-xs cursor-pointer shadow-xs"
@@ -277,13 +283,13 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Centro: Navegação Desktop Flexível e Organizada */}
+        {/* Centro: Navegação Desktop Restrita para Logados Admin */}
         <nav className="hidden lg:flex items-center gap-1.5 flex-wrap justify-end text-xs font-bold text-slate-700 flex-1">
           <Link to="/" className="px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
             cardápio
           </Link>
           
-          {/* PAINEL ADMIN: LINKS COMPACTOS E ESTILIZADOS */}
+          {/* APENAS PARA ADMINISTRADORES LOGADOS */}
           {isLoggedIn && isAdmin && (
             <>
               <Link to="/comandas" className="px-2.5 py-1.5 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition flex items-center gap-1">
@@ -303,12 +309,13 @@ export const Navbar = () => {
                 <Package className="w-3.5 h-3.5 text-slate-400" /> produtos
               </Link>
 
-              <Link to="/configuracoes/entrega" className="px-2.5 py-1.5 rounded-xl hover:text-amber-700 transition flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200">
-                <MapPin className="w-3.5 h-3.5 text-amber-600" /> raio de entrega
-              </Link>
-
               <Link to="/admin/precificacao" className="px-2.5 py-1.5 rounded-xl hover:text-emerald-700 transition flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200">
                 <Calculator className="w-3.5 h-3.5 text-emerald-600" /> precificação
+              </Link>
+
+              {/* 👉 NOVO BOTÃO CENTRALIZADO: CONFIGURAÇÕES DA LOJA (Marketing + Raio de Entrega) */}
+              <Link to="/admin/configuracoes" className="px-2.5 py-1.5 rounded-xl hover:text-amber-800 transition flex items-center gap-1 text-amber-900 bg-amber-50 border border-amber-200 font-extrabold">
+                <Settings className="w-3.5 h-3.5 text-amber-600" /> configurações
               </Link>
 
               <Link to="/admin/financeiro" className="px-2.5 py-1.5 rounded-xl hover:text-amber-900 transition flex items-center gap-1 text-amber-900 bg-amber-100 border border-amber-300 font-extrabold">
@@ -342,7 +349,7 @@ export const Navbar = () => {
 
         {/* Direita: Carrinho e Sessão Desktop */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
-          {!isAdmin && (
+          {(!isLoggedIn || !isAdmin) && (
             <button
               onClick={() => setIsCartOpen(true)}
               className="relative flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
@@ -380,47 +387,30 @@ export const Navbar = () => {
 
       </div>
 
-      {/* Barreira do Status no Mobile */}
-      <div className="flex sm:hidden w-full bg-slate-50 border-t border-slate-200/80 py-1 px-3 items-center justify-center gap-2 text-xs">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold ${
-          lojaAberta ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${lojaAberta ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-          {lojaAberta ? 'ABERTO' : 'FECHADO'}
-        </span>
-        <span className="text-slate-300">•</span>
-        <span className="text-slate-600 flex items-center gap-1 font-semibold text-[10px]">
-          <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
-        </span>
-      </div>
-
-      {/* Menu Mobile Expandido */}
+      {/* Menu Mobile */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg">
           <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
             cardápio
           </Link>
           
-          {/* APENAS ADMIN */}
           {isLoggedIn && isAdmin && (
             <>
               <Link to="/comandas" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
                 <ClipboardList className="w-4 h-4 text-slate-400" /> comandas
               </Link>
-              
               <Link to="/caixa" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
                 <span className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-slate-400" /> caixa</span>
                 {pedidosPendentesCount > 0 && <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">{pedidosPendentesCount} novos</span>}
               </Link>
-
               <Link to="/admin/produtos" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
                 <Package className="w-4 h-4 text-slate-400" /> produtos
               </Link>
-              <Link to="/configuracoes/entrega" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-50 text-amber-800 transition">
-                <MapPin className="w-4 h-4 text-amber-600" /> raio de entrega
-              </Link>
               <Link to="/admin/precificacao" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-emerald-50 text-emerald-800 transition">
                 <Calculator className="w-4 h-4 text-emerald-600" /> precificação
+              </Link>
+              <Link to="/admin/configuracoes" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-50 text-amber-800 font-bold transition">
+                <Settings className="w-4 h-4 text-amber-600" /> configurações
               </Link>
               <Link to="/admin/financeiro" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-100 text-amber-900 font-bold transition">
                 <TrendingUp className="w-4 h-4 text-amber-600" /> financeiro
@@ -428,7 +418,6 @@ export const Navbar = () => {
             </>
           )}
 
-          {/* CLIENTE */}
           {(!isLoggedIn || !isAdmin) && (
             <>
               {isLoggedIn && (

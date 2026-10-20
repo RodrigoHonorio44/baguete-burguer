@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Home } from '../pages/Home';
 import { Checkout } from '../pages/Checkout';
 import { Register } from '../pages/Register';
@@ -8,11 +8,11 @@ import { Comandas } from '../pages/Comandas';
 import { Caixa } from '../pages/Caixa';
 import { AdminProdutos } from '../pages/AdminProdutos';
 import AdminPrecificacao from '../pages/AdminPrecificacao';
-import PrestacaoContasTaymix from '../pages/PrestacaoContasTaymix'; // <--- Importação da Prestação de Contas Taymix
+import ConfiguracoesLojaPage from '../pages/ConfiguracoesLojaPage'; // <--- Nova Página Centralizada (Marketing + Raio de Entrega em abas)
+import PrestacaoContasTaymix from '../pages/PrestacaoContasTaymix'; // <--- Contém o Dashboard + Prestação de Contas em abas
 import { MeusPedidos } from '../pages/MeusPedidos';
 import { Motoboy } from '../pages/Motoboy';
 import { RastreioCliente } from '../pages/RastreioCliente';
-import { MapaRaioEntrega } from '../components/MapaRaioEntrega';
 import { ProtectedRoute } from '../routes/ProtectedRoute';
 
 export const AppRoutes = () => {
@@ -36,7 +36,7 @@ export const AppRoutes = () => {
         } 
       />
 
-      {/* Rotas Restritas/Protegidas (Apenas Administradores) */}
+      {/* Rotas Restritas/Protegidas (Apenas Administradores Logados) */}
       <Route 
         path="/comandas" 
         element={
@@ -74,22 +74,26 @@ export const AppRoutes = () => {
         } 
       />
 
-      {/* 👉 Nova Rota Protegida de Prestação de Contas & Divisão de Lucros (Taymix) */}
+      {/* 👉 Rota Centralizada de Configurações da Loja (Marketing + Raio de Entrega) */}
+      <Route 
+        path="/admin/configuracoes" 
+        element={
+          <ProtectedRoute requireAdmin={true}>
+            <ConfiguracoesLojaPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Redirecionamentos para garantir compatibilidade caso links antigos sejam acessados */}
+      <Route path="/admin/marketing" element={<Navigate to="/admin/configuracoes" replace />} />
+      <Route path="/configuracoes/entrega" element={<Navigate to="/admin/configuracoes" replace />} />
+
+      {/* 👉 Rota Protegida do Financeiro (Dashboard Visão Geral + Prestação de Contas unificados em abas) */}
       <Route 
         path="/admin/financeiro" 
         element={
           <ProtectedRoute requireAdmin={true}>
             <PrestacaoContasTaymix />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* Rota de Configuração do Raio e Taxas de Entrega */}
-      <Route 
-        path="/configuracoes/entrega" 
-        element={
-          <ProtectedRoute requireAdmin={true}>
-            <MapaRaioEntrega />
           </ProtectedRoute>
         } 
       />
