@@ -11,51 +11,94 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function DashboardPage() {
   const [periodo, setPeriodo] = useState('mes'); // 'hoje' | 'semana' | 'mes'
   const [loading, setLoading] = useState(false);
 
-  // Estados dos Dados das Métricas
+  // Estados de Paginação para os Carros-Chefe
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 7;
+
+  // Estados dos Dados das Métricas mapeados com a estrutura da API
   const [resumo, setResumo] = useState({
-    faturamentoTotal: 4850.00,
-    totalPedidos: 142,
-    ticketMedio: 34.15,
-    lucroEstimado: 2180.00,
+    faturamentoTotal: 0,
+    totalPedidos: 0,
+    ticketMedio: 0,
+    lucroEstimado: 0,
     
     // Formas de Pagamento
     pagamentos: {
-      pix: 2100.00,
-      cartao: 1950.00,
-      dinheiro: 800.00
+      pix: 0,
+      cartao: 0,
+      dinheiro: 0
     },
 
     // Canais de Venda
     canais: {
-      lojaPropria: 2600.00,
-      ifood: 1450.00,
-      noveNoveFood: 800.00
+      lojaPropria: 0,
+      ifood: 0,
+      noveNoveFood: 0
     },
 
     // Carros-chefe / Produtos Mais Vendidos
-    produtosMaisVendidos: [
-      { nome: 'Açaí 500ml Turbinado', qtd: 86, faturamento: 1720.00, lucro: 1032.00 },
-      { nome: 'Massa Carbonara Especial', qtd: 54, faturamento: 1350.00, lucro: 742.50 },
-      { nome: 'Açaí 300ml Tradicional', qtd: 42, faturamento: 630.00, lucro: 346.50 },
-      { nome: 'Spagheti ao Pesto', qtd: 31, faturamento: 775.00, lucro: 387.50 },
-      { nome: 'Combo Família Açaí + Massa', qtd: 18, faturamento: 900.00, lucro: 450.00 }
-    ]
+    produtosMaisVendidos: []
   });
 
-  // Carregar dados reais da API no futuro
+  // Resetar página para 1 ao mudar o filtro de período
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [periodo]);
+
+  // Carregar dados reais da API do MongoDB
   useEffect(() => {
     const buscarDadosDashboard = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/dashboard/resumo?periodo=${periodo}`);
-        if (res.ok) {
-          const data = await res.json();
-          setResumo(data);
+        const data = await api.getDashboardVendas(periodo);
+        if (data) {
+          // Varredura inteligente no array vendasPorCanal retornado pelo backend
+          let valDirect = 0;
+          let valIfood = 0;
+          let val99 = 0;
+
+          if (Array.isArray(data.vendasPorCanal)) {
+            data.vendasPorCanal.forEach(c => {
+              const nome = (c.canal || '').toLowerCase();
+              const val = Number(c.total || c.valor || c.faturamento || 0);
+              if (nome.includes('tay') || nome.includes('direto') || nome.includes('site') || nome.includes('presencial')) {
+                valDirect += val;
+              } else if (nome.includes('ifood')) {
+                valIfood += val;
+              } else if (nome.includes('99')) {
+                val99 += val;
+              }
+            });
+          }
+
+          setResumo({
+            faturamentoTotal: Number(data.faturamentoTotal || 0),
+            totalPedidos: Number(data.totalPedidos || 0),
+            ticketMedio: Number(data.ticketMedio || 0),
+            lucroEstimado: Number(data.lucroEstimado || 0),
+            pagamentos: {
+              pix: Number(data.formasPagamento?.pix || 0),
+              cartao: Number(data.formasPagamento?.cartao || 0),
+              dinheiro: Number(data.formasPagamento?.dinheiro || 0)
+            },
+            canais: {
+              lojaPropria: valDirect || Number(data.canais?.direct || data.canais?.taymix || 0),
+              ifood: valIfood || Number(data.canais?.ifood || 0),
+              noveNoveFood: val99 || Number(data.canais?.['99food'] || data.canais?.['99Food'] || 0)
+            },
+            produtosMaisVendidos: Array.isArray(data.carrosChefe) ? data.carrosChefe.map(item => ({
+              nome: item.nome,
+              qtd: Number(item.quantidade || item.qtd || 0),
+              faturamento: Number(item.faturamentoTotal || item.faturamento || 0),
+              lucro: Number(item.lucroGerado || item.lucro || 0)
+            })) : []
+          });
         }
       } catch (err) {
         console.error('Erro ao carregar dados do dashboard:', err);
@@ -66,6 +109,12 @@ export default function DashboardPage() {
 
     buscarDadosDashboard();
   }, [periodo]);
+
+  // Lógica de cálculo da Paginação
+  const indiceUltimoItem = paginaAtual * itensPorPagina;
+  const indicePrimeiroItem = indiceUltimoItem - itensPorPagina;
+  const produtosPaginados = resumo.produtosMaisVendidos.slice(indicePrimeiroItem, indiceUltimoItem);
+  const totalPaginas = Math.ceil(resumo.produtosMaisVendidos.length / itensPorPagina);
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 p-4 md:p-8">
@@ -260,7 +309,7 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* TABELA: PRODUTOS MAIS VENDIDOS & CARROS-CHEFE */}
+        {/* TABELA: PRODUTOS MAIS VENDIDOS & CARROS-CHEFE COM PAGINAÇÃO */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -270,35 +319,72 @@ export default function DashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 font-semibold border-b">
-                  <th className="p-3 rounded-l-lg">Posição & Produto</th>
-                  <th className="p-3">Qtd. Vendida</th>
-                  <th className="p-3">Faturamento Total</th>
-                  <th className="p-3 rounded-r-lg">Lucro Gerado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {resumo.produtosMaisVendidos.map((prod, idx) => (
-                  <tr key={idx} className="hover:bg-amber-50/30 transition-colors">
-                    <td className="p-3 font-semibold text-gray-800 flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                        idx === 0 ? 'bg-amber-400 text-gray-900' :
-                        idx === 1 ? 'bg-gray-300 text-gray-800' :
-                        idx === 2 ? 'bg-amber-700 text-white' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {idx + 1}
+            {resumo.produtosMaisVendidos.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-8">Nenhuma venda registrada para o período selecionado.</p>
+            ) : (
+              <>
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-500 font-semibold border-b">
+                      <th className="p-3 rounded-l-lg">Posição & Produto</th>
+                      <th className="p-3">Qtd. Vendida</th>
+                      <th className="p-3">Faturamento Total</th>
+                      <th className="p-3 rounded-r-lg">Lucro Gerado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {produtosPaginados.map((prod, idx) => {
+                      const posicaoReal = indicePrimeiroItem + idx + 1;
+                      return (
+                        <tr key={idx} className="hover:bg-amber-50/30 transition-colors">
+                          <td className="p-3 font-semibold text-gray-800 flex items-center gap-2">
+                            <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                              posicaoReal === 1 ? 'bg-amber-400 text-gray-900' :
+                              posicaoReal === 2 ? 'bg-gray-300 text-gray-800' :
+                              posicaoReal === 3 ? 'bg-amber-700 text-white' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              {posicaoReal}
+                            </span>
+                            {prod.nome}
+                          </td>
+                          <td className="p-3 font-bold text-gray-700">{prod.qtd} un</td>
+                          <td className="p-3 font-semibold text-gray-800">R$ {Number(prod.faturamento || 0).toFixed(2)}</td>
+                          <td className="p-3 font-bold text-emerald-600">R$ {Number(prod.lucro || 0).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* CONTROLES DE PAGINAÇÃO (SE HOUVER MAIS DE 1 PÁGINA) */}
+                {totalPaginas > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
+                    <span className="text-gray-500">
+                      Mostrando {indicePrimeiroItem + 1} a {Math.min(indiceUltimoItem, resumo.produtosMaisVendidos.length)} de {resumo.produtosMaisVendidos.length} produtos
+                    </span>
+                    <div className="flex gap-1 items-center">
+                      <button
+                        onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                        disabled={paginaAtual === 1}
+                        className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 disabled:opacity-40 font-medium hover:bg-gray-200 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        Anterior
+                      </button>
+                      <span className="px-3 py-1 font-bold text-gray-700">
+                        {paginaAtual} / {totalPaginas}
                       </span>
-                      {prod.nome}
-                    </td>
-                    <td className="p-3 font-bold text-gray-700">{prod.qtd} un</td>
-                    <td className="p-3 font-semibold text-gray-800">R$ {prod.faturamento.toFixed(2)}</td>
-                    <td className="p-3 font-bold text-emerald-600">R$ {prod.lucro.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <button
+                        onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                        disabled={paginaAtual === totalPaginas}
+                        className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 disabled:opacity-40 font-medium hover:bg-gray-200 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 

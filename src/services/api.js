@@ -54,6 +54,48 @@ export const api = {
     return data;
   },
 
+  // --- BANNERS / MARKETING & PROMOÇÕES ---
+  getBanners: async () => {
+    const response = await fetch(`${API_URL}/banners`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar banners promocionais');
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.data || []);
+  },
+
+  criarBanner: async (payload) => {
+    const response = await fetch(`${API_URL}/banners`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao cadastrar banner');
+    return data;
+  },
+
+  atualizarStatusBanner: async (id, ativo) => {
+    const response = await fetch(`${API_URL}/banners/${id}/status`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ ativo })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao atualizar status do banner');
+    return data;
+  },
+
+  excluirBanner: async (id) => {
+    const response = await fetch(`${API_URL}/banners/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao excluir banner');
+    return data;
+  },
+
   // --- PRODUTOS / CARDÁPIO ---
   getProdutos: async () => {
     const response = await fetch(`${API_URL}/produtos`, {
@@ -245,6 +287,15 @@ export const api = {
     });
 
     if (!response.ok) throw new Error('Erro ao atualizar status do pedido');
+    return await response.json();
+  },
+
+  // --- DASHBOARD DE VENDAS & MÉTRICAS ---
+  getDashboardVendas: async (periodo = 'mes') => {
+    const response = await fetch(`${API_URL}/financeiro/dashboard?periodo=${periodo}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Erro ao buscar métricas do dashboard');
     return await response.json();
   },
 

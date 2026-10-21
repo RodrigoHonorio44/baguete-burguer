@@ -38,6 +38,16 @@ export const AppRoutes = () => {
           }
         />
 
+        {/* 👉 Rota Raiz do Painel Administrativo (Exige Root/Admin) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <Navigate to="/admin/produtos" replace />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Rotas Restritas/Protegidas (Apenas Administradores Logados) */}
         <Route
           path="/comandas"

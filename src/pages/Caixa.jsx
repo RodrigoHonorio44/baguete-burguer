@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCaixa } from '../hooks/useCaixa';
 import { 
   DollarSign, CreditCard, Wallet, QrCode, TrendingUp, RefreshCw, 
   ShoppingBag, Clock, Truck, CheckCircle2, Lock, PlusCircle, Store, 
-  Check, AlertTriangle, Bell, ChefHat 
+  Check, AlertTriangle, ChefHat 
 } from 'lucide-react';
 import ComandaImpressao, { dispararImpressao } from '../components/ComandaImpressao';
 import ModalPdv from '../components/ModalPdv';
@@ -27,6 +27,28 @@ export const Caixa = () => {
 
   const pedidosPendentesApp = (pedidos || []).filter(p => (p.status || 'pendente') === 'pendente');
 
+  // Gestão do som de telefone antigo (toque em loop para novos pedidos)
+  useEffect(() => {
+    if (pedidosPendentesApp.length > 0) {
+      if (!window.somAlertaCaixa) {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.loop = true;
+        audio.play().catch(err => console.log('Bloqueio de autoplay pelo navegador:', err));
+        window.somAlertaCaixa = audio;
+      }
+    } else {
+      pararAlertaTelefone();
+    }
+  }, [pedidosPendentesApp.length]);
+
+  const pararAlertaTelefone = () => {
+    if (window.somAlertaCaixa) {
+      window.somAlertaCaixa.pause();
+      window.somAlertaCaixa.currentTime = 0;
+      window.somAlertaCaixa = null;
+    }
+  };
+
   const tentarAbrirModalPdv = () => {
     if (!caixaAberto) {
       setModalAbrirCaixaAberto(true);
@@ -43,8 +65,16 @@ export const Caixa = () => {
 
   const aceitarPedidoEEnviarCozinha = async (pedido) => {
     try {
+      pararAlertaTelefone();
       await alterarStatus(pedido._id, 'preparo');
       dispararImpressao(pedido);
+    } catch (err) {}
+  };
+
+  const recusarPedidoCaixa = async (id) => {
+    try {
+      pararAlertaTelefone();
+      await alterarStatus(id, 'recusado');
     } catch (err) {}
   };
 
@@ -96,47 +126,64 @@ export const Caixa = () => {
         </div>
       </div>
 
-      {/* Alerta de Pedidos do App */}
+      {/* Alerta de Pedidos do App com Layout Otimizado e Sonoro */}
       {pedidosPendentesApp.length > 0 && (
-        <div className="mb-8 bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 animate-pulse shadow-md">
-          <div className="flex items-center justify-between mb-3 border-b border-amber-200 pb-2">
-            <h3 className="text-amber-800 font-bold text-sm flex items-center gap-2">
-              <Bell className="w-5 h-5 animate-bounce text-amber-600" />
-              {pedidosPendentesApp.length} NOVO(S) PEDIDO(S) DO APP CHEGANDO!
-            </h3>
-            <span className="text-[11px] text-amber-700 font-semibold">Aceite no caixa para mandar para a cozinha</span>
+        <div className="mb-8 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-2 border-amber-400 rounded-2xl p-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-amber-200/80 mb-5 gap-2">
+            <div className="flex items-center gap-3 text-amber-900 font-extrabold text-base">
+              <span className="relative flex h-3.5 w-3.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange-600"></span>
+              </span>
+              🔔 {pedidosPendentesApp.length} NOVO(S) PEDIDO(S) DO APP CHEGANDO!
+            </div>
+            <span className="text-xs font-bold text-amber-900 bg-amber-200/70 px-3.5 py-1.5 rounded-full border border-amber-300">
+              ⚡ Aceite no caixa para mandar para a cozinha
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-4">
             {pedidosPendentesApp.map(p => (
-              <div key={p._id} className="bg-white p-4 rounded-xl border border-amber-200 flex justify-between items-center shadow-xs">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-amber-600 font-bold">#{p._id?.slice(-4)}</span>
-                    <span className="text-slate-800 font-semibold text-xs">{p.cliente_nome || 'Cliente App'}</span>
-                    <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded uppercase font-bold border border-amber-200">
-                      {p.canal || 'App Delivery'}
-                    </span>
+              <div key={p._id} className="bg-white p-5 rounded-xl border border-amber-200/80 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 shadow-sm hover:shadow-md transition">
+                
+                {/* Lado esquerdo: ID, Cliente, Canal e Itens */}
+                <div className="flex items-start gap-4 w-full lg:w-auto">
+                  <div className="bg-amber-100 text-amber-900 font-mono font-black px-3.5 py-2.5 rounded-xl text-base tracking-wider border border-amber-200 shadow-2xs">
+                    #{p._id ? p._id.slice(-4) : '0000'}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    {p.itens?.length || 0} itens • Total: <span className="text-emerald-600 font-bold">{formatarMoeda(p.total)}</span> ({p.forma_pagamento || 'Dinheiro'})
-                  </p>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h4 className="font-extrabold text-slate-800 text-base">{p.cliente_nome || 'Cliente App'}</h4>
+                      <span className="text-[11px] bg-red-100 text-red-700 px-2.5 py-0.5 rounded-lg uppercase font-black tracking-wide border border-red-200">
+                        {p.canal || 'App Delivery'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-2">
+                      <span>📦 {p.itens?.length || 0} ite(ns)</span>
+                      <span>•</span>
+                      <span>Total: <strong className="text-emerald-600 font-extrabold text-sm">{formatarMoeda(p.total)}</strong></span>
+                      <span className="text-slate-400 font-normal">({p.forma_pagamento || 'app_online'})</span>
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
+                {/* Lado direito: Botões de Ação largos e destacados */}
+                <div className="flex items-center gap-3 w-full lg:w-auto justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                   <button
-                    onClick={() => alterarStatus(p._id, 'recusado')}
-                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg transition cursor-pointer"
+                    onClick={() => recusarPedidoCaixa(p._id)}
+                    className="flex-1 lg:flex-none px-5 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition cursor-pointer text-center"
                   >
                     Recusar
                   </button>
                   <button
                     onClick={() => aceitarPedidoEEnviarCozinha(p)}
-                    className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs transition cursor-pointer"
+                    className="flex-1 lg:flex-none px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
                   >
-                    <ChefHat size={14} /> Aceitar e Mandar Cozinha
+                    <ChefHat size={16} /> Aceitar e Mandar Cozinha
                   </button>
                 </div>
+
               </div>
             ))}
           </div>
@@ -380,7 +427,7 @@ export const Caixa = () => {
             </div>
             <form onSubmit={handleAbrirCaixaComTroco} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Valor do Fundo de Troco (R$)</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Valor do Fundo de Troco (R\$)</label>
                 <input
                   type="number"
                   step="0.01"
