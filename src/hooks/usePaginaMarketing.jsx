@@ -21,7 +21,7 @@ export function usePaginaMarketing() {
   const carregarBanners = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/banners/admin');
+      const res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/banners');
       if (res.ok) {
         const data = await res.json();
         setBanners(data);
@@ -81,13 +81,13 @@ export function usePaginaMarketing() {
         formData.append('ativo', form.ativo);
         formData.append('imagem', form.imagemArquivo);
 
-        res = await fetch('/api/banners/admin', {
+        res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/banners', {
           method: 'POST',
           body: formData
         });
       } else {
         // Envio via JSON (URL direta)
-        res = await fetch('/api/banners/admin', {
+        res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/banners', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -128,8 +128,8 @@ export function usePaginaMarketing() {
   // Alternar visibilidade (Ativo / Oculto)
   const toggleAtivo = async (id, statusAtual) => {
     try {
-      const res = await fetch(`/api/banners/admin/${id}`, {
-        method: 'PUT',
+      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/banners/${id}/status`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ativo: !statusAtual })
       });
@@ -143,7 +143,7 @@ export function usePaginaMarketing() {
   const deletarBanner = async (id) => {
     if (!window.confirm('Deseja realmente apagar esta promoção?')) return;
     try {
-      const res = await fetch(`/api/banners/admin/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/banners/${id}`, { method: 'DELETE' });
       if (res.ok) carregarBanners();
     } catch (err) {
       alert('Erro ao excluir promoção');
