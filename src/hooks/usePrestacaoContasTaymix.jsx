@@ -7,12 +7,20 @@ export function usePrestacaoContasTaymix() {
   const [dataFim, setDataFim] = useState('');
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [caixasFechados, setCaixasFechados] = useState([]); 
-  
+  const [pedidosBanco, setPedidosBanco] = useState([]);
+
   // 💾 Percentual de Giro (Busca do servidor ou usa 20% como padrão)
   const [percentualGiro, setPercentualGiro] = useState(20);
 
   const [percentualSocioA, setPercentualSocioA] = useState(50);
   const [investimentoManual, setInvestimentoManual] = useState(0);
+
+  // Estados de Taxas das Plataformas
+  const [taxaIfoodPct, setTaxaIfoodPct] = useState(26.2);
+  const [taxaIfoodMensalidade, setTaxaIfoodMensalidade] = useState(150.0);
+  const [limiteIfoodMensalidade, setLimiteIfoodMensalidade] = useState(1800.0);
+  const [taxa99FoodPct, setTaxa99FoodPct] = useState(12.1);
+  const [taxaCartaoPct, setTaxaCartaoPct] = useState(0.0);
 
   const [tipo, setTipo] = useState('Receita');
   const [categoria, setCategoria] = useState('Vendas / Pedidos');
@@ -32,10 +40,11 @@ export function usePrestacaoContasTaymix() {
 
   const carregarDadosFinanceiros = async () => {
     try {
-      const [dadosMovimentacoes, resCaixa, dadosConfig] = await Promise.all([
+      const [dadosMovimentacoes, resCaixa, dadosConfig, dadosPedidos] = await Promise.all([
         api.getFinanceiro ? api.getFinanceiro() : Promise.resolve([]),
         api.getHistoricoCaixa ? api.getHistoricoCaixa() : Promise.resolve([]),
-        api.getConfiguracoesLoja ? api.getConfiguracoesLoja().catch(() => null) : (api.getConfiguracoes ? api.getConfiguracoes().catch(() => null) : Promise.resolve(null))
+        api.getConfiguracoesLoja ? api.getConfiguracoesLoja().catch(() => null) : (api.getConfiguracoes ? api.getConfiguracoes().catch(() => null) : Promise.resolve(null)),
+        api.getPedidos ? api.getPedidos().catch(() => []) : Promise.resolve([])
       ]);
 
       setMovimentacoes(dadosMovimentacoes || []);
@@ -45,16 +54,17 @@ export function usePrestacaoContasTaymix() {
         : (resCaixa && Array.isArray(resCaixa.data) ? resCaixa.data : []);
 
       setCaixasFechados(listaCaixas);
+      setPedidosBanco(Array.isArray(dadosPedidos) ? dadosPedidos : []);
 
-      // Se houver percentual de giro salvo nas configurações do servidor, aplica ele!
-      if (dadosConfig && dadosConfig.percentualGiro !== undefined) {
-        setPercentualGiro(Number(dadosConfig.percentualGiro));
+      // Se houver percentual de giro e taxas salvas nas configurações do servidor
+      if (dadosConfig) {
+        if (dadosConfig.percentualGiro !== undefined) setPercentualGiro(Number(dadosConfig.percentualGiro));
+        if (dadosConfig.taxaIfoodPct !== undefined) setTaxaIfoodPct(Number(dadosConfig.taxaIfoodPct));
+        if (dadosConfig.taxa99FoodPct !== undefined) setTaxa99FoodPct(Number(dadosConfig.taxa99FoodPct));
+        if (dadosConfig.taxaCartaoPct !== undefined) setTaxaCartaoPct(Number(dadosConfig.taxaCartaoPct));
       } else {
-        // Fallback para localStorage caso o servidor não tenha
         const salvoLocal = localStorage.getItem('taymix_percentual_giro');
-        if (salvoLocal !== null) {
-          setPercentualGiro(Number(salvoLocal));
-        }
+        if (salvoLocal !== null) setPercentualGiro(Number(salvoLocal));
       }
     } catch (error) {
       console.error('Erro ao buscar dados financeiros do banco:', error);
@@ -62,14 +72,12 @@ export function usePrestacaoContasTaymix() {
     }
   };
 
-  // 💾 Função para atualizar e salvar o percentual permanentemente no servidor e navegador
   const alterarPercentualGiro = async (novoValor) => {
     const valorNumerico = Number(novoValor);
     setPercentualGiro(valorNumerico);
     localStorage.setItem('taymix_percentual_giro', valorNumerico);
 
     try {
-      // Atualiza na API de configurações da loja para persistir mesmo após relogar
       if (typeof api.updateConfiguracoesLoja === 'function') {
         await api.updateConfiguracoesLoja({ percentualGiro: valorNumerico });
       } else if (typeof api.updateConfiguracoes === 'function') {
@@ -183,7 +191,55 @@ export function usePrestacaoContasTaymix() {
     return true;
   });
 
-  // --- TOTAIS DE VENDAS DA COLEÇÃO CAIXA ---
+  // --- FILTRAGEM DE PEDIDOS INDIVIDUAIS PARA CONTAGEM DE UNIDADES E CANAIS ---
+  const statusValidos = ['concluido', 'concluído', 'entregue', 'finalizado'];
+  const pedidosFiltrados = pedidosBanco.filter(p => {
+    const st = (p.status || '').toLowerCase();
+    if (!statusValidos.includes(st)) return false;
+
+    let dataRaw = p.criadoEm || p.createdAt || p.data;
+    if (dataRaw && typeof dataRaw === 'object' && dataRaw.$date) dataRaw = dataRaw.$date;
+    if (!dataRaw) return true;
+
+    const dataItem = new Date(dataRaw).toISOString().split('T')[0];
+    if (dataInicio && dataItem < dataInicio) return false;
+    if (dataFim && dataItem > dataFim) return false;
+    return true;
+  });
+
+  // --- ACUMULADORES E CONTAGEM DE UNIDADES (PEDIDOS) ---
+  let qtdPedidosIfood = 0, totalIfoodPedidos = 0;
+  let qtdPedidos99Food = 0, total99FoodPedidos = 0;
+  let qtdPedidosPix = 0, totalPixPedidos = 0;
+  let qtdPedidosDinheiro = 0, totalDinheiroPedidos = 0;
+  let qtdPedidosCartao = 0, totalCartaoPedidos = 0;
+
+  pedidosFiltrados.forEach(p => {
+    const canal = (p.canal || '').toLowerCase().trim();
+    const pagamento = (p.forma_pagamento || p.pagamento || '').toLowerCase().trim();
+    const valorBruto = Number(p.totalBruto || p.total || 0);
+
+    if (canal.includes('ifood')) {
+      qtdPedidosIfood += 1;
+      totalIfoodPedidos += valorBruto;
+    } else if (canal.includes('99') || canal.includes('99food')) {
+      qtdPedidos99Food += 1;
+      total99FoodPedidos += valorBruto;
+    }
+
+    if (pagamento.includes('pix')) {
+      qtdPedidosPix += 1;
+      totalPixPedidos += valorBruto;
+    } else if (pagamento.includes('dinheiro')) {
+      qtdPedidosDinheiro += 1;
+      totalDinheiroPedidos += valorBruto;
+    } else if (pagamento.includes('cartao') || pagamento.includes('cartão') || pagamento.includes('crédito') || pagamento.includes('débito')) {
+      qtdPedidosCartao += 1;
+      totalCartaoPedidos += valorBruto;
+    }
+  });
+
+  // Totais consolidados do Caixa
   const totalVendasCaixa = caixasFiltrados.reduce((acc, cx) => {
     const valor = Number(cx.faturamentoVendas || cx.totalVendas || 0);
     return acc + (isNaN(valor) ? 0 : valor);
@@ -191,52 +247,30 @@ export function usePrestacaoContasTaymix() {
 
   const totalDinheiroCaixaAcumulado = caixasFiltrados.reduce((acc, cx) => {
     let valorDinheiroVendas = Number(cx.totalDinheiroVendas || 0);
-
     if (!valorDinheiroVendas && cx.totalDinheiroCaixa !== undefined) {
       const valorTrocoAbertura = Number(cx.valorAbertura || 0);
       valorDinheiroVendas = Number(cx.totalDinheiroCaixa) - valorTrocoAbertura;
     }
-
     if (valorDinheiroVendas <= 0 && Number(cx.faturamentoVendas || 0) > 0) {
-      const outrosMeios = Number(cx.totalCartao || 0) + Number(cx.totalPix || 0) + Number(cx.totalIfood || 0) + Number(cx.totalIfoodEntrega || 0) + Number(cx.total99Food || 0);
-      if (outrosMeios === 0) {
-        valorDinheiroVendas = Number(cx.faturamentoVendas);
-      }
+      const outrosMeios = Number(cx.totalCartao || 0) + Number(cx.totalPix || 0) + Number(cx.totalIfood || 0) + Number(cx.total99Food || 0);
+      if (outrosMeios === 0) valorDinheiroVendas = Number(cx.faturamentoVendas);
     }
-
     return acc + (isNaN(valorDinheiroVendas) || valorDinheiroVendas < 0 ? 0 : valorDinheiroVendas);
-  }, 0);
+  }, 0) || totalDinheiroPedidos;
 
-  const totalCartaoAcumulado = caixasFiltrados.reduce((acc, cx) => {
-    const v = Number(cx.totalCartao || 0);
-    return acc + (isNaN(v) ? 0 : v);
-  }, 0);
-
-  const totalPixAcumulado = caixasFiltrados.reduce((acc, cx) => {
-    const v = Number(cx.totalPix || 0);
-    return acc + (isNaN(v) ? 0 : v);
-  }, 0);
-
-  const totalIfoodAcumulado = caixasFiltrados.reduce((acc, cx) => {
-    const v = Number(cx.totalIfood || 0);
-    return acc + (isNaN(v) ? 0 : v);
-  }, 0);
-
-  const totalIfoodEntrega = caixasFiltrados.reduce((acc, cx) => {
-    const v = Number(cx.totalIfoodEntrega || 0);
-    return acc + (isNaN(v) ? 0 : v);
-  }, 0);
-
-  const total99Food = caixasFiltrados.reduce((acc, cx) => {
-    const v = Number(cx.total99Food || 0);
-    return acc + (isNaN(v) ? 0 : v);
-  }, 0);
+  const totalCartaoAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalCartao) || 0), 0) || totalCartaoPedidos;
+  const totalPixAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalPix) || 0), 0) || totalPixPedidos;
+  
+  // Se o caixa não tiver registrado o valor do iFood / 99Food diretamente, usa o total consolidado dos pedidos
+  const totalIfoodAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalIfood) || 0), 0) || totalIfoodPedidos;
+  const totalIfoodEntrega = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalIfoodEntrega) || 0), 0);
+  const total99Food = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.total99Food) || 0), 0) || total99FoodPedidos;
 
   const totalReceitasManuais = movimentacoesFiltradas
     .filter((m) => m.tipo === 'Receita' && m.categoria !== 'Vendas / Pedidos')
     .reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
 
-  const totalReceitas = totalVendasCaixa + totalReceitasManuais;
+  const totalReceitas = (totalVendasCaixa > 0 ? totalVendasCaixa : (totalIfoodPedidos + total99FoodPedidos + totalPixPedidos + totalDinheiroPedidos + totalCartaoPedidos)) + totalReceitasManuais;
 
   const totalDespesasOperacionais = movimentacoesFiltradas
     .filter((m) => m.tipo === 'Despesa' && !m.ehInvestimentoInicial)
@@ -263,9 +297,14 @@ export function usePrestacaoContasTaymix() {
     dataInicio, setDataInicio,
     dataFim, setDataFim,
     movimentacoesFiltradas,
-    percentualGiro, setPercentualGiro: alterarPercentualGiro, // Usa a função que salva no servidor
+    percentualGiro, setPercentualGiro: alterarPercentualGiro,
     percentualSocioA, setPercentualSocioA,
     investimentoManual, setInvestimentoManual,
+    taxaIfoodPct, setTaxaIfoodPct,
+    taxaIfoodMensalidade, setTaxaIfoodMensalidade,
+    limiteIfoodMensalidade, setLimiteIfoodMensalidade,
+    taxa99FoodPct, setTaxa99FoodPct,
+    taxaCartaoPct, setTaxaCartaoPct,
     tipo, setTipo,
     categoria, setCategoria,
     descricao, setDescricao,
@@ -286,6 +325,11 @@ export function usePrestacaoContasTaymix() {
     totalIfoodAcumulado,
     totalIfoodEntrega,
     total99Food,
+    qtdPedidosIfood,
+    qtdPedidos99Food,
+    qtdPedidosPix,
+    qtdPedidosDinheiro,
+    qtdPedidosCartao,
     totalDespesasOperacionais,
     lucroBrutoOperacional,
     lucroLiquido,

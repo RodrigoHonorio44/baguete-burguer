@@ -74,8 +74,8 @@ export const useCheckout = () => {
         if (dadosServer) {
           setConfigLoja(dadosServer);
           const minServidor = Number(dadosServer.pedidoMinimo ?? dadosServer.pedido_minimo);
-          if (!isNaN(minimoServidor) && minimoServidor >= 0) {
-            setPedidoMinimo(minimoServidor);
+          if (!isNaN(minServidor) && minServidor >= 0) {
+            setPedidoMinimo(minServidor);
           }
           return;
         }
@@ -290,8 +290,14 @@ export const useCheckout = () => {
         }))
       };
 
+      // 1. Cria o pedido no backend
       await api.criarPedido(pedidoData);
       
+      // 2. 🧹 Limpa o carrinho no servidor explicitamente (caso a API possua o método)
+      if (userDataId && typeof api.limparCarrinho === 'function') {
+        await api.limparCarrinho(userDataId).catch(err => console.log('Erro ao limpar carrinho no servidor:', err));
+      }
+
       toast.success('Pedido realizado com sucesso!');
       clearCart();
       navigate('/meus-pedidos');

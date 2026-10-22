@@ -27,7 +27,7 @@ export const Caixa = () => {
 
   const pedidosPendentesApp = (pedidos || []).filter(p => (p.status || 'pendente') === 'pendente');
 
-  // Gestão do som de telefone antigo (toque em loop para novos pedidos)
+  // Gestão do som de telefone antigo (toque em loop para novos pedidos com cleanup)
   useEffect(() => {
     if (pedidosPendentesApp.length > 0) {
       if (!window.somAlertaCaixa) {
@@ -39,6 +39,10 @@ export const Caixa = () => {
     } else {
       pararAlertaTelefone();
     }
+
+    return () => {
+      pararAlertaTelefone();
+    };
   }, [pedidosPendentesApp.length]);
 
   const pararAlertaTelefone = () => {
@@ -427,7 +431,7 @@ export const Caixa = () => {
             </div>
             <form onSubmit={handleAbrirCaixaComTroco} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Valor do Fundo de Troco (R\$)</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Valor do Fundo de Troco (R$)</label>
                 <input
                   type="number"
                   step="0.01"
