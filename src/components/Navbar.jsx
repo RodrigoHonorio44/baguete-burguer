@@ -214,19 +214,20 @@ export const Navbar = () => {
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
+            {/* LOGOTIPO AMPLIADO E DESTAQUE */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-xs flex items-center justify-center shrink-0">
+              <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-sm flex items-center justify-center shrink-0">
                 <img
                   src="/lo.jpg"
                   alt="Tay Mix Açaí & Massas"
-                  className="w-10 h-10 lg:w-11 lg:h-11 rounded-full object-cover transition-transform group-hover:scale-105"
+                  className="w-12 h-12 lg:w-14 lg:h-14 rounded-full object-cover transition-transform group-hover:scale-105 shadow-xs"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-lg lg:text-xl text-slate-900 tracking-tight leading-none capitalize">
+                <span className="font-black text-xl lg:text-2xl text-slate-900 tracking-tight leading-none capitalize">
                   tay <span className="text-amber-500">mix</span>
                 </span>
-                <span className="text-[9px] lg:text-[10px] text-slate-500 font-bold tracking-wide uppercase mt-0.5">
+                <span className="text-[10px] lg:text-xs text-amber-600 font-extrabold tracking-wider uppercase mt-0.5">
                   açaí &bull; massas
                 </span>
               </div>
@@ -313,7 +314,6 @@ export const Navbar = () => {
                 <Calculator className="w-3.5 h-3.5 text-emerald-600" /> precificação
               </Link>
 
-              {/* 👉 NOVO BOTÃO CENTRALIZADO: CONFIGURAÇÕES DA LOJA (Marketing + Raio de Entrega) */}
               <Link to="/admin/configuracoes" className="px-2.5 py-1.5 rounded-xl hover:text-amber-800 transition flex items-center gap-1 text-amber-900 bg-amber-50 border border-amber-200 font-extrabold">
                 <Settings className="w-3.5 h-3.5 text-amber-600" /> configurações
               </Link>
