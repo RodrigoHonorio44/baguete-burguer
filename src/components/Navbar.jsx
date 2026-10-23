@@ -176,7 +176,7 @@ export const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 py-3 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-amber-50 p-1 rounded-full border border-amber-300 shadow-xs flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Tay Mix" className="w-10 h-10 rounded-full object-cover" />
+              <img src="/lo.jpg" alt="Tay Mix" className="w-10 h-10 rounded-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-lg text-amber-600 tracking-tight leading-none capitalize">
@@ -217,7 +217,7 @@ export const Navbar = () => {
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-xs flex items-center justify-center shrink-0">
                 <img
-                  src="/logoaçai8.png"
+                  src="/lo.jpg"
                   alt="Tay Mix Açaí & Massas"
                   className="w-10 h-10 lg:w-11 lg:h-11 rounded-full object-cover transition-transform group-hover:scale-105"
                 />

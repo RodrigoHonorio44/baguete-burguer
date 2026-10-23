@@ -29,6 +29,7 @@ export const AdminProdutos = () => {
     nome: '',
     descricao: '',
     preco: '',
+    precoOriginal: '', // Adicionado campo para preço promocional/riscado
     categoria: 'açaí / garrafas',
     imagem: '',
     disponivel: true,
@@ -172,6 +173,7 @@ export const AdminProdutos = () => {
       ...form,
       categoria: categoriaFinal,
       preco: parseFloat(form.preco),
+      precoOriginal: form.precoOriginal ? parseFloat(form.precoOriginal) : 0,
     };
 
     const acao = editandoId
@@ -181,7 +183,7 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
+        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
         setEditandoId(null);
         setIsCriandoNovaCategoria(false);
         setNovaCategoriaInput('');
@@ -206,6 +208,7 @@ export const AdminProdutos = () => {
       nome: prod.nome || prod.name || '',
       descricao: prod.descricao || prod.description || '',
       preco: prod.preco || prod.price || '',
+      precoOriginal: prod.precoOriginal || prod.precoAntigo || prod.originalPrice || '',
       categoria: catProd,
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
@@ -222,6 +225,7 @@ export const AdminProdutos = () => {
         nome: prod.nome || prod.name,
         descricao: prod.descricao || prod.description,
         preco: Number(prod.preco || prod.price),
+        precoOriginal: Number(prod.precoOriginal || prod.precoAntigo || 0),
         categoria: prod.categoria || prod.category || 'açaí / garrafas',
         imagem: prod.imagem || prod.image,
         disponivel: novoStatus,
@@ -253,7 +257,7 @@ export const AdminProdutos = () => {
     setEditandoId(null);
     setIsCriandoNovaCategoria(false);
     setNovaCategoriaInput('');
-    setForm({ nome: '', descricao: '', preco: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
+    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
@@ -267,7 +271,7 @@ export const AdminProdutos = () => {
             Gestão de Produtos (Açaí, Baguetes e Bebidas)
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Cadastre novos itens, gerencie preços e atualize o cardápio em tempo real
+            Cadastre novos itens, gerencie preços promocionais e atualize o cardápio em tempo real
           </p>
         </div>
 
@@ -358,19 +362,36 @@ export const AdminProdutos = () => {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Preço (R$)</label>
-              <input
-                type="number"
-                step="0.01"
-                name="preco"
-                required
-                value={form.preco}
-                onChange={handleChange}
-                placeholder="0.00"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
-              />
+            {/* Campos de Preço e Preço Promocional */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Atual / Promo (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="preco"
+                  required
+                  value={form.preco}
+                  onChange={handleChange}
+                  placeholder="21.90"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Original (Opcional)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="precoOriginal"
+                  value={form.precoOriginal}
+                  onChange={handleChange}
+                  placeholder="26.90"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
             </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Informe o preço original maior que o preço atual para exibir o valor riscado (promoção).</p>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Descrição / Ingredientes</label>
@@ -443,6 +464,7 @@ export const AdminProdutos = () => {
               {produtos.map((prod) => {
                 const id = prod._id || prod.id;
                 const preco = Number(prod.preco || prod.price || 0);
+                const precoOriginal = Number(prod.precoOriginal || prod.precoAntigo || 0);
                 const imagemProd = prod.imagem || prod.image;
                 const disponivel = prod.disponivel !== false;
 
@@ -476,7 +498,15 @@ export const AdminProdutos = () => {
                       <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                         {prod.descricao || prod.description || 'Sem descrição'}
                       </p>
-                      <span className="text-xs font-extrabold text-emerald-600 mt-0.5 block">R$ {preco.toFixed(2)}</span>
+                      
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {precoOriginal > preco && (
+                          <span className="text-xs text-slate-400 line-through">
+                            R$ {precoOriginal.toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-xs font-extrabold text-emerald-600">R$ {preco.toFixed(2)}</span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-1.5">

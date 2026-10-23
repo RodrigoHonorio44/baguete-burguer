@@ -13,6 +13,9 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
 
   const id = product?.id || product?._id;
   const precoBase = Number(product?.preco || product?.price || 0);
+  // Preço antigo / original para mostrar riscado
+  const precoOriginal = Number(product?.precoOriginal || product?.precoAntigo || product?.originalPrice || 0);
+
   const imagem = product?.imagem || product?.image || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60';
   const nome = product?.nome || product?.name || '';
   const descricao = product?.descricao || product?.description || '';
@@ -185,10 +188,18 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
               )}
             </div>
             <p className="text-xs md:text-sm text-slate-600 line-clamp-2 mb-3 leading-relaxed">{descricao}</p>
-            <p className="text-sm md:text-base font-extrabold text-slate-900">
-              <span className="text-xs font-normal text-slate-500 mr-1">a partir de</span> 
-              <span className="text-emerald-600">R$ {precoBase.toFixed(2)}</span>
-            </p>
+            
+            {/* EXIBIÇÃO DE PREÇO COM OPÇÃO DE VALOR RISCADO */}
+            <div className="flex items-center gap-2">
+              {precoOriginal > precoBase && (
+                <span className="text-xs md:text-sm text-slate-400 line-through font-semibold">
+                  R$ {precoOriginal.toFixed(2)}
+                </span>
+              )}
+              <span className="text-sm md:text-base font-extrabold text-emerald-600">
+                R$ {precoBase.toFixed(2)}
+              </span>
+            </div>
           </div>
           
           <div className="flex items-center gap-4 shrink-0">
@@ -226,7 +237,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           {/* Grid de 2 Colunas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             
-            {/* Coluna Esquerda: Foto Inteira sem Zoom (object-contain) */}
+            {/* Coluna Esquerda */}
             <div className="w-full flex items-center justify-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/80 p-4">
               <img
                 src={imagem}
@@ -239,7 +250,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
               />
             </div>
 
-            {/* Coluna Direita: Detalhes e Ações */}
+            {/* Coluna Direita */}
             <div className="flex flex-col h-full justify-between pr-8 md:pr-0">
               <div>
                 <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 mb-2 capitalize">{nome}</h3>
@@ -247,9 +258,17 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                   {descricao}
                 </p>
 
-                <p className="text-sm font-bold text-slate-900 mb-5">
-                  A partir de <span className="text-emerald-600">R$ {precoBase.toFixed(2)}</span>
-                </p>
+                {/* PREÇO DETALHADO NO MODO EXPANDIDO */}
+                <div className="flex items-center gap-2 mb-5">
+                  {precoOriginal > precoBase && (
+                    <span className="text-sm text-slate-400 line-through font-semibold">
+                      R$ {precoOriginal.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-lg font-extrabold text-emerald-600">
+                    R$ {precoBase.toFixed(2)}
+                  </span>
+                </div>
 
                 {/* LISTAGEM DOS GRUPOS DE COMPLEMENTOS */}
                 {loadingComplementos ? (
