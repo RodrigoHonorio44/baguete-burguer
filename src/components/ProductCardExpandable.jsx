@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Minus, ChevronDown, ChevronUp, EyeOff, Eye } from 'lucide-react';
+import { Plus, Minus, ChevronDown, ChevronUp, EyeOff, Eye, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
 
@@ -10,10 +10,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const [loadingComplementos, setLoadingComplementos] = useState(false);
 
   const [selecoes, setSelecoes] = useState({});
+  const [gruposAbertos, setGruposAbertos] = useState({});
+  
+  // Estado para a Mensagem Toast moderna no lugar do alert() do navegador
+  const [toastMessage, setToastMessage] = useState(null);
 
   const id = product?.id || product?._id;
+  const categoriaProduto = product?.categoria || product?.category || '';
   const precoBase = Number(product?.preco || product?.price || 0);
-  // Preço antigo / original para mostrar riscado
   const precoOriginal = Number(product?.precoOriginal || product?.precoAntigo || product?.originalPrice || 0);
 
   const imagem = product?.imagem || product?.image || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60';
@@ -25,16 +29,36 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const itemInCart = cart.find(item => (item.id || item._id) === id);
   const quantity = itemInCart ? itemInCart.quantity : 0;
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
   useEffect(() => {
     if (isExpanded && id) {
       const carregarComplementos = async () => {
         setLoadingComplementos(true);
         try {
           let data = [];
-          if (typeof api?.getComplementosProduto === 'function') {
-            try {
-              data = await api.getComplementosProduto(id);
-            } catch (e) {}
+          
+          try {
+            const resCat = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos?categoriaId=${encodeURIComponent(categoriaProduto)}`);
+            if (resCat.ok) {
+              const dataCat = await resCat.json();
+              if (Array.isArray(dataCat) && dataCat.length > 0) {
+                data = dataCat;
+              }
+            }
+          } catch (e) {}
+
+          if (!data || data.length === 0) {
+            if (typeof api?.getComplementosProduto === 'function') {
+              try {
+                data = await api.getComplementosProduto(id);
+              } catch (e) {}
+            }
           }
 
           if (!data || (Array.isArray(data) && data.length === 0)) {
@@ -52,6 +76,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
           }
 
           setGruposComplementos(Array.isArray(gruposArray) ? gruposArray : []);
+
+          const abertosIniciais = {};
+          gruposArray.forEach(g => {
+            const gId = g._id || g.id;
+            abertosIniciais[gId] = false;
+          });
+          setGruposAbertos(abertosIniciais);
+
         } catch (err) {
           console.error('Erro ao carregar complementos:', err);
           setGruposComplementos([]);
@@ -61,9 +93,26 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       };
       carregarComplementos();
     }
-  }, [isExpanded, id]);
+  }, [isExpanded, id, categoriaProduto]);
+
+  const toggleGrupoAccordion = (gId) => {
+    setGruposAbertos(prev => ({
+      ...prev,
+      [gId]: !prev[gId]
+    }));
+  };
 
   const handleOptionChange = (grupo, item, delta) => {
+    // Valida se o item está disponível/ativo antes de permitir a alteração
+    const isItemAtivo = item.disponivel !== undefined 
+      ? Boolean(item.disponivel) 
+      : (item.ativo !== undefined ? Boolean(item.ativo) : true);
+
+    if (!isItemAtivo && delta > 0) {
+      showToast('Este item está esgotado e não pode ser selecionado.');
+      return;
+    }
+
     const grupoId = grupo._id || grupo.id;
     const itemArray = selecoes[grupoId] || [];
     const itemId = item._id || item.id;
@@ -74,7 +123,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     const maximoGrupo = grupo.maximo !== undefined && grupo.maximo !== null ? Number(grupo.maximo) : Infinity;
 
     if (delta > 0 && totalQtdGrupo >= maximoGrupo) {
-      alert(`Você pode escolher no máximo ${maximoGrupo} item(ns) neste grupo (${grupo.nome}).`);
+      showToast(`Você pode escolher no máximo ${maximoGrupo} item(ns) neste grupo (${grupo.nome}).`);
       return;
     }
 
@@ -150,11 +199,12 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
     if (!disponivel) return;
 
     if (!validacao.valido) {
-      alert(`Falta(m) ${validacao.faltam} item(ns) a escolher no grupo "${validacao.grupoNome}".`);
+      showToast(`Falta(s) ${validacao.faltam} item(ns) obrigatório(s) em "${validacao.grupoNome}".`);
       return;
     }
 
     addToCart({ ...product, id, preco: precoTotalUnitario, imagem, opcionaisSelecionados: selecoes });
+    showToast('Produto adicionado ao carrinho com sucesso!');
   };
 
   const handleRemoveFromCart = (e) => {
@@ -172,6 +222,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   return (
     <div className={`bg-white border ${disponivel ? 'border-slate-200/80 hover:border-slate-300 shadow-sm hover:shadow-md' : 'border-rose-200 opacity-75 bg-rose-50/20'} rounded-2xl overflow-hidden transition-all duration-300 relative group mb-4 ${isExpanded ? 'col-span-full' : ''}`}>
       
+      {/* Toast Notification Flutuante */}
+      {toastMessage && (
+        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 animate-fadeIn border border-slate-700">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 1. VISUALIZAÇÃO FECHADA */}
       {!isExpanded && (
         <div 
@@ -189,13 +247,15 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             </div>
             <p className="text-xs md:text-sm text-slate-600 line-clamp-2 mb-3 leading-relaxed">{descricao}</p>
             
-            {/* EXIBIÇÃO DE PREÇO COM OPÇÃO DE VALOR RISCADO */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {precoOriginal > precoBase && (
-                <span className="text-xs md:text-sm text-slate-400 line-through font-semibold">
+                <span className="text-xs md:text-sm text-slate-400 line-through font-semibold mr-1">
                   R$ {precoOriginal.toFixed(2)}
                 </span>
               )}
+              <span className="text-xs md:text-sm text-slate-500 font-medium">
+                a partir de
+              </span>
               <span className="text-sm md:text-base font-extrabold text-emerald-600">
                 R$ {precoBase.toFixed(2)}
               </span>
@@ -234,7 +294,6 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             <ChevronUp className="w-5 h-5" />
           </button>
 
-          {/* Grid de 2 Colunas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             
             {/* Coluna Esquerda */}
@@ -258,13 +317,15 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                   {descricao}
                 </p>
 
-                {/* PREÇO DETALHADO NO MODO EXPANDIDO */}
-                <div className="flex items-center gap-2 mb-5">
+                <div className="flex items-center gap-1.5 flex-wrap mb-5">
                   {precoOriginal > precoBase && (
-                    <span className="text-sm text-slate-400 line-through font-semibold">
+                    <span className="text-sm text-slate-400 line-through font-semibold mr-1">
                       R$ {precoOriginal.toFixed(2)}
                     </span>
                   )}
+                  <span className="text-xs md:text-sm text-slate-500 font-medium">
+                    a partir de
+                  </span>
                   <span className="text-lg font-extrabold text-emerald-600">
                     R$ {precoBase.toFixed(2)}
                   </span>
@@ -274,80 +335,117 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 {loadingComplementos ? (
                   <p className="text-xs text-slate-500 py-2">Carregando opções...</p>
                 ) : gruposComplementos.length > 0 ? (
-                  <div className="space-y-4 mb-6 max-h-[380px] overflow-y-auto pr-1">
+                  <div className="space-y-3 mb-6 max-h-[380px] overflow-y-auto pr-1">
                     {gruposComplementos.map(grupo => {
                       const gId = grupo._id || grupo.id;
                       const itensSelecionadosDoGrupo = selecoes[gId] || [];
                       const qtdTotalNoGrupo = itensSelecionadosDoGrupo.reduce((acc, curr) => acc + curr.quantidade, 0);
                       const min = Number(grupo.minimo || 0);
                       const max = Number(grupo.maximo || 1);
+                      const aberto = gruposAbertos[gId] || false;
 
                       return (
-                        <div key={gId} className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                          <div className="flex justify-between items-center mb-3">
+                        <div key={gId} className="bg-slate-50/50 rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all">
+                          
+                          {/* Cabeçalho do Grupo */}
+                          <div 
+                            onClick={() => toggleGrupoAccordion(gId)}
+                            className="flex justify-between items-center p-4 cursor-pointer bg-white hover:bg-slate-50/80 transition-colors select-none"
+                          >
                             <div>
-                              <h4 className="font-bold text-sm text-slate-900 capitalize">{grupo.nome}</h4>
-                              <p className="text-[11px] text-slate-500">
-                                {min > 0 ? `Obrigatório (Escolha de ${min} até ${max})` : `Opcional (Até ${max})`}
+                              <h4 className="font-bold text-sm text-slate-900 capitalize flex items-center gap-2">
+                                {grupo.nome}
+                                {min > 0 && <span className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full font-bold">Obrigatório</span>}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                {min > 0 ? `Escolha de ${min} até ${max}` : `Opcional (Até ${max})`}
                               </p>
                             </div>
-                            <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">
-                              {qtdTotalNoGrupo} / {max}
-                            </span>
+
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold border ${
+                                min > 0 && qtdTotalNoGrupo < min 
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              }`}>
+                                {qtdTotalNoGrupo} / {max}
+                              </span>
+                              {aberto ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                            </div>
                           </div>
 
-                          <div className="space-y-2">
-                            {(grupo.itens || []).map(item => {
-                              const itemId = item._id || item.id;
-                              const itemSel = itensSelecionadosDoGrupo.find(i => (i._id || i.id) === itemId);
-                              const qtdItem = itemSel ? itemSel.quantidade : 0;
-                              const precoItem = Number(item.preco || 0);
+                          {/* Itens do Grupo */}
+                          {aberto && (
+                            <div className="p-3 bg-slate-50/60 border-t border-slate-100 space-y-2">
+                              {(grupo.itens || []).map(item => {
+                                const itemId = item._id || item.id;
+                                const itemSel = itensSelecionadosDoGrupo.find(i => (i._id || i.id) === itemId);
+                                const qtdItem = itemSel ? itemSel.quantidade : 0;
+                                const precoItem = Number(item.preco || 0);
 
-                              return (
-                                <div key={itemId} className="flex items-center justify-between p-2.5 rounded-lg bg-white hover:bg-slate-50 transition border border-slate-100">
-                                  <div className="flex items-center gap-3">
-                                    {item.foto && (
-                                      <img src={item.foto} alt={item.nome} width="40" height="40" loading="lazy" decoding="async" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
-                                    )}
-                                    <div>
-                                      <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
-                                      <div className="text-[11px]">
-                                        {precoItem > 0 ? (
-                                          <span className="text-emerald-600 font-bold">+ R$ {precoItem.toFixed(2)}</span>
-                                        ) : (
-                                          <span className="text-slate-400 font-medium">Grátis</span>
-                                        )}
+                                // Verifica se o item específico está ativo/disponível
+                                const isItemAtivo = item.disponivel !== undefined 
+                                  ? Boolean(item.disponivel) 
+                                  : (item.ativo !== undefined ? Boolean(item.ativo) : true);
+
+                                return (
+                                  <div key={itemId} className={`flex items-center justify-between p-2.5 rounded-lg border transition ${isItemAtivo ? 'bg-white border-slate-100' : 'bg-rose-50/30 border-rose-200 opacity-75'}`}>
+                                    <div className="flex items-center gap-3">
+                                      {item.foto && (
+                                        <img src={item.foto} alt={item.nome} width="40" height="40" loading="lazy" decoding="async" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
+                                      )}
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
+                                          {!isItemAtivo && (
+                                            <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded uppercase">Esgotado</span>
+                                          )}
+                                        </div>
+                                        <div className="text-[11px]">
+                                          {precoItem > 0 ? (
+                                            <span className="text-emerald-600 font-bold">+ R$ {precoItem.toFixed(2)}</span>
+                                          ) : (
+                                            <span className="text-slate-400 font-medium">Grátis</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  <div className="flex items-center gap-2">
-                                    {qtdItem > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      {qtdItem > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOptionChange(grupo, item, -1)}
+                                          className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 hover:bg-slate-200 cursor-pointer"
+                                        >
+                                          <Minus size={14} />
+                                        </button>
+                                      )}
+
+                                      {qtdItem > 0 && (
+                                        <span className="text-xs font-bold text-slate-900 w-5 text-center">{qtdItem}</span>
+                                      )}
+
+                                      {/* Botão de Adicionar Item do Complemento (Bloqueado se esgotado) */}
                                       <button
                                         type="button"
-                                        onClick={() => handleOptionChange(grupo, item, -1)}
-                                        className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-700 hover:bg-slate-200 cursor-pointer"
+                                        disabled={!isItemAtivo}
+                                        onClick={() => handleOptionChange(grupo, item, 1)}
+                                        className={`w-7 h-7 font-bold rounded-lg flex items-center justify-center shadow-sm ${
+                                          isItemAtivo 
+                                            ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer' 
+                                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                        }`}
                                       >
-                                        <Minus size={14} />
+                                        <Plus size={14} />
                                       </button>
-                                    )}
-
-                                    {qtdItem > 0 && (
-                                      <span className="text-xs font-bold text-slate-900 w-5 text-center">{qtdItem}</span>
-                                    )}
-
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOptionChange(grupo, item, 1)}
-                                      className="w-7 h-7 bg-amber-500 text-slate-950 font-bold rounded-lg flex items-center justify-center hover:bg-amber-400 cursor-pointer shadow-sm"
-                                    >
-                                      <Plus size={14} />
-                                    </button>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                         </div>
                       );
                     })}
@@ -376,16 +474,16 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 )}
               </div>
 
-              {/* Rodapé com Preço Total e Botão */}
+              {/* Rodapé com Preço Total e Botão Adicionar */}
               <div className="pt-4 border-t border-slate-200 mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border">
                 <div className="text-center sm:text-left">
                   <span className="text-xs text-slate-500 block">Total do item</span>
                   <span className="text-lg md:text-xl font-black text-slate-900">
-                    R$ {(precoTotalUnitario * (quantity > 0 ? quantity : 1)).toFixed(2)}
+                    R$ {precoTotalUnitario.toFixed(2)}
                   </span>
                   {!validacao.valido && (
                     <span className="block text-[11px] font-semibold text-rose-500 mt-0.5">
-                      Falta escolher {validacao.faltam} em "{validacao.grupoNome}"
+                      Falta escolher em "{validacao.grupoNome}"
                     </span>
                   )}
                 </div>
@@ -394,38 +492,20 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                   <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl">
                     Produto Indisponível
                   </span>
-                ) : quantity === 0 ? (
+                ) : (
                   <button
                     onClick={handleAddToCart}
                     disabled={!validacao.valido}
-                    className={`flex items-center justify-center gap-2 font-bold px-6 py-2.5 rounded-xl transition text-sm shadow-md w-full sm:w-auto ${
+                    className={`flex items-center justify-center gap-2 font-bold px-8 py-3 rounded-xl transition text-sm shadow-md w-full sm:w-auto ${
                       validacao.valido 
                         ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer shadow-amber-500/20 active:scale-95' 
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                        : 'bg-slate-200 text-slate-400 opacity-50 cursor-not-allowed shadow-none'
                     }`}
                   >
-                    <Plus className="w-4 h-4" />
-                    {validacao.valido ? 'Adicionar' : `Escolha mais ${validacao.faltam}`}
+                    <span>Adicionar</span>
+                    <span>•</span>
+                    <span>R$ {precoTotalUnitario.toFixed(2)}</span>
                   </button>
-                ) : (
-                  <div className="flex items-center gap-3 bg-white border border-slate-300 rounded-xl p-1.5 shadow-sm w-full sm:w-auto justify-center">
-                    <button 
-                      onClick={handleRemoveFromCart} 
-                      className="p-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 cursor-pointer transition-colors"
-                    >
-                      <Minus size={18} />
-                    </button>
-                    <span className="font-bold text-slate-900 w-8 text-center text-sm">{quantity}</span>
-                    <button 
-                      onClick={handleAddToCart} 
-                      disabled={!validacao.valido}
-                      className={`p-2 rounded-lg transition-colors ${
-                        validacao.valido ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
                 )}
               </div>
 

@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers, Sliders } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminComplementos } from '../components/AdminComplementos';
-import { AdminEditarComplementos } from '../components/AdminEditarComplementos';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados separados para controlar cada painel individualmente
-  const [produtoComplementosId, setProdutoComplementosId] = useState(null); // Painel de Cadastro
-  const [produtoGerenciarId, setProdutoGerenciarId] = useState(null); // Painel de Edição e Gestão
+  // Estado para controlar o Gerenciador Geral de Complementos no Topo
+  const [gerenciadorGlobalAberto, setGerenciadorGlobalAberto] = useState(false);
 
-  // Lista dinâmica extraída dos produtos já cadastrados + padrões iniciais
+  // Lista dinâmica extraída dos produtos cadastrados + categorias padrão
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([
     'açaí / garrafas',
     'hambúrgueres / baguetes',
@@ -29,7 +27,7 @@ export const AdminProdutos = () => {
     nome: '',
     descricao: '',
     preco: '',
-    precoOriginal: '', // Adicionado campo para preço promocional/riscado
+    precoOriginal: '',
     categoria: 'açaí / garrafas',
     imagem: '',
     disponivel: true,
@@ -37,7 +35,7 @@ export const AdminProdutos = () => {
 
   const [editandoId, setEditandoId] = useState(null);
 
-  // Função para comprimir, redimensionar a imagem e validar o padrão de píxeis
+  // Compressão, redimensionamento e conversão de imagem para WebP/JPEG
   const comprimirImagem = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -93,7 +91,6 @@ export const AdminProdutos = () => {
       const data = await api.getProdutos();
       setProdutos(data);
 
-      // Extrai categorias existentes no banco para popular o select automaticamente
       if (Array.isArray(data)) {
         const catsDoBanco = data.map(p => p.categoria || p.category).filter(Boolean);
         setCategoriasDisponiveis((prev) => {
@@ -159,7 +156,6 @@ export const AdminProdutos = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Se estiver a criar uma nova categoria via input livre, usa ela
     const categoriaFinal = isCriandoNovaCategoria
       ? novaCategoriaInput.trim().toLowerCase()
       : form.categoria;
@@ -198,7 +194,6 @@ export const AdminProdutos = () => {
     setEditandoId(prod._id || prod.id);
     const catProd = prod.categoria || prod.category || 'açaí / garrafas';
     
-    // Se a categoria do produto não estiver na lista padrão, adiciona para aparecer no select
     if (!categoriasDisponiveis.includes(catProd)) {
       setCategoriasDisponiveis(prev => [...prev, catProd]);
     }
@@ -263,10 +258,10 @@ export const AdminProdutos = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Cabeçalho Limpo em Modo Claro */}
-      <div className="flex justify-between items-center mb-6">
+      {/* Cabeçalho com Botão Geral no Topo */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
             <Package className="w-7 h-7 text-amber-500" />
             Gestão de Produtos (Açaí, Baguetes e Bebidas)
           </h1>
@@ -275,17 +270,37 @@ export const AdminProdutos = () => {
           </p>
         </div>
 
-        <button
-          onClick={carregarProdutos}
-          className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
-          title="Atualizar lista"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {/* BOTÃO GLOBAL QUE ABRE O GERENCIADOR DE COMPLEMENTOS */}
+          <button
+            onClick={() => setGerenciadorGlobalAberto(!gerenciadorGlobalAberto)}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs cursor-pointer transition"
+          >
+            <Layers className="w-4 h-4" />
+            {gerenciadorGlobalAberto ? 'Fechar Gerenciador Geral' : 'Gerenciar Complementos Gerais'}
+          </button>
+
+          <button
+            onClick={carregarProdutos}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
+            title="Atualizar lista"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
+      {/* Painel Geral de Complementos (Exibe Criar Grupo + Adicionar Opção + Listagem e Edição Completa) */}
+      {gerenciadorGlobalAberto && (
+        <div className="mb-8">
+          <AdminComplementos
+            onFechar={() => setGerenciadorGlobalAberto(false)}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Formulário de Cadastro / Edição (Coluna Esquerda) */}
+        {/* Formulário de Cadastro / Edição de Produto (Coluna Esquerda) */}
         <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs h-fit">
           <h2 className="text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
             {editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}
@@ -305,7 +320,6 @@ export const AdminProdutos = () => {
               />
             </div>
 
-            {/* Categoria com suporte a seleção, criação e exclusão */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-xs font-semibold text-slate-700">Categoria</label>
@@ -362,7 +376,6 @@ export const AdminProdutos = () => {
               )}
             </div>
 
-            {/* Campos de Preço e Preço Promocional */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Atual / Promo (R$)</label>
@@ -509,25 +522,8 @@ export const AdminProdutos = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <button
-                        onClick={() => { setProdutoComplementosId(id); setProdutoGerenciarId(null); }}
-                        className="p-2 text-slate-700 hover:bg-slate-200 rounded-lg transition flex items-center gap-1 bg-white border border-slate-200 cursor-pointer shadow-2xs text-xs font-semibold"
-                        title="Cadastrar novas categorias ou adicionais"
-                      >
-                        <Layers className="w-4 h-4 text-amber-500" />
-                        <span className="hidden sm:inline">Cadastrar</span>
-                      </button>
-
-                      <button
-                        onClick={() => { setProdutoGerenciarId(id); setProdutoComplementosId(null); }}
-                        className="p-2 text-slate-700 hover:bg-slate-200 rounded-lg transition flex items-center gap-1 bg-white border border-slate-200 cursor-pointer shadow-2xs text-xs font-semibold"
-                        title="Gerenciar e editar categorias cadastradas"
-                      >
-                        <Sliders className="w-4 h-4 text-emerald-600" />
-                        <span className="hidden sm:inline">Gerenciar</span>
-                      </button>
-
+                    {/* Botões de Ação Direta do Produto (Sem janelas extras em baixo) */}
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
                         className={`p-2 rounded-lg transition cursor-pointer border shadow-2xs ${
@@ -563,22 +559,6 @@ export const AdminProdutos = () => {
           )}
         </div>
       </div>
-
-      {/* Renderização condicional do painel de cadastro */}
-      {produtoComplementosId && (
-        <AdminComplementos
-          produtoId={produtoComplementosId}
-          onFechar={() => setProdutoComplementosId(null)}
-        />
-      )}
-
-      {/* Renderização condicional do painel de gerenciamento e edição */}
-      {produtoGerenciarId && (
-        <AdminEditarComplementos
-          produtoId={produtoGerenciarId}
-          onFechar={() => setProdutoGerenciarId(null)}
-        />
-      )}
     </div>
   );
 };

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
 
-export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
+export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar }) => {
   const [gruposComItens, setGruposComItens] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -28,10 +28,18 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
   });
 
   const carregarDados = async () => {
-    if (!produtoId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/produtos/${produtoId}/complementos`);
+      const params = new URLSearchParams();
+      if (produtoId) params.append('produtoId', produtoId);
+      if (categoriaId) params.append('categoriaId', categoriaId);
+
+      // Se houver parâmetros busca filtrado, caso contrário busca todos os grupos do banco
+      const url = params.toString()
+        ? `${API_URL.replace(/\/$/, '')}/api/complementos/grupos?${params.toString()}`
+        : `${API_URL.replace(/\/$/, '')}/api/complementos/grupos`;
+
+      const res = await fetch(url);
       const data = await res.json();
       setGruposComItens(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -44,7 +52,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
 
   useEffect(() => {
     carregarDados();
-  }, [produtoId]);
+  }, [produtoId, categoriaId]);
 
   // ==========================================
   // AÇÕES DE GRUPO (CATEGORIA)
@@ -170,6 +178,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
         <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
           <Layers className="w-5 h-5 text-emerald-600" />
           Gerenciar e Editar Categorias e Adicionais Cadastrados
+          {categoriaId && <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">(Por Categoria)</span>}
         </h3>
         {onFechar && (
           <button 
@@ -184,7 +193,7 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
       {loading ? (
         <p className="text-xs text-slate-500 py-4 text-center">Carregando categorias e itens do banco...</p>
       ) : gruposComItens.length === 0 ? (
-        <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma categoria cadastrada para este produto.</p>
+        <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma categoria cadastrada.</p>
       ) : (
         <div className="space-y-6">
           {gruposComItens.map((grupo) => {
@@ -243,6 +252,11 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
                     ) : (
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-amber-700 text-sm capitalize">{grupo.nome}</h4>
+                        {grupo.categoria && (
+                          <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase border border-amber-200">
+                            {grupo.categoria}
+                          </span>
+                        )}
                         <span className="text-[11px] text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-semibold shadow-2xs">
                           Mín: {grupo.minimo ?? 0} | Máx: {grupo.maximo ?? 1}
                         </span>
@@ -401,3 +415,5 @@ export const AdminEditarComplementos = ({ produtoId, onFechar }) => {
     </div>
   );
 };
+
+export default AdminEditarComplementos;

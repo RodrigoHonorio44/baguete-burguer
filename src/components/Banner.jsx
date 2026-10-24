@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Zap, ShieldCheck, Heart } from 'lucide-react';
-import { api } from '../services/api'; // <-- Ajustado para usar chaves { api }
+import { api } from '../services/api';
 
 export const Banner = () => {
   const [banners, setBanners] = useState([]);
@@ -36,7 +36,8 @@ export const Banner = () => {
   const descricaoTexto = bannerAtual?.descricao || "Ingredientes selecionados para ambas as linhas, frescor diário e receitas preparadas para você montar a sua combinação perfeita.";
 
   return (
-    <div className="relative text-white overflow-hidden py-6 sm:py-10 md:py-16 border-b border-slate-200/80 shadow-xs transition-all duration-700">
+    // Altura fixa ajustada (h-72 em mobile, sm:h-96 em tablet, md:h-[450px] em desktop) com flex para centrar o conteúdo perfeitamente
+    <div className="relative text-white overflow-hidden h-72 sm:h-96 md:h-[420px] flex items-center justify-center border-b border-slate-200/80 shadow-xs transition-all duration-700">
       
       {/* Imagem de Fundo com overlay proporcional */}
       <div className="absolute inset-0 z-0">
@@ -50,18 +51,18 @@ export const Banner = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30"></div>
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center w-full">
         
-        <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/20 text-amber-300 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs md:text-sm font-extrabold uppercase tracking-wider mb-3 sm:mb-5 shadow-lg backdrop-blur-md">
+        <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/20 text-amber-300 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs md:text-sm font-extrabold uppercase tracking-wider mb-2 sm:mb-4 shadow-lg backdrop-blur-md">
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
           <span>{badgeTexto}</span>
         </div>
 
-        <h1 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-white mb-2 sm:mb-4 leading-snug sm:leading-tight drop-shadow-md">
+        <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-white mb-2 sm:mb-3 leading-snug sm:leading-tight drop-shadow-md">
           {tituloPrincipal} <span className="text-amber-400">{destaqueTexto}</span>
         </h1>
 
-        <p className="text-xs sm:text-base md:text-lg text-slate-100 max-w-xl mx-auto mb-4 sm:mb-6 font-medium leading-relaxed drop-shadow line-clamp-2 sm:line-clamp-none">
+        <p className="text-xs sm:text-sm md:text-base text-slate-100 max-w-xl mx-auto mb-3 sm:mb-5 font-medium leading-relaxed drop-shadow line-clamp-2 sm:line-clamp-none">
           {descricaoTexto}
         </p>
 
@@ -81,7 +82,7 @@ export const Banner = () => {
         </div>
 
         {banners.length > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6">
+          <div className="flex justify-center items-center gap-2 mt-4 sm:mt-6">
             {banners.map((_, index) => (
               <button
                 key={index}
