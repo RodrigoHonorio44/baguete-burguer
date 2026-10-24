@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { AdminComplementos } from '../components/AdminComplementos';
+import AdminEditarComplementos from '../components/AdminEditarComplementos';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
@@ -293,7 +293,7 @@ export const AdminProdutos = () => {
       {/* Painel Geral de Complementos (Exibe Criar Grupo + Adicionar Opção + Listagem e Edição Completa) */}
       {gerenciadorGlobalAberto && (
         <div className="mb-8">
-          <AdminComplementos
+          <AdminEditarComplementos
             onFechar={() => setGerenciadorGlobalAberto(false)}
           />
         </div>
@@ -522,7 +522,7 @@ export const AdminProdutos = () => {
                       </div>
                     </div>
 
-                    {/* Botões de Ação Direta do Produto (Sem janelas extras em baixo) */}
+                    {/* Botões de Ação Direta do Produto */}
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
