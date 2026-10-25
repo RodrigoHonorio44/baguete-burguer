@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus, ChevronDown, ChevronUp, EyeOff, Eye, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../services/api';
@@ -103,7 +103,6 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   };
 
   const handleOptionChange = (grupo, item, delta) => {
-    // Valida se o item está disponível/ativo antes de permitir a alteração
     const isItemAtivo = item.disponivel !== undefined 
       ? Boolean(item.disponivel) 
       : (item.ativo !== undefined ? Boolean(item.ativo) : true);
@@ -234,9 +233,9 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       {!isExpanded && (
         <div 
           onClick={handleToggleExpand}
-          className="p-5 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/60 transition-colors"
+          className="p-4 md:p-5 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/60 transition-colors"
         >
-          <div className="flex-1 pr-4">
+          <div className="flex-1 pr-3">
             <div className="flex items-center gap-2.5 mb-1.5">
               <h3 className="font-bold text-base md:text-lg text-slate-900 tracking-tight capitalize">{nome}</h3>
               {!disponivel && (
@@ -262,7 +261,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="relative">
               <img
                 src={imagem}
@@ -283,7 +282,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
 
       {/* 2. VISUALIZAÇÃO ABERTA (ESTENDIDA) */}
       {isExpanded && (
-        <div className="bg-white p-5 md:p-6 relative">
+        <div className="bg-white p-4 md:p-6 relative">
           
           {/* Botão de Fechar */}
           <button
@@ -294,14 +293,14 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             <ChevronUp className="w-5 h-5" />
           </button>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-start">
             
-            {/* Coluna Esquerda */}
-            <div className="w-full flex items-center justify-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/80 p-4">
+            {/* Coluna da Imagem */}
+            <div className="w-full lg:col-span-5 flex items-center justify-center bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/80 p-3">
               <img
                 src={imagem}
                 alt={nome}
-                className="w-full h-72 md:h-[400px] object-contain object-center rounded-xl shadow-sm transition-transform duration-300"
+                className="w-full h-48 md:h-72 lg:h-[380px] object-contain object-center rounded-xl shadow-sm transition-transform duration-300"
                 width="500"
                 height="500"
                 loading="lazy"
@@ -309,24 +308,24 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
               />
             </div>
 
-            {/* Coluna Direita */}
-            <div className="flex flex-col h-full justify-between pr-8 md:pr-0">
+            {/* Coluna de Informações e Complementos */}
+            <div className="w-full lg:col-span-7 flex flex-col h-full justify-between pr-2 md:pr-0">
               <div>
-                <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 mb-2 capitalize">{nome}</h3>
-                <p className="text-xs md:text-sm text-slate-600 mb-4 leading-relaxed font-normal">
+                <h3 className="font-extrabold text-lg md:text-2xl text-slate-900 mb-1.5 capitalize pr-8">{nome}</h3>
+                <p className="text-xs md:text-sm text-slate-600 mb-3 leading-relaxed font-normal">
                   {descricao}
                 </p>
 
-                <div className="flex items-center gap-1.5 flex-wrap mb-5">
+                <div className="flex items-center gap-1.5 flex-wrap mb-4">
                   {precoOriginal > precoBase && (
-                    <span className="text-sm text-slate-400 line-through font-semibold mr-1">
+                    <span className="text-xs md:text-sm text-slate-400 line-through font-semibold mr-1">
                       R$ {precoOriginal.toFixed(2)}
                     </span>
                   )}
-                  <span className="text-xs md:text-sm text-slate-500 font-medium">
+                  <span className="text-xs text-slate-500 font-medium">
                     a partir de
                   </span>
-                  <span className="text-lg font-extrabold text-emerald-600">
+                  <span className="text-base md:text-lg font-extrabold text-emerald-600">
                     R$ {precoBase.toFixed(2)}
                   </span>
                 </div>
@@ -335,7 +334,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                 {loadingComplementos ? (
                   <p className="text-xs text-slate-500 py-2">Carregando opções...</p>
                 ) : gruposComplementos.length > 0 ? (
-                  <div className="space-y-3 mb-6 max-h-[380px] overflow-y-auto pr-1">
+                  <div className="space-y-2.5 mb-4 max-h-[320px] md:max-h-[380px] overflow-y-auto pr-1">
                     {gruposComplementos.map(grupo => {
                       const gId = grupo._id || grupo.id;
                       const itensSelecionadosDoGrupo = selecoes[gId] || [];
@@ -350,20 +349,20 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                           {/* Cabeçalho do Grupo */}
                           <div 
                             onClick={() => toggleGrupoAccordion(gId)}
-                            className="flex justify-between items-center p-4 cursor-pointer bg-white hover:bg-slate-50/80 transition-colors select-none"
+                            className="flex justify-between items-center p-3.5 md:p-4 cursor-pointer bg-white hover:bg-slate-50/80 transition-colors select-none gap-2"
                           >
-                            <div>
-                              <h4 className="font-bold text-sm text-slate-900 capitalize flex items-center gap-2">
-                                {grupo.nome}
-                                {min > 0 && <span className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full font-bold">Obrigatório</span>}
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-bold text-xs md:text-sm text-slate-900 capitalize flex items-center gap-2 flex-wrap">
+                                <span className="truncate">{grupo.nome}</span>
+                                {min > 0 && <span className="text-[9px] md:text-[10px] bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full font-bold shrink-0">Obrigatório</span>}
                               </h4>
-                              <p className="text-[11px] text-slate-500 mt-0.5">
+                              <p className="text-[10px] md:text-[11px] text-slate-500 mt-0.5">
                                 {min > 0 ? `Escolha de ${min} até ${max}` : `Opcional (Até ${max})`}
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                              <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold border ${
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-[10px] px-2 md:px-2.5 py-0.5 md:py-1 rounded-full font-semibold border ${
                                 min > 0 && qtdTotalNoGrupo < min 
                                   ? 'bg-amber-50 text-amber-800 border-amber-200' 
                                   : 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -376,32 +375,31 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
 
                           {/* Itens do Grupo */}
                           {aberto && (
-                            <div className="p-3 bg-slate-50/60 border-t border-slate-100 space-y-2">
+                            <div className="p-2.5 md:p-3 bg-slate-50/60 border-t border-slate-100 space-y-2">
                               {(grupo.itens || []).map(item => {
                                 const itemId = item._id || item.id;
                                 const itemSel = itensSelecionadosDoGrupo.find(i => (i._id || i.id) === itemId);
                                 const qtdItem = itemSel ? itemSel.quantidade : 0;
                                 const precoItem = Number(item.preco || 0);
 
-                                // Verifica se o item específico está ativo/disponível
                                 const isItemAtivo = item.disponivel !== undefined 
                                   ? Boolean(item.disponivel) 
                                   : (item.ativo !== undefined ? Boolean(item.ativo) : true);
 
                                 return (
-                                  <div key={itemId} className={`flex items-center justify-between p-2.5 rounded-lg border transition ${isItemAtivo ? 'bg-white border-slate-100' : 'bg-rose-50/30 border-rose-200 opacity-75'}`}>
-                                    <div className="flex items-center gap-3">
+                                  <div key={itemId} className={`flex items-center justify-between p-2 md:p-2.5 rounded-lg border transition gap-2 ${isItemAtivo ? 'bg-white border-slate-100' : 'bg-rose-50/30 border-rose-200 opacity-75'}`}>
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                       {item.foto && (
-                                        <img src={item.foto} alt={item.nome} width="40" height="40" loading="lazy" decoding="async" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
+                                        <img src={item.foto} alt={item.nome} width="36" height="36" loading="lazy" decoding="async" className="w-9 h-9 md:w-10 md:h-10 object-cover rounded-lg border border-slate-200 shrink-0" />
                                       )}
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-semibold text-slate-800 capitalize">{item.nome}</span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-xs font-semibold text-slate-800 capitalize truncate">{item.nome}</span>
                                           {!isItemAtivo && (
-                                            <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded uppercase">Esgotado</span>
+                                            <span className="text-[9px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.2 rounded uppercase shrink-0">Esgotado</span>
                                           )}
                                         </div>
-                                        <div className="text-[11px]">
+                                        <div className="text-[10px] md:text-[11px]">
                                           {precoItem > 0 ? (
                                             <span className="text-emerald-600 font-bold">+ R$ {precoItem.toFixed(2)}</span>
                                           ) : (
@@ -411,7 +409,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                                       </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 shrink-0">
                                       {qtdItem > 0 && (
                                         <button
                                           type="button"
@@ -423,10 +421,9 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                                       )}
 
                                       {qtdItem > 0 && (
-                                        <span className="text-xs font-bold text-slate-900 w-5 text-center">{qtdItem}</span>
+                                        <span className="text-xs font-bold text-slate-900 w-4 text-center">{qtdItem}</span>
                                       )}
 
-                                      {/* Botão de Adicionar Item do Complemento (Bloqueado se esgotado) */}
                                       <button
                                         type="button"
                                         disabled={!isItemAtivo}
@@ -451,52 +448,52 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 py-2 italic mb-4">Nenhum complemento cadastrado para este produto.</p>
+                  <p className="text-xs text-slate-400 py-2 italic mb-3">Nenhum complemento cadastrado para este produto.</p>
                 )}
 
                 {/* Controle de Estoque (Admin) */}
                 {isAdminOrRoot && (
-                  <div className="mb-4 flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-700 font-semibold">Controle de Estoque/Disponibilidade:</span>
+                  <div className="mb-3 flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm gap-2">
+                    <span className="text-xs text-slate-700 font-semibold truncate">Controle de Estoque/Disponibilidade:</span>
                     <button
                       type="button"
                       onClick={handleToggleStatus}
-                      className={`flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-lg transition cursor-pointer select-none ${
+                      className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer select-none shrink-0 ${
                         disponivel 
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
                           : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                       }`}
                     >
                       {disponivel ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                      {disponivel ? 'Disponível (Visível)' : 'Indisponível (Esgotado)'}
+                      <span className="hidden sm:inline">{disponivel ? 'Disponível (Visível)' : 'Indisponível (Esgotado)'}</span>
                     </button>
                   </div>
                 )}
               </div>
 
               {/* Rodapé com Preço Total e Botão Adicionar */}
-              <div className="pt-4 border-t border-slate-200 mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border">
-                <div className="text-center sm:text-left">
-                  <span className="text-xs text-slate-500 block">Total do item</span>
-                  <span className="text-lg md:text-xl font-black text-slate-900">
+              <div className="pt-3 border-t border-slate-200 mt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-xl shadow-sm border">
+                <div className="text-center sm:text-left w-full sm:w-auto">
+                  <span className="text-[11px] text-slate-500 block">Total do item</span>
+                  <span className="text-base md:text-xl font-black text-slate-900">
                     R$ {precoTotalUnitario.toFixed(2)}
                   </span>
                   {!validacao.valido && (
-                    <span className="block text-[11px] font-semibold text-rose-500 mt-0.5">
+                    <span className="block text-[10px] font-semibold text-rose-500 mt-0.5">
                       Falta escolher em "{validacao.grupoNome}"
                     </span>
                   )}
                 </div>
 
                 {!disponivel ? (
-                  <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl">
+                  <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl w-full sm:w-auto text-center">
                     Produto Indisponível
                   </span>
                 ) : (
                   <button
                     onClick={handleAddToCart}
                     disabled={!validacao.valido}
-                    className={`flex items-center justify-center gap-2 font-bold px-8 py-3 rounded-xl transition text-sm shadow-md w-full sm:w-auto ${
+                    className={`flex items-center justify-center gap-2 font-bold px-6 py-2.5 rounded-xl transition text-sm shadow-md w-full sm:w-auto ${
                       validacao.valido 
                         ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer shadow-amber-500/20 active:scale-95' 
                         : 'bg-slate-200 text-slate-400 opacity-50 cursor-not-allowed shadow-none'
