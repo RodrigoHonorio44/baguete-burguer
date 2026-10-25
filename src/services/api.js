@@ -331,6 +331,26 @@ export const api = {
     return data;
   },
 
+  // --- CONFIGURAÇÃO DA IMPRESSORA TÉRMICA ---
+  getConfiguracaoImpressora: async () => {
+    const response = await fetch(`${API_URL}/configuracoes/impressora`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) return { nomeImpressora: 'printer:auto' };
+    return await response.json();
+  },
+
+  salvarConfiguracaoImpressora: async (nomeImpressora) => {
+    const response = await fetch(`${API_URL}/configuracoes/impressora`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ nomeImpressora })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Erro ao salvar configuração da impressora');
+    return data;
+  },
+
   // --- PRECIFICAÇÃO E INSUMOS (INTEGRADO AO MONGODB) ---
   getInsumosPrecificacao: async () => {
     const response = await fetch(`${API_URL}/precificacao`, {

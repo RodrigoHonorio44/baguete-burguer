@@ -11,6 +11,7 @@ const Caixa = lazy(() => import('../pages/Caixa').then(({ Caixa }) => ({ default
 const AdminProdutos = lazy(() => import('../pages/AdminProdutos').then(({ AdminProdutos }) => ({ default: AdminProdutos })));
 const AdminPrecificacao = lazy(() => import('../pages/AdminPrecificacao'));
 const ConfiguracoesLojaPage = lazy(() => import('../pages/ConfiguracoesLojaPage'));
+const ConfiguracoesImpressora = lazy(() => import('../pages/ConfiguracoesImpressora')); // 🖨️ Nova rota da impressora
 const PrestacaoContasTaymix = lazy(() => import('../pages/PrestacaoContasTaymix'));
 const MeusPedidos = lazy(() => import('../pages/MeusPedidos').then(({ MeusPedidos }) => ({ default: MeusPedidos })));
 const Motoboy = lazy(() => import('../pages/Motoboy').then(({ Motoboy }) => ({ default: Motoboy })));
@@ -92,6 +93,16 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute requireAdmin={true}>
               <ConfiguracoesLojaPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🖨️ 👉 Rota Protegida de Configuração da Impressora Térmica */}
+        <Route
+          path="/admin/configuracoes/impressora"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ConfiguracoesImpressora />
             </ProtectedRoute>
           }
         />

@@ -234,6 +234,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
+          {/* Status visível em telas médias/desktop */}
           <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/80 px-2.5 py-1 rounded-full text-xs shrink-0">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
               lojaAberta 
@@ -282,6 +283,22 @@ export const Navbar = () => {
               </Link>
             )}
           </div>
+        </div>
+
+        {/* Status visível especificamente em telas muito pequenas (Mobile Compacto) */}
+        <div className="flex sm:hidden items-center justify-center w-full bg-slate-100/80 border border-slate-200/80 px-3 py-1 rounded-full text-xs gap-1.5 mt-1">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            lojaAberta 
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+              : 'bg-rose-100 text-rose-800 border border-rose-300'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${lojaAberta ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+            {lojaAberta ? 'ABERTO' : 'FECHADO'}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
+            <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+          </span>
         </div>
 
         {/* Centro: Navegação Desktop Restrita para Logados Admin */}

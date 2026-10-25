@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import ComandaImpressao, { dispararImpressao } from '../components/ComandaImpressao';
 import ModalPdv from '../components/ModalPdv';
+import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 export const Caixa = () => {
   const {
@@ -70,9 +72,27 @@ export const Caixa = () => {
   const aceitarPedidoEEnviarCozinha = async (pedido) => {
     try {
       pararAlertaTelefone();
+      
+      // 1. Atualiza o status do pedido para 'preparo' no banco de dados
       await alterarStatus(pedido._id, 'preparo');
-      dispararImpressao(pedido);
-    } catch (err) {}
+
+      // 2. 🖨️ Dispara a impressão automática direto no backend (sem abrir janela de impressão)
+      try {
+        if (api.imprimirPedido) {
+          await api.imprimirPedido(pedido._id || pedido.id);
+        } else {
+          await api.post(`/pedidos/${pedido._id || pedido.id}/imprimir`, { pedido });
+        }
+        toast.success('Pedido aceito e enviado para a impressora!');
+      } catch (printErr) {
+        console.error('Erro ao acionar impressora automática:', printErr);
+        // Fallback para impressão via front-end caso a rota do backend não exista
+        dispararImpressao(pedido);
+      }
+    } catch (err) {
+      console.error('Erro ao aceitar pedido:', err);
+      toast.error('Erro ao processar o pedido.');
+    }
   };
 
   const recusarPedidoCaixa = async (id) => {
@@ -142,7 +162,7 @@ export const Caixa = () => {
               🔔 {pedidosPendentesApp.length} NOVO(S) PEDIDO(S) DO APP CHEGANDO!
             </div>
             <span className="text-xs font-bold text-amber-900 bg-amber-200/70 px-3.5 py-1.5 rounded-full border border-amber-300">
-              ⚡ Aceite no caixa para mandar para a cozinha
+              ⚡ Aceite no caixa para mandar para a cozinha e imprimir
             </span>
           </div>
 
