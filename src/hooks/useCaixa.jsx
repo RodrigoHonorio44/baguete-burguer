@@ -158,11 +158,15 @@ export const useCaixa = () => {
 
       setProdutos(dataProdutos || []);
       
+      // 🎯 Filtro rigoroso para isolar apenas os pedidos da data atual (hora local)
+      const hojeStrLocal = new Date().toLocaleDateString('pt-BR');
+
       const pedidosHoje = (dataPedidos || []).filter(p => {
         const dataPedido = p.criadoEm || p.createdAt;
         if (!dataPedido) return false;
-        const dataFormatada = new Date(dataPedido).toISOString().split('T')[0];
-        return dataFormatada === hojeStr;
+        
+        const dataFormatadaLocal = new Date(dataPedido).toLocaleDateString('pt-BR');
+        return dataFormatadaLocal === hojeStrLocal;
       });
 
       const pedidosOrdenados = pedidosHoje.sort((a, b) => new Date(b.criadoEm || b.createdAt) - new Date(a.criadoEm || a.createdAt));
