@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+import { api } from '../services/api';
 
 export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const [gruposComItens, setGruposComItens] = useState([]);
@@ -18,19 +17,16 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const [isCriandoNovaCategoria, setIsCriandoNovaCategoria] = useState(false);
   const [novaCategoriaInput, setNovaCategoriaInput] = useState('');
 
-  // Estados de Criação de Grupo
   const [novaCategoria, setNovaCategoria] = useState('açaí / garrafas');
   const [novoNomeGrupo, setNovoNomeGrupo] = useState('');
   const [novoMinimo, setNovoMinimo] = useState(0);
   const [novoMaximo, setNovoMaximo] = useState(1);
 
-  // Estados de Criação de Item Superior
   const [grupoSelecionadoId, setGrupoSelecionadoId] = useState('');
   const [novoNomeItem, setNovoNomeItem] = useState('');
   const [novoPrecoItem, setNovoPrecoItem] = useState('0.00');
   const [novoFotoItem, setNovoFotoItem] = useState('');
 
-  // Estados de Edição
   const [editandoGrupoId, setEditandoGrupoId] = useState(null);
   const [grupoNomeEdit, setGrupoNomeEdit] = useState('');
   const [grupoMinEdit, setGrupoMinEdit] = useState(0);
@@ -51,24 +47,28 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       if (produtoId) params.append('produtoId', produtoId);
       if (categoriaId) params.append('categoriaId', categoriaId);
 
-      const url = params.toString()
-        ? `${API_URL.replace(/\/$/, '')}/api/complementos/grupos?${params.toString()}`
-        : `${API_URL.replace(/\/$/, '')}/api/complementos/grupos`;
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+      const urlClean = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+      const url = params.toString() ? `${urlClean}/complementos/grupos?${params.toString()}` : `${urlClean}/complementos/grupos`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: {
+          ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+        }
+      });
       const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
-      setGruposComItens(lista);
+      const listaGrupos = Array.isArray(data) ? data : (data.data || []);
+      setGruposComItens(listaGrupos);
 
-      if (lista.length > 0) {
-        const catsDoBanco = lista.map(g => g.categoria).filter(Boolean);
+      if (listaGrupos.length > 0) {
+        const catsDoBanco = listaGrupos.map(g => g.categoria).filter(Boolean);
         setCategoriasDisponiveis(prev => {
           const combinadas = new Set([...prev, ...catsDoBanco]);
           return Array.from(combinadas);
         });
 
         if (!grupoSelecionadoId) {
-          const primeiroId = lista[0]._id?.$oid || lista[0]._id;
+          const primeiroId = listaGrupos[0]._id?.$oid || listaGrupos[0]._id;
           setGrupoSelecionadoId(primeiroId);
         }
       }
@@ -105,18 +105,12 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     }
 
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoria: categoriaFinal,
-          nome: novoNomeGrupo.trim(),
-          minimo: Number(novoMinimo),
-          maximo: Number(novoMaximo)
-        })
+      await api.criarGrupoComplemento({
+        categoria: categoriaFinal,
+        nome: novoNomeGrupo.trim(),
+        minimo: Number(novoMinimo),
+        maximo: Number(novoMaximo)
       });
-
-      if (!res.ok) throw new Error();
 
       toast.success('Grupo criado com sucesso!');
       if (isCriandoNovaCategoria && !categoriasDisponiveis.includes(categoriaFinal)) {
@@ -131,7 +125,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       setNovaCategoriaInput('');
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao criar grupo.');
+      toast.error(err.message || 'Erro ao criar grupo.');
     }
   };
 
@@ -145,20 +139,14 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     const precoNum = parseFloat(String(novoPrecoItem).replace(',', '.')) || 0;
 
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grupoId: grupoSelecionadoId,
-          nome: novoNomeItem.trim(),
-          preco: precoNum,
-          foto: novoFotoItem,
-          imagem: novoFotoItem,
-          disponivel: true
-        })
+      await api.criarItemComplemento({
+        grupoId: grupoSelecionadoId,
+        nome: novoNomeItem.trim(),
+        preco: precoNum,
+        foto: novoFotoItem,
+        imagem: novoFotoItem,
+        disponivel: true
       });
-
-      if (!res.ok) throw new Error();
 
       toast.success('Item adicionado!');
       setNovoNomeItem('');
@@ -166,15 +154,21 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       setNovoFotoItem('');
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao adicionar item.');
+      toast.error(err.message || 'Erro ao adicionar item.');
     }
   };
 
   const handleSalvarGrupo = async (grupoId) => {
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos/${grupoId}`, {
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
+      const urlClean = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+      
+      const res = await fetch(`${urlClean}/complementos/grupos/${grupoId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+        },
         body: JSON.stringify({
           nome: grupoNomeEdit.trim(),
           minimo: parseInt(grupoMinEdit) || 0,
@@ -194,71 +188,59 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const handleExcluirGrupo = async (grupoId) => {
     if (!window.confirm('Tem certeza que deseja excluir este grupo e todos os seus itens?')) return;
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/grupos/${grupoId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      await api.excluirGrupoComplemento(grupoId);
       toast.success('Grupo excluído!');
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao excluir grupo.');
+      toast.error(err.message || 'Erro ao excluir grupo.');
     }
   };
 
   const handleSalvarItem = async (itemId, grupoIdAtual) => {
     const precoFinal = parseFloat(String(itemPrecoEdit).replace(',', '.')) || 0;
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens/${itemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grupoId: grupoIdAtual,
-          nome: itemNomeEdit.trim(),
-          preco: precoFinal,
-          foto: itemFotoEdit,
-          imagem: itemFotoEdit,
-        })
+      await api.atualizarItemComplemento(itemId, {
+        grupoId: grupoIdAtual,
+        nome: itemNomeEdit.trim(),
+        preco: precoFinal,
+        foto: itemFotoEdit,
+        imagem: itemFotoEdit,
       });
 
-      if (!res.ok) throw new Error();
       toast.success('Item atualizado!');
       setEditandoItemId(null);
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao salvar item.');
+      toast.error(err.message || 'Erro ao salvar item.');
     }
   };
 
   const handleAtualizarFotoItemDireto = async (item, novaFotoBase64) => {
     const itemId = item._id?.$oid || item._id;
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens/${itemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grupoId: item.grupoId,
-          nome: item.nome,
-          preco: Number(item.preco ?? 0),
-          foto: novaFotoBase64,
-          imagem: novaFotoBase64, // Envia ambos para garantir compatibilidade com o backend
-        })
+      await api.atualizarItemComplemento(itemId, {
+        grupoId: item.grupoId,
+        nome: item.nome,
+        preco: Number(item.preco ?? 0),
+        foto: novaFotoBase64,
+        imagem: novaFotoBase64,
       });
 
-      if (!res.ok) throw new Error();
       toast.success('Foto atualizada!');
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao atualizar foto.');
+      toast.error(err.message || 'Erro ao atualizar foto.');
     }
   };
 
   const handleExcluirItem = async (itemId) => {
     if (!window.confirm('Tem certeza que deseja excluir este item?')) return;
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens/${itemId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      await api.excluirItemComplemento(itemId);
       toast.success('Item removido!');
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao excluir item.');
+      toast.error(err.message || 'Erro ao excluir item.');
     }
   };
 
@@ -266,25 +248,20 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     e.preventDefault();
     const precoNum = parseFloat(String(novoItemForm.preco).replace(',', '.')) || 0;
     try {
-      const res = await fetch(`${API_URL.replace(/\/$/, '')}/api/complementos/itens`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grupoId,
-          nome: novoItemForm.nome.trim(),
-          preco: precoNum,
-          foto: novoItemForm.foto,
-          imagem: novoItemForm.foto,
-        })
+      await api.criarItemComplemento({
+        grupoId,
+        nome: novoItemForm.nome.trim(),
+        preco: precoNum,
+        foto: novoItemForm.foto,
+        imagem: novoItemForm.foto,
       });
 
-      if (!res.ok) throw new Error();
       toast.success('Item adicionado!');
       setNovoItemForm({ nome: '', preco: '0.00', foto: '' });
       setAdicionandoNoGrupoId(null);
       carregarDados();
     } catch (err) {
-      toast.error('Erro ao adicionar item.');
+      toast.error(err.message || 'Erro ao adicionar item.');
     }
   };
 

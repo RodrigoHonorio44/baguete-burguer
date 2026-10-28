@@ -178,9 +178,13 @@ export const api = {
   },
 
   criarItemComplemento: async (payload) => {
+    const fotoBase64 = payload.foto || payload.imagem || '';
+
     const payloadFormatado = {
       ...payload,
       ...(payload.nome && { nome: payload.nome.toLowerCase() }),
+      foto: fotoBase64,
+      imagem: fotoBase64
     };
 
     const response = await fetch(`${API_URL}/complementos/itens`, {
@@ -189,7 +193,33 @@ export const api = {
       body: JSON.stringify(payloadFormatado)
     });
 
-    if (!response.ok) throw new Error('Erro ao adicionar opção de complemento');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'Erro ao adicionar opção de complemento');
+    }
+    return await response.json();
+  },
+
+  atualizarItemComplemento: async (itemId, payload) => {
+    const fotoBase64 = payload.foto || payload.imagem || '';
+
+    const payloadFormatado = {
+      ...payload,
+      ...(payload.nome && { nome: payload.nome.toLowerCase() }),
+      foto: fotoBase64,
+      imagem: fotoBase64
+    };
+
+    const response = await fetch(`${API_URL}/complementos/itens/${itemId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payloadFormatado)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'Erro ao atualizar opção de complemento');
+    }
     return await response.json();
   },
 
