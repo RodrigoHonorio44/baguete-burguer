@@ -33,10 +33,9 @@ export const GerenciarComplementosModal = ({ onClose }) => {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos');
-      if (res.ok) {
-        const data = await res.json();
-        setGrupos(Array.isArray(data) ? data : []);
+      const res = await api.get('/complementos/grupos');
+      if (res.data) {
+        setGrupos(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
       console.error('Erro ao carregar grupos:', err);
@@ -66,13 +65,9 @@ export const GerenciarComplementosModal = ({ onClose }) => {
         maximo: Number(novoMaximo)
       };
 
-      const res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await api.post('/complementos/grupos', payload);
 
-      if (res.ok) {
+      if (res.status === 200 || res.status === 201) {
         showToast('Grupo criado com sucesso!');
         setNovoNomeGrupo('');
         setNovoMinimo(0);
@@ -104,13 +99,9 @@ export const GerenciarComplementosModal = ({ onClose }) => {
         disponivel: true
       };
 
-      const res = await fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/itens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await api.post('/complementos/itens', payload);
 
-      if (res.ok) {
+      if (res.status === 200 || res.status === 201) {
         showToast('Item adicionado com sucesso!');
         setNovoNomeItem('');
         setNovoPrecoItem('0,00');
@@ -127,10 +118,8 @@ export const GerenciarComplementosModal = ({ onClose }) => {
   const handleExcluirGrupo = async (grupoId) => {
     if (!window.confirm('Tem certeza que deseja excluir este grupo e todos os seus itens?')) return;
     try {
-      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos/${grupoId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
+      const res = await api.delete(`/complementos/grupos/${grupoId}`);
+      if (res.status === 200) {
         showToast('Grupo excluído com sucesso!');
         carregarDados();
       }
@@ -142,10 +131,8 @@ export const GerenciarComplementosModal = ({ onClose }) => {
   // Excluir Item
   const handleExcluirItem = async (itemId) => {
     try {
-      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/itens/${itemId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
+      const res = await api.delete(`/complementos/itens/${itemId}`);
+      if (res.status === 200) {
         showToast('Item excluído com sucesso!');
         carregarDados();
       }
@@ -154,7 +141,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
     }
   };
 
-  // Alternar Disponibilidade do Item (Esgotado / Disponível) - Corrigido e Otimizado
+  // Alternar Disponibilidade do Item (Esgotado / Disponível)
   const handleToggleItemDisponivel = async (item) => {
     const itemId = typeof item._id === 'object' && item._id !== null 
       ? (item._id.$oid || item._id.toString()) 
@@ -171,13 +158,9 @@ export const GerenciarComplementosModal = ({ onClose }) => {
         disponivel: novoStatus
       };
 
-      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/itens/${itemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await api.put(`/complementos/itens/${itemId}`, payload);
 
-      if (res.ok) {
+      if (res.status === 200) {
         showToast(novoStatus ? 'Item marcado como disponível' : 'Item marcado como esgotado');
         carregarDados();
       } else {
@@ -191,12 +174,8 @@ export const GerenciarComplementosModal = ({ onClose }) => {
   // Salvar Edição do Grupo
   const handleSalvarEdicaoGrupo = async (grupoId) => {
     try {
-      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos/${grupoId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edicaoGrupoData)
-      });
-      if (res.ok) {
+      const res = await api.put(`/complementos/grupos/${grupoId}`, edicaoGrupoData);
+      if (res.status === 200) {
         showToast('Grupo atualizado com sucesso!');
         setEditandoGrupoId(null);
         carregarDados();
@@ -209,12 +188,8 @@ export const GerenciarComplementosModal = ({ onClose }) => {
   // Salvar Edição do Item
   const handleSalvarEdicaoItem = async (itemId) => {
     try {
-      const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/itens/${itemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edicaoItemData)
-      });
-      if (res.ok) {
+      const res = await api.put(`/complementos/itens/${itemId}`, edicaoItemData);
+      if (res.status === 200) {
         showToast('Item atualizado com sucesso!');
         setEditandoItemId(null);
         carregarDados();
@@ -277,7 +252,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                 placeholder="Ex: Escolha Sua Calda"
                 value={novoNomeGrupo}
                 onChange={(e) => setNovoNomeGrupo(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500 capitalize"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500"
               />
             </div>
 
@@ -321,7 +296,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
               <select
                 value={grupoSelecionadoId}
                 onChange={(e) => setGrupoSelecionadoId(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500 capitalize"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500"
               >
                 <option value="">Selecione um grupo...</option>
                 {grupos.map(g => {
@@ -340,7 +315,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                 placeholder="Ex: Calda de Chocolate"
                 value={novoNomeItem}
                 onChange={(e) => setNovoNomeItem(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none capitalize"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none"
               />
             </div>
 
@@ -390,7 +365,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                           type="text"
                           value={edicaoGrupoData.nome}
                           onChange={(e) => setEdicaoGrupoData({ ...edicaoGrupoData, nome: e.target.value })}
-                          className="text-xs bg-white border rounded-lg px-2.5 py-1.5 outline-none capitalize font-bold"
+                          className="text-xs bg-white border rounded-lg px-2.5 py-1.5 outline-none font-bold"
                         />
                         <span className="text-xs text-slate-500">Mín:</span>
                         <input
@@ -424,7 +399,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                     ) : (
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-tight capitalize">{grupo.nome}</h4>
+                          <h4 className="font-extrabold text-sm text-slate-900 tracking-tight">{grupo.nome}</h4>
                           <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">{grupo.categoria || 'Geral'}</span>
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5">
@@ -472,7 +447,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                                 type="text"
                                 value={edicaoItemData.nome}
                                 onChange={(e) => setEdicaoItemData({ ...edicaoItemData, nome: e.target.value })}
-                                className="w-full text-xs bg-white border rounded-lg px-2 py-1 outline-none capitalize font-semibold"
+                                className="w-full text-xs bg-white border rounded-lg px-2 py-1 outline-none font-semibold"
                               />
                               <input
                                 type="number"
@@ -490,7 +465,7 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                             <>
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <span className="text-xs font-bold text-slate-800 capitalize block">{item.nome}</span>
+                                  <span className="text-xs font-bold text-slate-800 block">{item.nome}</span>
                                   <span className="text-[11px] font-semibold text-emerald-600">
                                     {Number(item.preco || 0) > 0 ? `+ R$ ${Number(item.preco).toFixed(2)}` : 'Grátis'}
                                   </span>
@@ -501,7 +476,6 @@ export const GerenciarComplementosModal = ({ onClose }) => {
                               </div>
 
                               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                {/* Botão Esgotado / Disponível */}
                                 <button
                                   type="button"
                                   onClick={() => handleToggleItemDisponivel(item)}
