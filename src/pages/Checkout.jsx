@@ -30,6 +30,12 @@ export const Checkout = () => {
   const atingePedidoMinimo = pedidoMinimo <= 0 || subtotalProdutos >= pedidoMinimo;
   const faltaValor = pedidoMinimo > 0 && subtotalProdutos < pedidoMinimo ? pedidoMinimo - subtotalProdutos : 0;
 
+  // Verificação extra de estoque para cada item do carrinho
+  // Identifica se algum item ultrapassa o estoque atual disponível
+  const itemEstoqueInsuficiente = cart.find(
+    (item) => item.estoque !== undefined && item.quantidade > item.estoque
+  );
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="text-center mb-6">
@@ -66,7 +72,6 @@ export const Checkout = () => {
               <span className="text-slate-100 font-medium whitespace-pre-line">
                 {form.rua ? `${form.rua}, nº ${form.numero}\n${form.bairro}` : 'Endereço não informado'}
               </span>
-              {/* Alerta caso as coordenadas não estejam definidas */}
               {!form.latitude && (
                 <p className="text-xs text-amber-400 mt-1">Clique em "Atualizar Localização Atual (GPS)" para calcular a taxa de entrega.</p>
               )}
@@ -83,6 +88,17 @@ export const Checkout = () => {
             {loadingGeo ? 'A atualizar GPS...' : 'Atualizar Localização Atual (GPS)'}
           </button>
         </div>
+
+        {/* ALERTA CASO EXISTA ALGUM ITEM COM ESTOQUE INSUFICIENTE NO CARRINHO */}
+        {itemEstoqueInsuficiente && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-rose-300">
+              <span className="font-bold block text-sm">Estoque alterado!</span>
+              <span>O item <strong className="text-white">{itemEstoqueInsuficiente.nome}</strong> tem apenas <strong className="text-white">{itemEstoqueInsuficiente.estoque} unidades</strong> disponíveis, mas você selecionou {itemEstoqueInsuficiente.quantidade}. Volte ao cardápio para ajustar a quantidade.</span>
+            </div>
+          </div>
+        )}
 
         {/* Observações do Hambúrguer */}
         <div>
@@ -200,15 +216,16 @@ export const Checkout = () => {
                 cart.length === 0 || 
                 !atingePedidoMinimo || 
                 taxaEntrega === 0 || 
+                !!itemEstoqueInsuficiente ||
                 (form.forma_pagamento === 'dinheiro_troco' && (!form.troco_para || Number(form.troco_para) <= totalGeral))
               }
               className={`py-3 px-6 font-bold rounded-xl transition text-sm shadow-lg cursor-pointer ${
-                atingePedidoMinimo 
+                atingePedidoMinimo && !itemEstoqueInsuficiente
                   ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/10' 
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
               } disabled:opacity-50`}
             >
-              {loading ? 'A finalizar...' : atingePedidoMinimo ? 'Finalizar Pedido' : `Faltam R$ ${faltaValor.toFixed(2)}`}
+              {loading ? 'A finalizar...' : itemEstoqueInsuficiente ? 'Estoque Indisponível' : atingePedidoMinimo ? 'Finalizar Pedido' : `Faltam R$ ${faltaValor.toFixed(2)}`}
             </button>
           </div>
 

@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminEditarComplementos from '../components/AdminEditarComplementos';
+import { EstoqueInputForm, EstoqueBadgeCard } from '../components/EstoqueControl';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
@@ -31,6 +32,7 @@ export const AdminProdutos = () => {
     categoria: 'açaí / garrafas',
     imagem: '',
     disponivel: true,
+    estoque: '', // Adicionado campo de estoque
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -165,11 +167,16 @@ export const AdminProdutos = () => {
       return;
     }
 
+    const qtdEstoque = form.estoque !== '' ? parseInt(form.estoque, 10) : 0;
+
     const payload = {
       ...form,
       categoria: categoriaFinal,
       preco: parseFloat(form.preco),
       precoOriginal: form.precoOriginal ? parseFloat(form.precoOriginal) : 0,
+      estoque: qtdEstoque,
+      // Torna indisponível automaticamente se o estoque for 0 ou menor
+      disponivel: qtdEstoque > 0 ? form.disponivel : false,
     };
 
     const acao = editandoId
@@ -179,7 +186,7 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
+        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '' });
         setEditandoId(null);
         setIsCriandoNovaCategoria(false);
         setNovaCategoriaInput('');
@@ -207,6 +214,7 @@ export const AdminProdutos = () => {
       categoria: catProd,
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
+      estoque: prod.estoque !== undefined ? prod.estoque : '',
     });
     toast('modo de edição ativado', { icon: '✏️' });
   };
@@ -223,6 +231,7 @@ export const AdminProdutos = () => {
         precoOriginal: Number(prod.precoOriginal || prod.precoAntigo || 0),
         categoria: prod.categoria || prod.category || 'açaí / garrafas',
         imagem: prod.imagem || prod.image,
+        estoque: Number(prod.estoque || 0),
         disponivel: novoStatus,
       };
 
@@ -252,7 +261,7 @@ export const AdminProdutos = () => {
     setEditandoId(null);
     setIsCriandoNovaCategoria(false);
     setNovaCategoriaInput('');
-    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true });
+    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '' });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
@@ -271,7 +280,6 @@ export const AdminProdutos = () => {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          {/* BOTÃO GLOBAL QUE ABRE O GERENCIADOR DE COMPLEMENTOS */}
           <button
             onClick={() => setGerenciadorGlobalAberto(!gerenciadorGlobalAberto)}
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs cursor-pointer transition"
@@ -290,7 +298,6 @@ export const AdminProdutos = () => {
         </div>
       </div>
 
-      {/* Painel Geral de Complementos (Exibe Criar Grupo + Adicionar Opção + Listagem e Edição Completa) */}
       {gerenciadorGlobalAberto && (
         <div className="mb-8">
           <AdminEditarComplementos
@@ -300,7 +307,7 @@ export const AdminProdutos = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Formulário de Cadastro / Edição de Produto (Coluna Esquerda) */}
+        {/* Formulário de Cadastro / Edição de Produto */}
         <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs h-fit">
           <h2 className="text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
             {editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}
@@ -329,7 +336,7 @@ export const AdminProdutos = () => {
                     onClick={() => setIsCriandoNovaCategoria(false)}
                     className="text-[11px] text-amber-600 hover:underline font-semibold cursor-pointer"
                   >
-                    &larr; Voltar para lista
+                    ← Voltar para lista
                   </button>
                 )}
               </div>
@@ -376,9 +383,9 @@ export const AdminProdutos = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Atual / Promo (R$)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Atual</label>
                 <input
                   type="number"
                   step="0.01"
@@ -387,12 +394,12 @@ export const AdminProdutos = () => {
                   value={form.preco}
                   onChange={handleChange}
                   placeholder="21.90"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Original (Opcional)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Preço Original</label>
                 <input
                   type="number"
                   step="0.01"
@@ -400,11 +407,16 @@ export const AdminProdutos = () => {
                   value={form.precoOriginal}
                   onChange={handleChange}
                   placeholder="26.90"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
+
+              {/* Chamando o componente separado de Estoque no Formulário */}
+              <div>
+                <EstoqueInputForm value={form.estoque} onChange={handleChange} />
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Informe o preço original maior que o preço atual para exibir o valor riscado (promoção).</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Se o estoque zerar, o item ficará indisponível automaticamente para novas vendas.</p>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Descrição / Ingredientes</label>
@@ -413,7 +425,7 @@ export const AdminProdutos = () => {
                 rows="3"
                 value={form.descricao}
                 onChange={handleChange}
-                placeholder="Ex: garrafa de açaí cremoso de 500ml. monte com seus sabores e acompanhamentos..."
+                placeholder="Ex: garrafa de açaí cremoso de 500ml..."
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:border-amber-500 resize-none"
               />
             </div>
@@ -456,7 +468,7 @@ export const AdminProdutos = () => {
           </form>
         </div>
 
-        {/* Tabela / Lista de Produtos Cadastrados (Coluna Direita) */}
+        {/* Tabela / Lista de Produtos Cadastrados */}
         <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-800">
@@ -479,7 +491,10 @@ export const AdminProdutos = () => {
                 const preco = Number(prod.preco || prod.price || 0);
                 const precoOriginal = Number(prod.precoOriginal || prod.precoAntigo || 0);
                 const imagemProd = prod.imagem || prod.image;
-                const disponivel = prod.disponivel !== false;
+                const estoqueAtual = Number(prod.estoque || 0);
+                
+                // Se o estoque for 0 ou menor, ou se a flag for explicitamente false, considera indisponível
+                const disponivel = prod.disponivel !== false && estoqueAtual > 0;
 
                 return (
                   <div
@@ -502,12 +517,17 @@ export const AdminProdutos = () => {
                         <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase border border-amber-200">
                           {prod.categoria || prod.category || 'açaí / garrafas'}
                         </span>
+                        
+                        {/* Chamando o componente separado de Badge de Estoque no Card */}
+                        <EstoqueBadgeCard estoque={prod.estoque} />
+
                         {!disponivel && (
                           <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded uppercase border border-rose-200">
-                            Esgotado
+                            Esgotado / Indisponível
                           </span>
                         )}
                       </div>
+
                       <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                         {prod.descricao || prod.description || 'Sem descrição'}
                       </p>

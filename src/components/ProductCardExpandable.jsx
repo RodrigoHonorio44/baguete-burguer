@@ -24,7 +24,9 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const nome = product?.nome || product?.name || '';
   const descricao = product?.descricao || product?.description || '';
   
-  const disponivel = product?.disponivel !== undefined ? product.disponivel : true;
+  // CORREÇÃO AQUI: Considera indisponível se a flag for false OU se o estoque for 0 ou menor
+  const estoqueAtual = Number(product?.estoque ?? 0);
+  const disponivel = (product?.disponivel !== undefined ? product.disponivel : true) && estoqueAtual > 0;
 
   const itemInCart = cart.find(item => (item.id || item._id) === id);
   const quantity = itemInCart ? itemInCart.quantity : 0;
@@ -349,7 +351,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
                           {/* Cabeçalho do Grupo */}
                           <div 
                             onClick={() => toggleGrupoAccordion(gId)}
-                            className="flex justify-between items-center p-3.5 md:p-4 cursor-pointer bg-white hover:bg-slate-50/80 transition-colors select-none gap-2"
+                            className="flex justify-between items-center p-3.5 md:p-4 cursor-pointer bg-white hover:bg-slate-50/85 transition-colors select-none gap-2"
                           >
                             <div className="min-w-0 flex-1">
                               <h4 className="font-bold text-xs md:text-sm text-slate-900 capitalize flex items-center gap-2 flex-wrap">

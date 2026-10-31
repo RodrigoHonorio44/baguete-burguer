@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 const CartContext = createContext();
 
@@ -75,22 +76,45 @@ export const CartProvider = ({ children }) => {
     }
 
     const productId = product.id || product._id;
+    const maxEstoque = product.estoque !== undefined && product.estoque !== null ? Number(product.estoque) : Infinity;
+
+    // Se o produto não tiver estoque disponível de início
+    if (maxEstoque <= 0) {
+      toast.error('ops! este item está esgotado no momento.', { id: 'aviso-estoque-limite' });
+      return;
+    }
+
+    let estoqueExcedido = false;
 
     setCart((prevCart) => {
       const existing = prevCart.find((item) => (item.id || item._id) === productId);
+
       if (existing) {
+        const itemEstoque = existing.estoque !== undefined && existing.estoque !== null ? Number(existing.estoque) : maxEstoque;
+        
+        // Trava de limite no estoque
+        if (existing.quantity + 1 > itemEstoque) {
+          estoqueExcedido = true;
+          return prevCart;
+        }
+
         return prevCart.map((item) =>
           (item.id || item._id) === productId 
-            ? { ...item, quantity: item.quantity + 1 } 
+            ? { ...item, quantity: item.quantity + 1, estoque: itemEstoque } 
             : item
         );
       }
-      return [...prevCart, { ...product, id: productId, quantity: 1 }];
+
+      return [...prevCart, { ...product, id: productId, quantity: 1, estoque: maxEstoque }];
     });
-    setIsCartOpen(true);
+
+    if (estoqueExcedido) {
+      toast.error(`ops! temos apenas ${maxEstoque} unidades deste item disponíveis em estoque.`, { id: 'aviso-estoque-limite' });
+    } else {
+      setIsCartOpen(true);
+    }
   };
 
-  // Atualizado para diminuir 1 unidade ou remover se chegar a 0 (compatível com os botões + e -)
   const removeFromCart = (productId) => {
     setCart((prevCart) =>
       prevCart
@@ -110,15 +134,32 @@ export const CartProvider = ({ children }) => {
       removeFromCart(id);
       return;
     }
+
+    let estoqueExcedido = false;
+    let limiteDisponivel = 0;
+
     setCart((prevCart) =>
       prevCart.map((item) => {
         const itemId = item.id || item._id;
         if (itemId === id) {
+          const maxEstoque = item.estoque !== undefined && item.estoque !== null ? Number(item.estoque) : Infinity;
+
+          // Trava para não aceitar valores maiores que o estoque
+          if (novaQuantidade > maxEstoque) {
+            estoqueExcedido = true;
+            limiteDisponivel = maxEstoque;
+            return item;
+          }
+
           return { ...item, quantity: novaQuantidade };
         }
         return item;
       })
     );
+
+    if (estoqueExcedido) {
+      toast.error(`quantidade máxima atingida! restam apenas ${limiteDisponivel} unidades.`, { id: 'aviso-estoque-limite' });
+    }
   };
 
   const clearCart = () => {
