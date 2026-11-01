@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers, Sliders, CheckSquare, Square } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminEditarComplementos from '../components/AdminEditarComplementos';
 import { EstoqueInputForm, EstoqueBadgeCard } from '../components/EstoqueControl';
 
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
+  const [gruposDisponiveis, setGruposDisponiveis] = useState([]); // 👈 Lista de grupos para vincular
   const [loading, setLoading] = useState(true);
 
-  // Estado para controlar o Gerenciador Geral de Complementos no Topo
   const [gerenciadorGlobalAberto, setGerenciadorGlobalAberto] = useState(false);
+  const [produtoComplementoAtivoId, setProdutoComplementoAtivoId] = useState(null);
 
-  // Lista dinâmica extraída dos produtos cadastrados + categorias padrão
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([
     'açaí / garrafas',
     'hambúrgueres / baguetes',
@@ -32,12 +32,12 @@ export const AdminProdutos = () => {
     categoria: 'açaí / garrafas',
     imagem: '',
     disponivel: true,
-    estoque: '', // Adicionado campo de estoque
+    estoque: '',
+    gruposComplementosIds: [], // 👈 IDs dos grupos selecionados para este produto
   });
 
   const [editandoId, setEditandoId] = useState(null);
 
-  // Compressão, redimensionamento e conversão de imagem para WebP/JPEG
   const comprimirImagem = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -52,7 +52,7 @@ export const AdminProdutos = () => {
           const MAX_HEIGHT = 500;
 
           if (larguraOriginal > 4000 || alturaOriginal > 4000) {
-            toast.error(`foto fora do padrão! dimensões atuais: ${larguraOriginal}x${alturaOriginal}px. máximo permitido: 4000x4000px.`);
+            toast.error(`foto fora do padrão! dimensões atuais: ${larguraOriginal}x${alturaOriginal}px.`);
           }
 
           let width = larguraOriginal;
@@ -87,14 +87,21 @@ export const AdminProdutos = () => {
     });
   };
 
-  const carregarProdutos = async () => {
+  const carregarDadosIniciais = async () => {
     setLoading(true);
     try {
-      const data = await api.getProdutos();
-      setProdutos(data);
+      const [dataProdutos, dataGrupos] = await Promise.all([
+        api.getProdutos(),
+        fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos').then(res => res.json()).catch(() => [])
+      ]);
 
-      if (Array.isArray(data)) {
-        const catsDoBanco = data.map(p => p.categoria || p.category).filter(Boolean);
+      setProdutos(dataProdutos);
+      
+      const listaGrupos = Array.isArray(dataGrupos) ? dataGrupos : (dataGrupos.data || dataGrupos.grupos || []);
+      setGruposDisponiveis(listaGrupos);
+
+      if (Array.isArray(dataProdutos)) {
+        const catsDoBanco = dataProdutos.map(p => p.categoria || p.category).filter(Boolean);
         setCategoriasDisponiveis((prev) => {
           const combinadas = new Set([...prev, ...catsDoBanco]);
           return Array.from(combinadas);
@@ -102,14 +109,14 @@ export const AdminProdutos = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error('erro ao carregar os produtos do servidor.');
+      toast.error('erro ao carregar os dados do servidor.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarProdutos();
+    carregarDadosIniciais();
   }, []);
 
   const handleChange = (e) => {
@@ -124,6 +131,15 @@ export const AdminProdutos = () => {
       }
     } else {
       setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleToggleGrupoVinculado = (grupoId) => {
+    const atuais = form.gruposComplementosIds || [];
+    if (atuais.includes(grupoId)) {
+      setForm({ ...form, gruposComplementosIds: atuais.filter(id => id !== grupoId) });
+    } else {
+      setForm({ ...form, gruposComplementosIds: [...atuais, grupoId] });
     }
   };
 
@@ -175,8 +191,8 @@ export const AdminProdutos = () => {
       preco: parseFloat(form.preco),
       precoOriginal: form.precoOriginal ? parseFloat(form.precoOriginal) : 0,
       estoque: qtdEstoque,
-      // Torna indisponível automaticamente se o estoque for 0 ou menor
       disponivel: qtdEstoque > 0 ? form.disponivel : false,
+      gruposComplementosIds: form.gruposComplementosIds, // 👈 Envia os IDs selecionados
     };
 
     const acao = editandoId
@@ -186,11 +202,12 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '' });
+        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '', gruposComplementosIds: [] });
         setEditandoId(null);
+        setProdutoComplementoAtivoId(null);
         setIsCriandoNovaCategoria(false);
         setNovaCategoriaInput('');
-        carregarProdutos();
+        carregarDadosIniciais();
         return editandoId ? 'produto atualizado com sucesso!' : 'produto cadastrado com sucesso!';
       },
       error: (err) => 'erro ao salvar o produto: ' + err.message,
@@ -198,7 +215,10 @@ export const AdminProdutos = () => {
   };
 
   const handleEdit = (prod) => {
-    setEditandoId(prod._id || prod.id);
+    const pId = prod._id || prod.id;
+    setEditandoId(pId);
+    setProdutoComplementoAtivoId(pId);
+
     const catProd = prod.categoria || prod.category || 'açaí / garrafas';
     
     if (!categoriasDisponiveis.includes(catProd)) {
@@ -215,6 +235,7 @@ export const AdminProdutos = () => {
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
       estoque: prod.estoque !== undefined ? prod.estoque : '',
+      gruposComplementosIds: prod.gruposComplementosIds || prod.complementosIds || [], // 👈 Carrega os grupos salvos
     });
     toast('modo de edição ativado', { icon: '✏️' });
   };
@@ -233,11 +254,12 @@ export const AdminProdutos = () => {
         imagem: prod.imagem || prod.image,
         estoque: Number(prod.estoque || 0),
         disponivel: novoStatus,
+        gruposComplementosIds: prod.gruposComplementosIds || prod.complementosIds || [],
       };
 
       await api.atualizarProduto(id, payload);
       toast.success(novoStatus ? 'produto agora está disponível!' : 'produto marcado como esgotado!');
-      carregarProdutos();
+      carregarDadosIniciais();
     } catch (err) {
       console.error(err);
       toast.error('erro ao atualizar status do produto.');
@@ -250,7 +272,7 @@ export const AdminProdutos = () => {
     try {
       await api.excluirProduto(id);
       toast.success('produto removido com sucesso!');
-      carregarProdutos();
+      carregarDadosIniciais();
     } catch (err) {
       console.error(err);
       toast.error('erro ao excluir produto: ' + err.message);
@@ -259,37 +281,41 @@ export const AdminProdutos = () => {
 
   const cancelarEdicao = () => {
     setEditandoId(null);
+    setProdutoComplementoAtivoId(null);
     setIsCriandoNovaCategoria(false);
     setNovaCategoriaInput('');
-    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '' });
+    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '', gruposComplementosIds: [] });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Cabeçalho com Botão Geral no Topo */}
+      {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
             <Package className="w-7 h-7 text-amber-500" />
-            Gestão de Produtos (Açaí, Baguetes e Bebidas)
+            Gestão de Produtos e Vínculo de Complementos
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Cadastre novos itens, gerencie preços promocionais e atualize o cardápio em tempo real
+            Cadastre itens, escolha preços e vincule grupos específicos de complementos
           </p>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <button
-            onClick={() => setGerenciadorGlobalAberto(!gerenciadorGlobalAberto)}
+            onClick={() => {
+              setGerenciadorGlobalAberto(!gerenciadorGlobalAberto);
+              setProdutoComplementoAtivoId(null);
+            }}
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs cursor-pointer transition"
           >
             <Layers className="w-4 h-4" />
-            {gerenciadorGlobalAberto ? 'Fechar Gerenciador Geral' : 'Gerenciar Complementos Gerais'}
+            {gerenciadorGlobalAberto ? 'Fechar Gerenciador Geral' : 'Criar/Gerenciar Grupos'}
           </button>
 
           <button
-            onClick={carregarProdutos}
+            onClick={carregarDadosIniciais}
             className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
             title="Atualizar lista"
           >
@@ -301,7 +327,10 @@ export const AdminProdutos = () => {
       {gerenciadorGlobalAberto && (
         <div className="mb-8">
           <AdminEditarComplementos
-            onFechar={() => setGerenciadorGlobalAberto(false)}
+            onFechar={() => {
+              setGerenciadorGlobalAberto(false);
+              carregarDadosIniciais();
+            }}
           />
         </div>
       )}
@@ -309,9 +338,11 @@ export const AdminProdutos = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Formulário de Cadastro / Edição de Produto */}
         <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs h-fit">
-          <h2 className="text-base font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">
-            {editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}
-          </h2>
+          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-800">
+              {editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}
+            </h2>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -322,7 +353,7 @@ export const AdminProdutos = () => {
                 required
                 value={form.nome}
                 onChange={handleChange}
-                placeholder="Ex: açaí na garrafa 500ml, baguete artesanal"
+                placeholder="Ex: Combo Casal 500ml"
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -364,7 +395,7 @@ export const AdminProdutos = () => {
                       type="button"
                       onClick={handleExcluirCategoriaSelecionada}
                       className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
-                      title="Excluir categoria selecionada da lista"
+                      title="Excluir categoria selecionada"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -393,7 +424,7 @@ export const AdminProdutos = () => {
                   required
                   value={form.preco}
                   onChange={handleChange}
-                  placeholder="21.90"
+                  placeholder="35.90"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -406,32 +437,78 @@ export const AdminProdutos = () => {
                   name="precoOriginal"
                   value={form.precoOriginal}
                   onChange={handleChange}
-                  placeholder="26.90"
+                  placeholder="40.00"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* Chamando o componente separado de Estoque no Formulário */}
               <div>
                 <EstoqueInputForm value={form.estoque} onChange={handleChange} />
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Se o estoque zerar, o item ficará indisponível automaticamente para novas vendas.</p>
+
+            {/* 👇 SELETOR DE VÍNCULO DE GRUPOS DE COMPLEMENTOS */}
+            <div className="p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-2xl shadow-2xs">
+              <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-amber-600" />
+                Vincular Grupos de Complementos:
+              </label>
+              <p className="text-[11px] text-slate-600 mb-2.5">
+                Marque apenas os grupos que devem aparecer quando o cliente abrir este item no cardápio.
+              </p>
+
+              {gruposDisponiveis.length === 0 ? (
+                <p className="text-xs text-rose-600 italic bg-rose-50 p-2 rounded-xl border border-rose-200">
+                  Nenhum grupo criado ainda. Clique em "Criar/Gerenciar Grupos" acima.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {gruposDisponiveis.map(grupo => {
+                    const gId = grupo._id || grupo.id;
+                    const selecionado = (form.gruposComplementosIds || []).includes(gId);
+
+                    return (
+                      <div
+                        key={gId}
+                        onClick={() => handleToggleGrupoVinculado(gId)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
+                          selecionado 
+                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-2xs' 
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate pr-2">
+                          <span className="capitalize truncate">{grupo.nome}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase ${selecionado ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-500'}`}>
+                            {grupo.categoria}
+                          </span>
+                        </div>
+                        {selecionado ? (
+                          <CheckSquare className="w-4 h-4 text-slate-950 shrink-0" />
+                        ) : (
+                          <Square className="w-4 h-4 text-slate-400 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Descrição / Ingredientes</label>
               <textarea
                 name="descricao"
-                rows="3"
+                rows="2"
                 value={form.descricao}
                 onChange={handleChange}
-                placeholder="Ex: garrafa de açaí cremoso de 500ml..."
+                placeholder="Detalhes do item..."
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:border-amber-500 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Foto do Produto (Computador ou Celular)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Foto do Produto</label>
               <input
                 type="file"
                 accept="image/*"
@@ -492,8 +569,8 @@ export const AdminProdutos = () => {
                 const precoOriginal = Number(prod.precoOriginal || prod.precoAntigo || 0);
                 const imagemProd = prod.imagem || prod.image;
                 const estoqueAtual = Number(prod.estoque || 0);
+                const gruposVinculados = prod.gruposComplementosIds || prod.complementosIds || [];
                 
-                // Se o estoque for 0 ou menor, ou se a flag for explicitamente false, considera indisponível
                 const disponivel = prod.disponivel !== false && estoqueAtual > 0;
 
                 return (
@@ -517,13 +594,16 @@ export const AdminProdutos = () => {
                         <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase border border-amber-200">
                           {prod.categoria || prod.category || 'açaí / garrafas'}
                         </span>
+
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold border border-emerald-200">
+                          {gruposVinculados.length} grupo(s) vinculado(s)
+                        </span>
                         
-                        {/* Chamando o componente separado de Badge de Estoque no Card */}
                         <EstoqueBadgeCard estoque={prod.estoque} />
 
                         {!disponivel && (
                           <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded uppercase border border-rose-200">
-                            Esgotado / Indisponível
+                            Esgotado
                           </span>
                         )}
                       </div>
@@ -542,7 +622,6 @@ export const AdminProdutos = () => {
                       </div>
                     </div>
 
-                    {/* Botões de Ação Direta do Produto */}
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
@@ -551,7 +630,7 @@ export const AdminProdutos = () => {
                             ? 'bg-white text-emerald-600 border-slate-200 hover:bg-emerald-50' 
                             : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                         }`}
-                        title={disponivel ? 'Marcar como indisponível (esgotado)' : 'Marcar como disponível'}
+                        title={disponivel ? 'Marcar como esgotado' : 'Marcar como disponível'}
                       >
                         {disponivel ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>

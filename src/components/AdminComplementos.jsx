@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 
-export const AdminEditarComplementos = ({ onFechar }) => {
+export const AdminComplementos = ({ onFechar }) => {
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -56,7 +56,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     carregarDados();
   }, []);
 
-  // Criar Novo Grupo (Ex: "Selecione Os Acompanhamentos", "Caldas", "Cremes")
   const handleCriarGrupo = async (e) => {
     e.preventDefault();
     if (!novoNomeGrupo.trim()) {
@@ -88,7 +87,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Adicionar Opção/Item ao Grupo Selecionado
   const handleCriarItem = async (e) => {
     e.preventDefault();
     if (!grupoSelecionadoId || !novoNomeItem.trim()) {
@@ -121,7 +119,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Excluir Grupo
   const handleExcluirGrupo = async (grupoId) => {
     if (!window.confirm('Tem certeza que deseja excluir este grupo e todos os seus itens?')) return;
     try {
@@ -135,7 +132,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Excluir Item
   const handleExcluirItem = async (itemId) => {
     try {
       const res = await api.delete(`/complementos/itens/${itemId}`);
@@ -148,7 +144,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Alternar Disponibilidade do Item (Esgotado / Disponível)
   const handleToggleItemDisponivel = async (item) => {
     const itemId = typeof item._id === 'object' && item._id !== null 
       ? (item._id.$oid || item._id.toString()) 
@@ -178,7 +173,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Salvar Edição do Grupo
   const handleSalvarEdicaoGrupo = async (grupoId) => {
     try {
       const res = await api.put(`/complementos/grupos/${grupoId}`, edicaoGrupoData);
@@ -192,7 +186,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
     }
   };
 
-  // Salvar Edição do Item
   const handleSalvarEdicaoItem = async (itemId) => {
     try {
       const res = await api.put(`/complementos/itens/${itemId}`, edicaoItemData);
@@ -208,8 +201,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-md border border-slate-200/80 p-6 relative">
-      
-      {/* Toast Flutuante */}
       {toastMessage && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -217,7 +208,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
         </div>
       )}
 
-      {/* Cabeçalho */}
       <div className="flex justify-between items-center pb-4 mb-6 border-b border-slate-200">
         <div>
           <h2 className="text-lg font-extrabold text-slate-900">Gerenciar e Editar Categorias e Adicionais Cadastrados</h2>
@@ -234,10 +224,7 @@ export const AdminEditarComplementos = ({ onFechar }) => {
         )}
       </div>
 
-      {/* PAINEL SUPERIOR: CRIAR NOVO GRUPO DE COMPLEMENTOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/70">
-        
-        {/* 1. Formulário para Criar Grupo Novo */}
         <form onSubmit={handleCriarGrupo} className="space-y-4">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Plus size={16} className="text-amber-600" />
@@ -300,7 +287,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
           </button>
         </form>
 
-        {/* 2. Formulário para Adicionar Item a um Grupo Existente */}
         <form onSubmit={handleCriarItem} className="space-y-4">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Plus size={16} className="text-emerald-600" />
@@ -353,10 +339,8 @@ export const AdminEditarComplementos = ({ onFechar }) => {
             + Incluir Item no Grupo
           </button>
         </form>
-
       </div>
 
-      {/* LISTAGEM DOS GRUPOS E ITENS */}
       <div className="space-y-6">
         <h3 className="text-base font-extrabold text-slate-900 border-b pb-2">Grupos Cadastrados</h3>
 
@@ -371,10 +355,7 @@ export const AdminEditarComplementos = ({ onFechar }) => {
 
             return (
               <div key={grupoId} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
-                
-                {/* Cabeçalho do Grupo */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                  
                   {isEditingGroup ? (
                     <div className="flex items-center gap-2 flex-wrap flex-1">
                       <input
@@ -444,10 +425,8 @@ export const AdminEditarComplementos = ({ onFechar }) => {
                       </button>
                     </div>
                   )}
-
                 </div>
 
-                {/* Lista dos Itens do Grupo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pl-2">
                   {(grupo.itens || []).map(item => {
                     const itemId = typeof item._id === 'object' && item._id !== null ? (item._id.$oid || item._id.toString()) : (item._id || item.id);
@@ -456,7 +435,6 @@ export const AdminEditarComplementos = ({ onFechar }) => {
 
                     return (
                       <div key={itemId} className={`p-3 rounded-xl border flex flex-col justify-between gap-2 transition ${isDisponivel ? 'bg-white border-slate-200' : 'bg-rose-50/40 border-rose-200 opacity-75'}`}>
-                        
                         {isEditingItem ? (
                           <div className="space-y-2">
                             <input
@@ -530,20 +508,17 @@ export const AdminEditarComplementos = ({ onFechar }) => {
                             </div>
                           </>
                         )}
-
                       </div>
                     );
                   })}
                 </div>
-
               </div>
             );
           })
         )}
       </div>
-
     </div>
   );
 };
 
-export default AdminEditarComplementos;
+export default AdminComplementos;

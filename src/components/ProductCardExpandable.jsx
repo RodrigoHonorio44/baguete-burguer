@@ -24,7 +24,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
   const nome = product?.nome || product?.name || '';
   const descricao = product?.descricao || product?.description || '';
   
-  // CORREÇÃO AQUI: Considera indisponível se a flag for false OU se o estoque for 0 ou menor
+  // Considera indisponível se a flag for false OU se o estoque for 0 ou menor
   const estoqueAtual = Number(product?.estoque ?? 0);
   const disponivel = (product?.disponivel !== undefined ? product.disponivel : true) && estoqueAtual > 0;
 
@@ -43,38 +43,27 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       const carregarComplementos = async () => {
         setLoadingComplementos(true);
         try {
-          let data = [];
-          
-          try {
-            const resCat = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos?categoriaId=${encodeURIComponent(categoriaProduto)}`);
-            if (resCat.ok) {
-              const dataCat = await resCat.json();
-              if (Array.isArray(dataCat) && dataCat.length > 0) {
-                data = dataCat;
-              }
-            }
-          } catch (e) {}
-
-          if (!data || data.length === 0) {
-            if (typeof api?.getComplementosProduto === 'function') {
-              try {
-                data = await api.getComplementosProduto(id);
-              } catch (e) {}
-            }
-          }
-
-          if (!data || (Array.isArray(data) && data.length === 0)) {
-            const res = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/produtos/${id}/complementos`);
-            if (res.ok) {
-              data = await res.json();
-            }
-          }
-
           let gruposArray = [];
-          if (Array.isArray(data)) {
-            gruposArray = data;
-          } else if (data && typeof data === 'object') {
-            gruposArray = data.grupos || data.complementos || data.data || data.items || [];
+          
+          // Busca diretamente na rota correta do servidor que já processa o array gruposComplementosIds e categorias
+          try {
+            const resProd = await fetch(`https://api-hamburgueria.rodhonsystem.com.br/api/produtos/${id}/complementos`);
+            if (resProd.ok) {
+              const dataProd = await resProd.json();
+              gruposArray = Array.isArray(dataProd) ? dataProd : [];
+            }
+          } catch (e) {
+            console.error('Erro ao buscar complementos do produto:', e);
+          }
+
+          // Fallback caso a rota principal falhe, tenta buscar pelo SDK da api
+          if (gruposArray.length === 0 && typeof api?.getComplementosProduto === 'function') {
+            try {
+              const resSdk = await api.getComplementosProduto(id);
+              if (Array.isArray(resSdk)) {
+                gruposArray = resSdk;
+              }
+            } catch (e) {}
           }
 
           setGruposComplementos(Array.isArray(gruposArray) ? gruposArray : []);
@@ -95,7 +84,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       };
       carregarComplementos();
     }
-  }, [isExpanded, id, categoriaProduto]);
+  }, [isExpanded, id]);
 
   const toggleGrupoAccordion = (gId) => {
     setGruposAbertos(prev => ({

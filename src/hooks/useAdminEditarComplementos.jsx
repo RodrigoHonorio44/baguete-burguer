@@ -40,6 +40,12 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const [adicionandoNoGrupoId, setAdicionandoNoGrupoId] = useState(null);
   const [novoItemForm, setNovoItemForm] = useState({ nome: '', preco: '0.00', foto: '' });
 
+  // URL base padronizada para produção
+  const getApiBaseUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL || 'https://api-impressora.rodhonsystem.com.br';
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
+  };
+
   const carregarDados = async () => {
     setLoading(true);
     try {
@@ -47,9 +53,10 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       if (produtoId) params.append('produtoId', produtoId);
       if (categoriaId) params.append('categoriaId', categoriaId);
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
-      const urlClean = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
+      const urlClean = getApiBaseUrl();
       const url = params.toString() ? `${urlClean}/complementos/grupos?${params.toString()}` : `${urlClean}/complementos/grupos`;
+
+      console.log('🔍 Buscando grupos de complementos para URL:', url);
 
       const res = await fetch(url, {
         headers: {
@@ -58,17 +65,23 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       });
       const data = await res.json();
       const listaGrupos = Array.isArray(data) ? data : (data.data || []);
-      setGruposComItens(listaGrupos);
+      
+      // Se tivermos um produtoId, filtramos rigorosamente para garantir que apareçam apenas os globais OU os do produto específico
+      const gruposFiltrados = produtoId 
+        ? listaGrupos.filter(g => !g.produtoId || g.produtoId === produtoId || g.produtoId?.$oid === produtoId)
+        : listaGrupos;
 
-      if (listaGrupos.length > 0) {
-        const catsDoBanco = listaGrupos.map(g => g.categoria).filter(Boolean);
+      setGruposComItens(gruposFiltrados);
+
+      if (gruposFiltrados.length > 0) {
+        const catsDoBanco = gruposFiltrados.map(g => g.categoria).filter(Boolean);
         setCategoriasDisponiveis(prev => {
           const combinadas = new Set([...prev, ...catsDoBanco]);
           return Array.from(combinadas);
         });
 
         if (!grupoSelecionadoId) {
-          const primeiroId = listaGrupos[0]._id?.$oid || listaGrupos[0]._id;
+          const primeiroId = gruposFiltrados[0]._id?.$oid || gruposFiltrados[0]._id;
           setGrupoSelecionadoId(primeiroId);
         }
       }
@@ -105,12 +118,17 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     }
 
     try {
-      await api.criarGrupoComplemento({
+      const payload = {
+        produtoId: produtoId || null,
         categoria: categoriaFinal,
         nome: novoNomeGrupo.trim(),
         minimo: Number(novoMinimo),
         maximo: Number(novoMaximo)
-      });
+      };
+
+      console.log('📦 Criando grupo de complemento com payload:', payload);
+
+      await api.criarGrupoComplemento(payload);
 
       toast.success('Grupo criado com sucesso!');
       if (isCriandoNovaCategoria && !categoriasDisponiveis.includes(categoriaFinal)) {
@@ -160,9 +178,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
 
   const handleSalvarGrupo = async (grupoId) => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'https://api-hamburgueria.rodhonsystem.com.br';
-      const urlClean = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/api`;
-      
+      const urlClean = getApiBaseUrl();
       const res = await fetch(`${urlClean}/complementos/grupos/${grupoId}`, {
         method: 'PUT',
         headers: {
@@ -320,3 +336,5 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     handleCriarItemNoGrupo,
   };
 };
+
+export default useAdminEditarComplementos;

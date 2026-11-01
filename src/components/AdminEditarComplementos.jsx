@@ -2,7 +2,7 @@ import React from 'react';
 import { Layers, Trash2, Edit2, X, Image as ImageIcon, Save, Plus, Camera } from 'lucide-react';
 import { useAdminEditarComplementos } from '../hooks/useAdminEditarComplementos';
 
-export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar }) => {
+export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar, compacto = false }) => {
   const {
     gruposComItens,
     loading,
@@ -41,8 +41,8 @@ export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar }) =>
     setItemNomeEdit,
     itemPrecoEdit,
     setItemPrecoEdit,
-    itemFotoEdit,         // <-- Garantido aqui
-    setItemFotoEdit,      // <-- Garantido aqui
+    itemFotoEdit,
+    setItemFotoEdit,
     adicionandoNoGrupoId,
     setAdicionandoNoGrupoId,
     novoItemForm,
@@ -58,31 +58,48 @@ export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar }) =>
     handleCriarItemNoGrupo,
   } = useAdminEditarComplementos(produtoId, categoriaId);
 
+  // Intercepta a criação do grupo para garantir que o produtoId é enviado caso exista
+  const onSubmitCriarGrupo = (e) => {
+    e.preventDefault();
+    handleCriarGrupo(e);
+  };
+
   return (
-    <div className="bg-white border border-slate-200/80 p-6 rounded-2xl mt-6 shadow-xs relative">
-      <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-emerald-600" />
-          Gerenciar e Editar Grupos e Opcionais Cadastrados
-        </h3>
-        
-        {onFechar && (
-          <button 
-            type="button"
-            onClick={onFechar} 
-            className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition cursor-pointer flex items-center justify-center shadow-xs"
-            title="Fechar painel"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-      </div>
+    <div className={compacto ? "bg-transparent p-1 relative" : "bg-white border border-slate-200/80 p-6 rounded-2xl mt-6 shadow-xs relative"}>
+      
+      {/* O cabeçalho principal só aparece se NÃO estiver no modo compacto */}
+      {!compacto && (
+        <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-600" />
+              Gerenciar e Editar Grupos e Opcionais do Produto
+            </h3>
+            {produtoId && (
+              <p className="text-xs text-amber-600 font-semibold mt-0.5">
+                💡 Vinculado exclusivamente a este produto (Isolado de outras categorias).
+              </p>
+            )}
+          </div>
+          
+          {onFechar && (
+            <button 
+              type="button"
+              onClick={onFechar} 
+              className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition cursor-pointer flex items-center justify-center shadow-xs"
+              title="Fechar painel"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* PAINEL SUPERIOR: CRIAR NOVO GRUPO + ADICIONAR ITEM COM FOTO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/70">
+      <div className={`grid grid-cols-1 ${compacto ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6 mb-8 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/70`}>
         
         {/* 1. Criar Novo Grupo */}
-        <form onSubmit={handleCriarGrupo} className="space-y-4">
+        <form onSubmit={onSubmitCriarGrupo} className="space-y-4">
           <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Plus size={15} className="text-amber-600" />
             1. Criar Novo Grupo / Categoria de Opcionais
@@ -386,7 +403,6 @@ export const AdminEditarComplementos = ({ produtoId, categoriaId, onFechar }) =>
                     {itens.map((item) => {
                       const itemId = item._id?.$oid || item._id;
                       const precoItem = Number(item.preco ?? 0);
-                      // Captura a foto independentemente da chave retornada pela API
                       const fotoItem = item.foto || item.imagem || item.img || item.url;
 
                       return (
