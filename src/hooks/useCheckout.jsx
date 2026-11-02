@@ -13,10 +13,11 @@ export const useCheckout = () => {
   const [userDataId, setUserDataId] = useState('');
   const [userDataEmail, setUserDataEmail] = useState('');
 
-  // Estados de Entrega e Pedido Mínimo Dinâmicos
+  // Estados de Entrega, Pedido Mínimo e Status de Abertura da Loja
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [configLoja, setConfigLoja] = useState(null);
   const [pedidoMinimo, setPedidoMinimo] = useState(20); // Padrão de segurança de R$ 20.00
+  const [lojaAberta, setLojaAberta] = useState(true);   // Novo estado para controlar se a loja está aberta
 
   const [form, setForm] = useState({
     cliente_nome: '',
@@ -31,7 +32,7 @@ export const useCheckout = () => {
     longitude: ''
   });
 
-  // Carrega dados do usuário, configurações de entrega e o pedido mínimo da loja
+  // Carrega dados do usuário, configurações de entrega, status e o pedido mínimo da loja
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -45,7 +46,7 @@ export const useCheckout = () => {
     try {
       const userData = JSON.parse(savedUser);
       setUserDataId(userData.id || userData._id || '');
-      setUserDataEmail(userData.email || '');
+      setUserDateEmail(userData.email || '');
 
       setForm(prev => ({
         ...prev,
@@ -61,7 +62,7 @@ export const useCheckout = () => {
       console.error('Erro ao carregar dados do utilizador:', e);
     }
 
-    // Carrega as configurações unificadas da loja (raios, taxas, zonas proibidas e pedido mínimo)
+    // Carrega as configurações unificadas da loja (incluindo o status de abertura calculado pelo backend)
     const carregarConfiguracoesLoja = async () => {
       try {
         let dadosServer = null;
@@ -73,6 +74,12 @@ export const useCheckout = () => {
 
         if (dadosServer) {
           setConfigLoja(dadosServer);
+          
+          // Verifica se o backend retornou o status de abertura (lojaAberta)
+          if (dadosServer.lojaAberta !== undefined) {
+            setLojaAberta(Boolean(dadosServer.lojaAberta));
+          }
+
           const minServidor = Number(dadosServer.pedidoMinimo ?? dadosServer.pedido_minimo);
           if (!isNaN(minServidor) && minServidor >= 0) {
             setPedidoMinimo(minServidor);
@@ -89,6 +96,9 @@ export const useCheckout = () => {
         try {
           const parsed = JSON.parse(configSalva);
           setConfigLoja(parsed);
+          if (parsed.lojaAberta !== undefined) {
+            setLojaAberta(Boolean(parsed.lojaAberta));
+          }
           const minLocal = Number(parsed.pedidoMinimo ?? parsed.pedido_minimo);
           if (!isNaN(minLocal) && minLocal >= 0) {
             setPedidoMinimo(minLocal);
@@ -253,6 +263,13 @@ export const useCheckout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // BLOQUEIO DE SEGURANÇA: Impede finalizar se a loja estiver fechada
+    if (!lojaAberta) {
+      toast.error('A loja encontra-se fechada no momento. Não é possível aceitar novos pedidos.');
+      return;
+    }
+
     if (cart.length === 0) {
       toast.error('O seu carrinho está vazio!');
       return;
@@ -316,6 +333,7 @@ export const useCheckout = () => {
     loadingCancelamento,
     taxaEntrega,
     pedidoMinimo,
+    lojaAberta, // Exportado para desativar o botão visualmente na tela de Checkout
     navigate,
     handleChange,
     capturarLocalizacao,

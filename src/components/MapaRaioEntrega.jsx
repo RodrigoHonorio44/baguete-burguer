@@ -464,7 +464,7 @@ export const MapaRaioEntrega = () => {
               style={{ height: '100%', width: '100%', background: '#f8fafc' }}
             >
               <TileLayer
-                attribution='&copy; OpenStreetMap contributors'
+                attribution='© OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               

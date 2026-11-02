@@ -14,7 +14,9 @@ import {
 import { api } from '../services/api';
 
 export default function DashboardPage() {
-  const [periodo, setPeriodo] = useState('mes'); // 'hoje' | 'semana' | 'mes'
+  const [periodo, setPeriodo] = useState('mes'); // 'hoje' | 'semana' | 'mes' | 'ano' | 'especifico'
+  const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth() + 1); // 1 a 12
+  const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
   // Estados de Paginação para os Carros-Chefe
@@ -46,19 +48,31 @@ export default function DashboardPage() {
     produtosMaisVendidos: []
   });
 
-  // Resetar página para 1 ao mudar o filtro de período
+  // Resetar página para 1 ao mudar os filtros
   useEffect(() => {
     setPaginaAtual(1);
-  }, [periodo]);
+  }, [periodo, mesSelecionado, anoSelecionado]);
 
   // Carregar dados reais da API do MongoDB
   useEffect(() => {
     const buscarDadosDashboard = async () => {
       setLoading(true);
       try {
-        const data = await api.getDashboardVendas(periodo);
+        // Monta os parâmetros com base na seleção do usuário
+        let params = {};
+        if (periodo === 'hoje' || periodo === 'semana') {
+          params = { periodo };
+        } else if (periodo === 'ano') {
+          params = { periodo: 'ano', ano: anoSelecionado };
+        } else if (periodo === 'especifico') {
+          params = { mes: mesSelecionado, ano: anoSelecionado };
+        } else {
+          // Padrão 'mes' atual
+          params = { mes: new Date().getMonth() + 1, ano: new Date().getFullYear() };
+        }
+
+        const data = await api.getDashboardVendas(params.periodo || '', params.mes, params.ano);
         if (data) {
-          // Varredura inteligente no array vendasPorCanal retornado pelo backend
           let valDirect = 0;
           let valIfood = 0;
           let val99 = 0;
@@ -108,7 +122,7 @@ export default function DashboardPage() {
     };
 
     buscarDadosDashboard();
-  }, [periodo]);
+  }, [periodo, mesSelecionado, anoSelecionado]);
 
   // Lógica de cálculo da Paginação
   const indiceUltimoItem = paginaAtual * itensPorPagina;
@@ -116,12 +130,27 @@ export default function DashboardPage() {
   const produtosPaginados = resumo.produtosMaisVendidos.slice(indicePrimeiroItem, indiceUltimoItem);
   const totalPaginas = Math.ceil(resumo.produtosMaisVendidos.length / itensPorPagina);
 
+  const mesesDoAno = [
+    { id: 1, nome: 'Janeiro' },
+    { id: 2, nome: 'Fevereiro' },
+    { id: 3, nome: 'Março' },
+    { id: 4, nome: 'Abril' },
+    { id: 5, nome: 'Maio' },
+    { id: 6, nome: 'Junho' },
+    { id: 7, nome: 'Julho' },
+    { id: 8, nome: 'Agosto' },
+    { id: 9, nome: 'Setembro' },
+    { id: 10, nome: 'Outubro' },
+    { id: 11, nome: 'Novembro' },
+    { id: 12, nome: 'Dezembro' }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Cabeçalho com Filtro de Período */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        {/* Cabeçalho com Filtros de Período Flexíveis */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
               <TrendingUp className="w-6 h-6" />
@@ -133,25 +162,66 @@ export default function DashboardPage() {
           </div>
 
           {/* Seletor do Período */}
-          <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setPeriodo('hoje')}
-              className={`px-4 py-2 rounded-lg transition-all ${periodo === 'hoje' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-            >
-              Hoje
-            </button>
-            <button
-              onClick={() => setPeriodo('semana')}
-              className={`px-4 py-2 rounded-lg transition-all ${periodo === 'semana' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-            >
-              Esta Semana
-            </button>
-            <button
-              onClick={() => setPeriodo('mes')}
-              className={`px-4 py-2 rounded-lg transition-all ${periodo === 'mes' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-            >
-              Este Mês
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setPeriodo('hoje')}
+                className={`px-3 py-2 rounded-lg transition-all ${periodo === 'hoje' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Hoje
+              </button>
+              <button
+                onClick={() => setPeriodo('semana')}
+                className={`px-3 py-2 rounded-lg transition-all ${periodo === 'semana' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Esta Semana
+              </button>
+              <button
+                onClick={() => setPeriodo('mes')}
+                className={`px-3 py-2 rounded-lg transition-all ${periodo === 'mes' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Mês Atual
+              </button>
+              <button
+                onClick={() => setPeriodo('especifico')}
+                className={`px-3 py-2 rounded-lg transition-all ${periodo === 'especifico' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Mês Específico
+              </button>
+              <button
+                onClick={() => setPeriodo('ano')}
+                className={`px-3 py-2 rounded-lg transition-all ${periodo === 'ano' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Ano Completo
+              </button>
+            </div>
+
+            {/* Selects Adicionais caso escolha Mês Específico ou Ano Completo */}
+            {(periodo === 'especifico' || periodo === 'ano') && (
+              <div className="flex items-center gap-2">
+                {periodo === 'especifico' && (
+                  <select 
+                    value={mesSelecionado} 
+                    onChange={(e) => setMesSelecionado(Number(e.target.value))}
+                    className="bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+                  >
+                    {mesesDoAno.map(m => (
+                      <option key={m.id} value={m.id}>{m.nome}</option>
+                    ))}
+                  </select>
+                )}
+
+                <select 
+                  value={anoSelecionado} 
+                  onChange={(e) => setAnoSelecionado(Number(e.target.value))}
+                  className="bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+                >
+                  <option value={2025}>2025</option>
+                  <option value={2026}>2026</option>
+                  <option value={2027}>2027</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
