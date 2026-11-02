@@ -14,7 +14,7 @@ export const Caixa = () => {
   const {
     produtos, loading, filtroStatus, setFiltroStatus,
     caixaAberto, valorAbertura, setValorAbertura, abrirCaixa, fecharCaixaSistema,
-    fundoCaixa, modalPdvAberto, setModalPdvAberto, carrinhoPdv, clientePdv,
+    fundoCaixa, modalPdvAberto, setModalPdvAberto, carrinhoPdv, setCarrinhoPdv, clientePdv,
     setClientePdv, pagamentoPdv, setPagamentoPdv, canalPdv, setCanalPdv,
     tipoRetiradaPdv, setTipoRetiradaPdv,
     valorRecebidoPdv, setValorRecebidoPdv, adicionarAoCarrinhoPdv, totalCarrinhoPdv,
@@ -164,6 +164,7 @@ export const Caixa = () => {
             <span className="text-xs font-bold text-amber-900 bg-amber-200/70 px-3.5 py-1.5 rounded-full border border-amber-300">
               ⚡ Aceite no caixa para mandar para a cozinha e imprimir
             </span>
+
           </div>
 
           <div className="space-y-4">
@@ -553,8 +554,7 @@ export const Caixa = () => {
           </div>
         );
       })()}
-
-      {/* Componente Modular do PDV */}
+{/* Componente Modular do PDV */}
       <ModalPdv
         modalPdvAberto={modalPdvAberto}
         setModalPdvAberto={setModalPdvAberto}
@@ -566,6 +566,12 @@ export const Caixa = () => {
         setClientePdv={setClientePdv}
         produtos={produtos}
         adicionarAoCarrinhoPdv={adicionarAoCarrinhoPdv}
+        setCarrinhoPdv={setCarrinhoPdv}
+        removerDoCarrinhoPdv={(item, index) => {
+          if (typeof setCarrinhoPdv === 'function') {
+            setCarrinhoPdv(prev => prev.filter((_, i) => i !== index));
+          }
+        }}
         formatarMoeda={formatarMoeda}
         carrinhoPdv={carrinhoPdv}
         totalCarrinhoPdv={totalCarrinhoPdv}
@@ -577,6 +583,17 @@ export const Caixa = () => {
         setValorRecebidoPdv={setValorRecebidoPdv}
         trocoPdv={trocoPdv}
         finalizarVendaPdv={finalizarVendaPdv}
+        limparCarrinhoPdv={() => {
+          if (typeof setCarrinhoPdv === 'function') {
+            setCarrinhoPdv([]);
+          }
+          if (typeof setClientePdv === 'function') {
+            setClientePdv('');
+          }
+          if (typeof setValorRecebidoPdv === 'function') {
+            setValorRecebidoPdv('');
+          }
+        }}
       />
     </div>
   );

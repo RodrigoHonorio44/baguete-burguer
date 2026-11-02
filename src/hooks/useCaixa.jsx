@@ -298,6 +298,11 @@ export const useCaixa = () => {
     }
   };
 
+  // Função auxiliar para limpar completamente o carrinho do PDV
+  const limparCarrinhoPdv = () => {
+    setCarrinhoPdv([]);
+  };
+
   const totalCarrinhoPdv = carrinhoPdv.reduce((acc, i) => acc + (Number(i.preco) * i.quantidade), 0);
   
   // 🎯 Cálculo dinâmico de taxa e repasse no PDV (Venda Manual)
@@ -382,7 +387,7 @@ export const useCaixa = () => {
   return {
     pedidos, produtos, loading, filtroStatus, setFiltroStatus,
     caixaAberto, valorAbertura, setValorAbertura, abrirCaixa, fecharCaixaSistema,
-    fundoCaixa, modalPdvAberto, setModalPdvAberto, carrinhoPdv, clientePdv,
+    fundoCaixa, modalPdvAberto, setModalPdvAberto, carrinhoPdv, setCarrinhoPdv, limparCarrinhoPdv, clientePdv,
     setClientePdv, pagamentoPdv, setPagamentoPdv, canalPdv, setCanalPdv,
     tipoRetiradaPdv, setTipoRetiradaPdv,
     valorRecebidoPdv, setValorRecebidoPdv, adicionarAoCarrinhoPdv, totalCarrinhoPdv,

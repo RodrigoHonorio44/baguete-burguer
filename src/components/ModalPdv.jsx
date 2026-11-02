@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { PlusCircle, X, Check, Search } from 'lucide-react';
+import { PlusCircle, X, Check, Search, Trash2, Ban } from 'lucide-react';
 
 export const ModalPdv = ({
   modalPdvAberto,
@@ -12,8 +12,10 @@ export const ModalPdv = ({
   setClientePdv,
   produtos = [],
   adicionarAoCarrinhoPdv,
+  removerDoCarrinhoPdv,
   formatarMoeda,
   carrinhoPdv = [],
+  setCarrinhoPdv,
   totalCarrinhoPdv,
   taxaComissaoPdv,
   repasseLiquidoPdv,
@@ -22,19 +24,60 @@ export const ModalPdv = ({
   valorRecebidoPdv,
   setValorRecebidoPdv,
   trocoPdv,
-  finalizarVendaPdv
+  finalizarVendaPdv,
+  limparCarrinhoPdv
 }) => {
   const [categoriaAtiva, setCategoriaAtiva] = useState('todos');
   const [busca, setBusca] = useState('');
 
-  // Extrai as categorias únicas a partir dos produtos informados
+  // 🎯 Apenas fecha a janela do modal (preserva os itens do carrinho)
+  const handleFecharModal = () => {
+    setBusca('');
+    setCategoriaAtiva('todos');
+    if (typeof setModalPdvAberto === 'function') {
+      setModalPdvAberto(false);
+    }
+  };
+
+  // 🎯 Descarta a venda inteira, zera o carrinho e todos os campos (botão Cancelar Venda)
+  const handleCancelarVenda = () => {
+    if (typeof limparCarrinhoPdv === 'function') {
+      limparCarrinhoPdv();
+    } else if (typeof setCarrinhoPdv === 'function') {
+      setCarrinhoPdv([]);
+    }
+
+    if (typeof setClientePdv === 'function') {
+      setClientePdv('');
+    }
+
+    if (typeof setValorRecebidoPdv === 'function') {
+      setValorRecebidoPdv('');
+    }
+
+    setBusca('');
+    setCategoriaAtiva('todos');
+
+    if (typeof setModalPdvAberto === 'function') {
+      setModalPdvAberto(false);
+    }
+  };
+
+  // Remover item específico do carrinho
+  const handleRemoverItem = (item, index) => {
+    if (typeof removerDoCarrinhoPdv === 'function') {
+      removerDoCarrinhoPdv(item, index);
+    } else if (typeof setCarrinhoPdv === 'function') {
+      setCarrinhoPdv(carrinhoPdv.filter((_, i) => i !== index));
+    }
+  };
+
   const categorias = useMemo(() => {
     if (!Array.isArray(produtos)) return ['todos'];
     const list = produtos.map(p => p.categoria || p.category).filter(Boolean);
     return ['todos', ...Array.from(new Set(list))];
   }, [produtos]);
 
-  // Filtra os produtos por categoria ativa e por texto digitado na busca
   const produtosFiltrados = useMemo(() => {
     if (!Array.isArray(produtos)) return [];
     return produtos.filter(prod => {
@@ -61,8 +104,9 @@ export const ModalPdv = ({
           </h2>
           <button 
             type="button"
-            onClick={() => setModalPdvAberto(false)} 
+            onClick={handleFecharModal} 
             className="text-slate-400 hover:text-slate-700 cursor-pointer p-1 rounded-lg hover:bg-slate-200 transition"
+            title="Fechar janela (mantém itens)"
           >
             <X size={20} />
           </button>
@@ -189,17 +233,49 @@ export const ModalPdv = ({
 
           {/* Carrinho de Itens */}
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">Itens da Venda</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs font-semibold text-slate-700">Itens da Venda</label>
+              {carrinhoPdv.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof limparCarrinhoPdv === 'function') limparCarrinhoPdv();
+                    else if (typeof setCarrinhoPdv === 'function') setCarrinhoPdv([]);
+                  }}
+                  className="text-[11px] text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer transition"
+                >
+                  <Trash2 size={12} /> Esvaziar Carrinho
+                </button>
+              )}
+            </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 max-h-36 overflow-y-auto">
               {carrinhoPdv.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-2">Nenhum produto selecionado ainda.</p>
               ) : (
-                carrinhoPdv.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-200 pb-1.5 pt-0.5">
-                    <span className="text-slate-800 font-medium">{item.qtd}x {item.nome}</span>
-                    <span className="text-emerald-600 font-bold">{formatarMoeda(item.preco * item.qtd)}</span>
-                  </div>
-                ))
+                carrinhoPdv.map((item, idx) => {
+                  const qtdItem = item.qtd || item.quantidade || item.quantity || 1;
+                  const nomeItem = item.nome || item.name || 'Produto';
+                  const precoItem = Number(item.preco || item.price || 0);
+
+                  return (
+                    <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-200 pb-1.5 pt-0.5 gap-2">
+                      <span className="text-slate-800 font-semibold flex-1">
+                        {qtdItem}x {nomeItem}
+                      </span>
+                      <span className="text-emerald-600 font-bold">
+                        {formatarMoeda(precoItem * qtdItem)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverItem(item, idx)}
+                        className="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-100 transition cursor-pointer"
+                        title="Remover item"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -261,10 +337,10 @@ export const ModalPdv = ({
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
           <button
             type="button"
-            onClick={() => setModalPdvAberto(false)}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition"
+            onClick={handleCancelarVenda}
+            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5 shadow-xs"
           >
-            Cancelar
+            <Ban size={15} /> Cancelar Venda
           </button>
           <button
             type="button"
