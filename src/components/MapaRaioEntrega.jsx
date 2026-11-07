@@ -35,7 +35,7 @@ function MapClickHandler({ modo, posicaoLoja, setPosicaoLoja, faixasRaio, setFai
 }
 
 export const MapaRaioEntrega = () => {
-  const [lojaNome, setLojaNome] = useState('Baguete Burguer');
+  const [lojaNome, setLojaNome] = useState('Tay Mix');
   const [endereco, setEndereco] = useState('Maricá, RJ');
   const [posicaoLoja, setPosicaoLoja] = useState([-22.9194, -42.8186]); 
   const [isOnline, setIsOnline] = useState(true);
@@ -51,10 +51,16 @@ export const MapaRaioEntrega = () => {
   ]);
 
   const [zonasProibidas, setZonasProibidas] = useState([]);
-  const [horarioAbertura, setHorarioAbertura] = useState('18:00');
-  const [horarioFechamento, setHorarioFechamento] = useState('23:30');
-  const [diasFuncionamento, setDiasFuncionamento] = useState({
-    segunda: false, terça: true, quarta: true, quinta: true, sexta: true, sabado: true, domingo: true,
+
+  // Horários de funcionamento individuais por dia da semana
+  const [horariosDias, setHorariosDias] = useState({
+    segunda: { ativo: true, abertura: '08:00', fechamento: '12:00' },
+    terca: { ativo: true, abertura: '20:00', fechamento: '23:00' },
+    quarta: { ativo: true, abertura: '18:00', fechamento: '22:00' },
+    quinta: { ativo: true, abertura: '18:00', fechamento: '22:00' },
+    sexta: { ativo: true, abertura: '18:00', fechamento: '23:00' },
+    sabado: { ativo: true, abertura: '18:00', fechamento: '23:00' },
+    domingo: { ativo: false, abertura: '18:00', fechamento: '22:00' },
   });
 
   const [loading, setLoading] = useState(false);
@@ -95,9 +101,7 @@ export const MapaRaioEntrega = () => {
     if (dados.faixasRaio) setFaixasRaio(dados.faixasRaio);
     if (dados.zonasProibidas) setZonasProibidas(dados.zonasProibidas);
     if (dados.endereco) setEndereco(dados.endereco);
-    if (dados.horarioAbertura) setHorarioAbertura(dados.horarioAbertura);
-    if (dados.horarioFechamento) setHorarioFechamento(dados.horarioFechamento);
-    if (dados.diasFuncionamento) setDiasFuncionamento(dados.diasFuncionamento);
+    if (dados.horariosDias) setHorariosDias(dados.horariosDias);
     if (dados.pedidoMinimo !== undefined) setPedidoMinimo(Number(dados.pedidoMinimo));
     if (dados.isOnline !== undefined) {
       setIsOnline(dados.isOnline);
@@ -110,7 +114,7 @@ export const MapaRaioEntrega = () => {
 
     const config = {
       lojaNome, endereco, posicaoLoja, faixasRaio, zonasProibidas,
-      isOnline, horarioAbertura, horarioFechamento, diasFuncionamento,
+      isOnline, horariosDias,
       pedidoMinimo: Number(pedidoMinimo) || 0
     };
 
@@ -137,7 +141,7 @@ export const MapaRaioEntrega = () => {
 
     const config = {
       lojaNome, endereco, posicaoLoja, faixasRaio, zonasProibidas,
-      isOnline: novoStatus, horarioAbertura, horarioFechamento, diasFuncionamento,
+      isOnline: novoStatus, horariosDias,
       pedidoMinimo: Number(pedidoMinimo) || 0
     };
 
@@ -201,8 +205,14 @@ export const MapaRaioEntrega = () => {
     toast.success('Zona proibida removida.');
   };
 
-  const toggleDia = (dia) => {
-    setDiasFuncionamento(prev => ({ ...prev, [dia]: !prev[dia] }));
+  const atualizarHorarioDia = (dia, campo, valor) => {
+    setHorariosDias(prev => ({
+      ...prev,
+      [dia]: {
+        ...prev[dia],
+        [campo]: valor
+      }
+    }));
   };
 
   return (
@@ -210,10 +220,10 @@ export const MapaRaioEntrega = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
-            <Store className="text-amber-600" /> Gestão Avançada de Raios Independentes
+            <Store className="text-amber-600" /> Gestão Avançada de Raios e Horários
           </h1>
           <p className="text-xs text-slate-500 font-semibold mt-0.5">
-            Fixe a posição da loja como referência, desvincule e posicione cada raio individualmente no mapa.
+            Fixe a posição da loja, configure o raio de entrega e ajuste os horários individualmente por dia da semana.
           </p>
         </div>
 
@@ -375,27 +385,67 @@ export const MapaRaioEntrega = () => {
             )}
           </div>
 
+          {/* NOVO CARD DE FUNCIONAMENTO POR DIA DA SEMANA */}
           <div className="bg-white border border-slate-200/80 p-4 rounded-2xl space-y-3 shadow-xs">
             <h2 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock size={15} /> Funcionamento
+              <Clock size={15} /> Funcionamento por Dia da Semana
             </h2>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="time" value={horarioAbertura} onChange={(e) => setHorarioAbertura(e.target.value)} className="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-semibold" />
-              <input type="time" value={horarioFechamento} onChange={(e) => setHorarioFechamento(e.target.value)} className="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs text-slate-800 font-semibold" />
-            </div>
-            <div className="grid grid-cols-4 gap-1 text-[10px] pt-1">
-              {Object.keys(diasFuncionamento).map((dia) => (
-                <button
-                  key={dia}
-                  type="button"
-                  onClick={() => toggleDia(dia)}
-                  className={`py-1 rounded-lg border font-bold capitalize transition cursor-pointer ${
-                    diasFuncionamento[dia] ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  {dia.slice(0, 3)}
-                </button>
-              ))}
+            <p className="text-[10px] text-slate-500 font-medium">
+              Defina os horários específicos de abertura e fechamento para cada dia de atendimento.
+            </p>
+
+            <div className="space-y-2.5 pt-1">
+              {[
+                { key: 'segunda', label: 'Segunda-Feira' },
+                { key: 'terca', label: 'Terça-Feira' },
+                { key: 'quarta', label: 'Quarta-Feira' },
+                { key: 'quinta', label: 'Quinta-Feira' },
+                { key: 'sexta', label: 'Sexta-Feira' },
+                { key: 'sabado', label: 'Sábado' },
+                { key: 'domingo', label: 'Domingo' },
+              ].map(({ key, label }) => {
+                const diaInfo = horariosDias[key] || { ativo: false, abertura: '18:00', fechamento: '22:00' };
+
+                return (
+                  <div key={key} className={`p-3 rounded-xl border transition ${diaInfo.ativo ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/40 border-slate-100 opacity-60'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-800">{label}</span>
+                      <button
+                        type="button"
+                        onClick={() => atualizarHorarioDia(key, 'ativo', !diaInfo.ativo)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition ${
+                          diaInfo.ativo ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-white text-slate-500 border border-slate-200'
+                        }`}
+                      >
+                        {diaInfo.ativo ? '🟢 Aberto' : '🔴 Fechado'}
+                      </button>
+                    </div>
+
+                    {diaInfo.ativo && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] text-slate-400 font-bold uppercase mb-0.5">Abertura</label>
+                          <input
+                            type="time"
+                            value={diaInfo.abertura}
+                            onChange={(e) => atualizarHorarioDia(key, 'abertura', e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-semibold outline-none focus:border-amber-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-slate-400 font-bold uppercase mb-0.5">Fechamento</label>
+                          <input
+                            type="time"
+                            value={diaInfo.fechamento}
+                            onChange={(e) => atualizarHorarioDia(key, 'fechamento', e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-semibold outline-none focus:border-amber-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

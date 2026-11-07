@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { FileText, Calendar, ArrowUpRight, ArrowDownRight, Wallet, AlertCircle, CheckCircle2, Printer, ChevronLeft, ChevronRight, Users } from 'lucide-react';
-import ImprimirBalancete from './ImprimirBalancete';
+import { FileText, Calendar, ArrowUpRight, ArrowDownRight, Wallet, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ImpressaoPrestacaoContasTaymix } from './ImpressaoPrestacaoContasTaymix';
 
 export default function TelaBalanceteRelatorio({ 
   movimentacoesGerais = [], 
@@ -8,7 +8,9 @@ export default function TelaBalanceteRelatorio({
   totalDinheiroAcumulado = 0, 
   totalPixAcumulado = 0, 
   totalCartaoAcumulado = 0, 
-  totalIfoodAcumulado = 0, 
+  totalIfoodAcumulado = 0,
+  totalIfoodEntrega = 0,
+  total99Food = 0,
   formatarBRL 
 }) {
   const [tipoFiltro, setTipoFiltro] = useState('mes'); // 'mes' | 'ano' | 'todos'
@@ -55,6 +57,10 @@ export default function TelaBalanceteRelatorio({
   // Resultado Operacional / Lucro Líquido do Período
   const resultadoOperacional = totalReceitasOficial - totalDespesasOperacionais;
 
+  // Capital de giro (35%)
+  const retencaoGiroPercentual = 35;
+  const capitalGiroValor = resultadoOperacional > 0 ? resultadoOperacional * (retencaoGiroPercentual / 100) : 0;
+
   // 3. CÁLCULO EXATO DO PAYBACK (Histórico global de investimento de abertura)
   const totalInvestidoHistorico = listaMovimentacoes
     .filter(m => m.ehInvestimentoInicial === true || m.categoria === 'Aporte de Sócio')
@@ -69,18 +75,14 @@ export default function TelaBalanceteRelatorio({
   const paybackQuitado = saldoPaybackPendente === 0;
 
   // 4. Divisão de Lucros (Erica e Tatiane - 50% / 50%)
-  const valorParaDividir = paybackQuitado && resultadoOperacional > 0 ? resultadoOperacional : 0;
-  const lucroSocioErica = valorParaDividir * 0.5;
-  const lucroSocioTatiane = valorParaDividir * 0.5;
-
-  const handleImprimir = () => {
-    window.print();
-  };
+  const valorParaDividir = paybackQuitado && resultadoOperacional > 0 ? (resultadoOperacional - capitalGiroValor) : 0;
+  const lucroSocioErica = Math.max(0, valorParaDividir * 0.5);
+  const lucroSocioTatiane = Math.max(0, valorParaDividir * 0.5);
 
   return (
     <div className="space-y-6">
       {/* CABEÇALHO E FILTROS */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
             <FileText className="text-amber-600" size={24} /> Balancete e Relatório Financeiro Oficial — Tay Mix
@@ -89,12 +91,28 @@ export default function TelaBalanceteRelatorio({
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={handleImprimir}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors"
-          >
-            <Printer size={16} /> Imprimir / Salvar PDF
-          </button>
+          {/* BOTÃO DE GERAR O PDF OFICIAL COMPLETO */}
+          <ImpressaoPrestacaoContasTaymix 
+            faturamento={totalReceitasOficial}
+            gastos={totalDespesasOperacionais}
+            lucroLiquido={resultadoOperacional}
+            capitalGiro={capitalGiroValor}
+            retencaoGiro={retencaoGiroPercentual}
+            investimentoInicialPendente={saldoPaybackPendente}
+            totalInvestido={totalInvestidoHistorico}
+            extrato={movimentacoesFiltradas}
+            totalDisponivelDivisao={valorParaDividir}
+            socio1Valor={lucroSocioErica}
+            socio2Valor={lucroSocioTatiane}
+            dataInicio={mesSelecionado ? `${mesSelecionado}-01` : null}
+            dataFim={null}
+            totalDinheiroCaixaAcumulado={totalDinheiroAcumulado}
+            totalCartaoAcumulado={totalCartaoAcumulado}
+            totalPixAcumulado={totalPixAcumulado}
+            totalIfoodAcumulado={totalIfoodAcumulado}
+            totalIfoodEntrega={totalIfoodEntrega}
+            total99Food={total99Food}
+          />
 
           <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
             <Calendar size={16} className="text-amber-600 ml-1" />
@@ -132,7 +150,7 @@ export default function TelaBalanceteRelatorio({
       </div>
 
       {/* CARDS RESUMO DO BALANCETE */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Faturamento */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex justify-between items-center text-slate-500 text-xs font-bold uppercase tracking-wider">
@@ -177,7 +195,7 @@ export default function TelaBalanceteRelatorio({
       </div>
 
       {/* PAINEL DE PARTILHA DE LUCROS ENTRE AS SÓCIAS */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 print:hidden">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
             <Users className="text-amber-600" size={18} /> Partilha de Lucros da Sociedade (Erica & Tatiane)
@@ -204,7 +222,7 @@ export default function TelaBalanceteRelatorio({
       </div>
 
       {/* TABELA COM PAGINAÇÃO */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print:hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-200 flex justify-between items-center">
           <h3 className="text-sm font-extrabold text-slate-800">
             Extrato do Período ({movimentacoesFiltradas.length} lançamentos encontrados)
@@ -282,25 +300,20 @@ export default function TelaBalanceteRelatorio({
               <button
                 onClick={() => setPaginaAtual(p => Math.max(p - 1, 1))}
                 disabled={paginaAtual === 1}
-                className="p-2 bg-white border border-slate-300 rounded-lg text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-colors"
+                className="p-2 bg-white border border-slate-300 rounded-lg text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 onClick={() => setPaginaAtual(p => Math.min(p + 1, totalPaginas))}
                 disabled={paginaAtual === totalPaginas}
-                className="p-2 bg-white border border-slate-300 rounded-lg text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-colors"
+                className="p-2 bg-white border border-slate-300 rounded-lg text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>
             </div>
           </div>
         )}
-      </div>
-
-      {/* ÁREA DE IMPRESSÃO */}
-      <div className="hidden print:block">
-        <ImprimirBalancete movimentacoes={movimentacoesFiltradas} formatarBRL={formatarBRL} />
       </div>
     </div>
   );
