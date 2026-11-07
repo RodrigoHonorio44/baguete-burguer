@@ -3,8 +3,11 @@ import toast from 'react-hot-toast';
 import { api } from '../services/api';
 
 export function usePrestacaoContasTaymix() {
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
+  // Estados de Filtro Unificados (Mês, Ano ou Todo o Período)
+  const [tipoFiltro, setTipoFiltro] = useState('mes'); // 'mes' | 'ano' | 'todos'
+  const [mesSelecionado, setMesSelecionado] = useState('2026-11');
+  const [anoSelecionado, setAnoSelecionado] = useState('2026');
+
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [caixasFechados, setCaixasFechados] = useState([]); 
   const [pedidosBanco, setPedidosBanco] = useState([]);
@@ -32,7 +35,17 @@ export function usePrestacaoContasTaymix() {
   const [manualAberto, setManualAberto] = useState(false);
 
   const categoriasReceita = ['Vendas / Pedidos', 'Aporte de Sócio', 'Outros Recebimentos'];
-  const categoriasDespesa = ['Insumos / Ingredientes', 'Embalagens', 'Mão de Obra / Pessoal', 'Gás / Energia / Água', 'Combustível / Entrega', 'Manutenção / Ferramentas', 'Outras Despesas'];
+  
+  const categoriasDespesa = [
+    'Insumos / Ingredientes', 
+    'Embalagens', 
+    'Mão de Obra / Pessoal', 
+    'Gás / Energia / Água', 
+    'Internet / Telefonia / Sistemas', 
+    'Combustível / Entrega', 
+    'Manutenção / Ferramentas', 
+    'Outras Despesas'
+  ];
 
   useEffect(() => {
     carregarDadosFinanceiros();
@@ -56,7 +69,6 @@ export function usePrestacaoContasTaymix() {
       setCaixasFechados(listaCaixas);
       setPedidosBanco(Array.isArray(dadosPedidos) ? dadosPedidos : []);
 
-      // Se houver percentual de giro e taxas salvas nas configurações do servidor
       if (dadosConfig) {
         if (dadosConfig.percentualGiro !== undefined) setPercentualGiro(Number(dadosConfig.percentualGiro));
         if (dadosConfig.taxaIfoodPct !== undefined) setTaxaIfoodPct(Number(dadosConfig.taxaIfoodPct));
@@ -156,13 +168,20 @@ export function usePrestacaoContasTaymix() {
     }
   };
 
-  // --- FILTRAGEM DE MOVIMENTAÇÕES MANUAIS ---
+  // --- FILTRAGEM UNIFICADA DE MOVIMENTAÇÕES MANUAIS ---
   const movimentacoesFiltradas = movimentacoes.filter((item) => {
     if (item.empresa && item.empresa !== 'Taymix') return false;
-    const dataItem = new Date(item.data).toISOString().split('T')[0];
-    if (dataInicio && dataItem < dataInicio) return false;
-    if (dataFim && dataItem > dataFim) return false;
-    return true;
+    const dataStr = item.dataLancamento || item.data;
+    if (!dataStr) return false;
+    const dataLimpa = String(dataStr).split('T')[0];
+
+    if (tipoFiltro === 'mes' && mesSelecionado) {
+      return dataLimpa.startsWith(mesSelecionado);
+    }
+    if (tipoFiltro === 'ano' && anoSelecionado) {
+      return dataLimpa.startsWith(anoSelecionado);
+    }
+    return true; // 'todos'
   });
 
   // --- FILTRAGEM DOS REGISTROS DA COLEÇÃO CAIXA ---
@@ -180,18 +199,19 @@ export function usePrestacaoContasTaymix() {
       }
     }
 
-    if (!dataInicio && !dataFim) return true;
+    if (!dataRegistro) return true;
+    const dataLimpa = String(dataRegistro).split('T')[0];
 
-    if (dataRegistro) {
-      if (dataInicio && dataRegistro < dataInicio) return false;
-      if (dataFim && dataRegistro > dataFim) return false;
-      return true;
+    if (tipoFiltro === 'mes' && mesSelecionado) {
+      return dataLimpa.startsWith(mesSelecionado);
     }
-
+    if (tipoFiltro === 'ano' && anoSelecionado) {
+      return dataLimpa.startsWith(anoSelecionado);
+    }
     return true;
   });
 
-  // --- FILTRAGEM DE PEDIDOS INDIVIDUAIS PARA CONTAGEM DE UNIDADES E CANAIS ---
+  // --- FILTRAGEM DE PEDIDOS INDIVIDUAIS ---
   const statusValidos = ['concluido', 'concluído', 'entregue', 'finalizado'];
   const pedidosFiltrados = pedidosBanco.filter(p => {
     const st = (p.status || '').toLowerCase();
@@ -201,9 +221,14 @@ export function usePrestacaoContasTaymix() {
     if (dataRaw && typeof dataRaw === 'object' && dataRaw.$date) dataRaw = dataRaw.$date;
     if (!dataRaw) return true;
 
-    const dataItem = new Date(dataRaw).toISOString().split('T')[0];
-    if (dataInicio && dataItem < dataInicio) return false;
-    if (dataFim && dataItem > dataFim) return false;
+    const dataLimpa = new Date(dataRaw).toISOString().split('T')[0];
+
+    if (tipoFiltro === 'mes' && mesSelecionado) {
+      return dataLimpa.startsWith(mesSelecionado);
+    }
+    if (tipoFiltro === 'ano' && anoSelecionado) {
+      return dataLimpa.startsWith(anoSelecionado);
+    }
     return true;
   });
 
@@ -261,7 +286,6 @@ export function usePrestacaoContasTaymix() {
   const totalCartaoAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalCartao) || 0), 0) || totalCartaoPedidos;
   const totalPixAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalPix) || 0), 0) || totalPixPedidos;
   
-  // Se o caixa não tiver registrado o valor do iFood / 99Food diretamente, usa o total consolidado dos pedidos
   const totalIfoodAcumulado = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalIfood) || 0), 0) || totalIfoodPedidos;
   const totalIfoodEntrega = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.totalIfoodEntrega) || 0), 0);
   const total99Food = caixasFiltrados.reduce((acc, cx) => acc + (Number(cx.total99Food) || 0), 0) || total99FoodPedidos;
@@ -294,8 +318,9 @@ export function usePrestacaoContasTaymix() {
   const lucroSocioB = valorParaDividir - lucroSocioA;
 
   return {
-    dataInicio, setDataInicio,
-    dataFim, setDataFim,
+    tipoFiltro, setTipoFiltro,
+    mesSelecionado, setMesSelecionado,
+    anoSelecionado, setAnoSelecionado,
     movimentacoesFiltradas,
     percentualGiro, setPercentualGiro: alterarPercentualGiro,
     percentualSocioA, setPercentualSocioA,

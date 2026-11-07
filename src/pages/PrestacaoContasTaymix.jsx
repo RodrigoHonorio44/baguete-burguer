@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
-import { Filter, BookOpen, X } from 'lucide-react';
+import { Calendar, BookOpen, X, FileText } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { usePrestacaoContasTaymix } from '../hooks/usePrestacaoContasTaymix';
 import DashboardPage from './DashboardPage';
+import TelaBalanceteRelatorio from '../components/TelaBalanceteRelatorio';
 
-// Importação de todos os componentes divididos
-import CabecalhoPrestacao from '../components/CabecalhoPrestacao';
+// Importação dos componentes da aba de prestação
 import ResumoFinanceiroCards from '../components/ResumoFinanceiroCards';
 import DetalhamentoCanaisCards from '../components/DetalhamentoCanaisCards';
-import PaybackEDivisaoSocios from '../components/PaybackEDivisaoSocios';
 import FormularioELancamentos from '../components/FormularioELancamentos';
-import ModalConfigTaxas from '../components/ModalConfigTaxas'; // <-- Aba de Taxas
+import ModalConfigTaxas from '../components/ModalConfigTaxas';
 
 export default function PrestacaoContasTaymix() {
-  const [abaAtiva, setAbaAtiva] = useState('prestacao'); // 'dashboard' | 'prestacao' | 'taxas'
+  const [abaAtiva, setAbaAtiva] = useState('prestacao'); // 'dashboard' | 'prestacao' | 'balancete' | 'taxas'
   const hookData = usePrestacaoContasTaymix();
 
   const {
-    dataInicio, setDataInicio, dataFim, setDataFim,
+    tipoFiltro, setTipoFiltro,
+    mesSelecionado, setMesSelecionado,
+    anoSelecionado, setAnoSelecionado,
     movimentacoesFiltradas = [], percentualGiro = 35, setPercentualGiro,
-    investimentoManual = 0, setInvestimentoManual,
     tipo = 'Receita', setTipo, categoria = 'Vendas / Pedidos', setCategoria,
     descricao = '', setDescricao, valor = '', setValor,
     ehInvestimentoInicial = false, setEhInvestimentoInicial,
@@ -28,9 +28,7 @@ export default function PrestacaoContasTaymix() {
     categoriasReceita = [], categoriasDespesa = [],
     handleScanNota, adicionarLancamento, excluirLancamento,
     totalReceitas = 0, totalDespesasOperacionais = 0, lucroLiquido = 0,
-    totalNotinhasIniciais = 0, investimentoTotalCalculado = 0, saldoInvestimentoPendente = 0,
-    investimentoQuitado = false, valorCapitalGiro = 0, valorParaDividir = 0,
-    lucroSocioA = 0, lucroSocioB = 0,
+    investimentoQuitado = false, valorCapitalGiro = 0,
     totalDinheiroCaixaAcumulado = 0, totalCartaoAcumulado = 0, totalPixAcumulado = 0,
     totalIfoodAcumulado = 0, total99Food = 0,
     qtdPedidosIfood = 0, qtdPedidos99Food = 0, qtdPedidosPix = 0,
@@ -51,36 +49,77 @@ export default function PrestacaoContasTaymix() {
       <Toaster position="top-right" />
 
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* CABEÇALHO */}
-        <CabecalhoPrestacao
-          abaAtiva={abaAtiva}
-          setAbaAtiva={setAbaAtiva}
-          setManualAberto={setManualAberto}
-          faturamento={totalReceitas}
-          gastos={totalDespesasOperacionais}
-          lucroLiquido={lucroLiquido}
-          capitalGiro={valorCapitalGiro}
-          investimentoInicialPendente={saldoInvestimentoPendente}
-          totalInvestido={investimentoTotalCalculado}
-          extrato={movimentacoesFiltradas}
-          retencaoGiro={percentualGiro}
-          totalDisponivelDivisao={valorParaDividir}
-          socio1Valor={lucroSocioA}
-          socio2Valor={lucroSocioB}
-          dataInicio={dataInicio}
-          dataFim={dataFim}
-          totalDinheiroCaixaAcumulado={totalDinheiroCaixaAcumulado}
-          totalCartaoAcumulado={totalCartaoAcumulado}
-          totalPixAcumulado={totalPixAcumulado}
-          totalIfoodAcumulado={totalIfoodAcumulado}
-          totalIfoodEntrega={0}
-          total99Food={total99Food}
-        />
+        
+        {/* BARRA SUPERIOR DE ABAS E ATALHOS */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setManualAberto(true)}
+              className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            >
+              <BookOpen size={14} /> Manual de Ajuda
+            </button>
+
+            {/* BOTÃO DA TELA DE BALANCETE */}
+            <button
+              onClick={() => setAbaAtiva('balancete')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs ${
+                abaAtiva === 'balancete'
+                  ? 'bg-emerald-600 text-white shadow-emerald-200'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+              }`}
+            >
+              <FileText size={14} /> Balancete & Relatório Oficial
+            </button>
+          </div>
+
+          {/* ABAS DE NAVEGAÇÃO PRINCIPAL */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setAbaAtiva('dashboard')}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                abaAtiva === 'dashboard' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Visão Geral
+            </button>
+            <button
+              onClick={() => setAbaAtiva('prestacao')}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                abaAtiva === 'prestacao' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Prestação & Divisão
+            </button>
+            <button
+              onClick={() => setAbaAtiva('taxas')}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                abaAtiva === 'taxas' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Taxas & Regras
+            </button>
+          </div>
+        </div>
 
         {/* EXIBIÇÃO DA ABA 1: DASHBOARD */}
         {abaAtiva === 'dashboard' && <DashboardPage />}
 
-        {/* EXIBIÇÃO DA ABA 3: TAXAS & REGRAS (NOVO COMPONENTE) */}
+        {/* EXIBIÇÃO DA TELA DE BALANCETE & RELATÓRIO OFICIAL */}
+        {abaAtiva === 'balancete' && (
+          <TelaBalanceteRelatorio
+            movimentacoesGerais={hookData?.movimentacoesFiltradas || movimentacoesFiltradas}
+            totalReceitasOficial={totalReceitas}
+            totalDinheiroAcumulado={totalDinheiroCaixaAcumulado}
+            totalPixAcumulado={totalPixAcumulado}
+            totalCartaoAcumulado={totalCartaoAcumulado}
+            totalIfoodAcumulado={totalIfoodAcumulado}
+            total99FoodAcumulado={total99Food}
+            formatarBRL={formatarBRL}
+          />
+        )}
+
+        {/* EXIBIÇÃO DA ABA: TAXAS & REGRAS */}
         {abaAtiva === 'taxas' && (
           <ModalConfigTaxas
             taxaIfoodPct={taxaIfoodPct}
@@ -98,26 +137,42 @@ export default function PrestacaoContasTaymix() {
           />
         )}
 
-        {/* EXIBIÇÃO DA ABA 2: PRESTAÇÃO DE CONTAS */}
+        {/* EXIBIÇÃO DA ABA: PRESTAÇÃO DE CONTAS (COM FILTRO UNIFICADO IGUAL AO BALANCETE) */}
         {abaAtiva === 'prestacao' && (
           <div className="space-y-6">
-            {/* Filtro de Datas */}
+            {/* BARRA DE FILTRO UNIFICADA (MÊS, ANO OU HISTÓRICO) */}
             <div className="flex justify-end">
               <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
-                <Filter size={16} className="text-amber-600" />
-                <input
-                  type="date"
-                  value={dataInicio || ''}
-                  onChange={(e) => setDataInicio && setDataInicio(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-800 p-1.5 rounded-lg outline-none focus:border-amber-500"
-                />
-                <span className="text-xs font-bold text-slate-400">até</span>
-                <input
-                  type="date"
-                  value={dataFim || ''}
-                  onChange={(e) => setDataFim && setDataFim(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-800 p-1.5 rounded-lg outline-none focus:border-amber-500"
-                />
+                <Calendar size={16} className="text-amber-600 ml-1" />
+                <select
+                  value={tipoFiltro}
+                  onChange={(e) => setTipoFiltro(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                >
+                  <option value="mes">Mês Específico</option>
+                  <option value="ano">Ano Inteiro ({new Date().getFullYear()})</option>
+                  <option value="todos">Todo o Período (Histórico)</option>
+                </select>
+
+                {tipoFiltro === 'mes' && (
+                  <input
+                    type="month"
+                    value={mesSelecionado}
+                    onChange={(e) => setMesSelecionado(e.target.value)}
+                    className="bg-white border border-slate-300 text-xs font-semibold text-slate-800 p-1.5 rounded-lg outline-none focus:border-amber-500"
+                  />
+                )}
+
+                {tipoFiltro === 'ano' && (
+                  <select
+                    value={anoSelecionado}
+                    onChange={(e) => setAnoSelecionado(e.target.value)}
+                    className="bg-white border border-slate-300 text-xs font-semibold text-slate-800 p-1.5 rounded-lg outline-none focus:border-amber-500"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                  </select>
+                )}
               </div>
             </div>
 
@@ -153,22 +208,7 @@ export default function PrestacaoContasTaymix() {
               formatarBRL={formatarBRL}
             />
 
-            {/* PAYBACK E SOCIOS */}
-            <PaybackEDivisaoSocios
-              totalNotinhasIniciais={totalNotinhasIniciais}
-              investimentoTotalCalculado={investimentoTotalCalculado}
-              setInvestimentoManual={setInvestimentoManual}
-              investimentoQuitado={investimentoQuitado}
-              saldoInvestimentoPendente={saldoInvestimentoPendente}
-              percentualGiro={percentualGiro}
-              setPercentualGiro={setPercentualGiro}
-              valorParaDividir={valorParaDividir}
-              lucroSocioA={lucroSocioA}
-              lucroSocioB={lucroSocioB}
-              formatarBRL={formatarBRL}
-            />
-
-            {/* FORMULÁRIO + EXTRATO */}
+            {/* FORMULÁRIO DE LANÇAMENTOS + EXTRATO */}
             <FormularioELancamentos
               tipo={tipo}
               setTipo={setTipo}
@@ -203,7 +243,7 @@ export default function PrestacaoContasTaymix() {
                   <BookOpen className="text-amber-600" size={20} /> Manual Prático de Gestão — Taymix
                 </h2>
                 <button
-                  onClick={() => setManualAberto && setManualAberto(false)}
+                  onClick={() => setManualAberto(false)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <X size={20} />
@@ -214,14 +254,14 @@ export default function PrestacaoContasTaymix() {
                 <div className="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
                   <p className="font-bold text-amber-900 mb-1">💡 Regra de Ouro: Como lançar notinhas?</p>
                   <ul className="list-disc pl-4 space-y-1 text-amber-800">
-                    <li><strong>Compras do Dia a Dia:</strong> Deixe a caixinha de investimento <em>desmarcada</em> (despesa operacional).</li>
-                    <li><strong>Investimento Inicial / Abertura:</strong> Marque <strong>[x] Notinha de Investimento Inicial</strong> para entrar no Payback.</li>
+                    <li><strong>Compras do Dia a Dia (OPEX):</strong> Deixe a caixinha de investimento <em>desmarcada</em> (como contas de luz, internet, gasolina e insumos).</li>
+                    <li><strong>Investimento Inicial / Abertura:</strong> Marque <strong>[x] Notinha de Investimento Inicial</strong> para integrar o cálculo de Payback.</li>
                   </ul>
                 </div>
               </div>
 
               <button
-                onClick={() => setManualAberto && setManualAberto(false)}
+                onClick={() => setManualAberto(false)}
                 className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition-colors mt-4 shadow-xs"
               >
                 Entendido, Fechar Manual
