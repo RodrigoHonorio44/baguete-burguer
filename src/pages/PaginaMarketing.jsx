@@ -13,33 +13,35 @@ export default function PaginaMarketing() {
   } = usePaginaMarketing();
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 p-4 md:p-8">
-      {/* Cabeçalho */}
-      <div className="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+    <div className="flex-1 w-full bg-[#f8f9fa] text-gray-800 p-6 md:p-8 space-y-8">
+      
+      {/* Cabeçalho de Topo Integrado */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-200/60">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
             <Megaphone className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Marketing & Promoções</h1>
-            <p className="text-xs text-gray-500">Crie banners promocionais e gerencie a vitrine da loja</p>
+            <h1 className="text-lg font-black text-slate-900">Marketing & Promoções</h1>
+            <p className="text-xs text-slate-500">Crie banners promocionais e gerencie a vitrine da loja</p>
           </div>
         </div>
 
-        {/* Abas */}
-        <div className="flex bg-gray-100 p-1 rounded-xl">
+        <div className="flex bg-white border border-slate-200/80 p-1 rounded-xl shadow-2xs">
           <button
+            type="button"
             onClick={() => setAbaAtiva('banners')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-              abaAtiva === 'banners' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              abaAtiva === 'banners' ? 'bg-amber-400 text-slate-950 font-black shadow-2xs' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             <ImageIcon className="w-4 h-4" /> Banners e Ofertas
           </button>
           <button
+            type="button"
             onClick={() => setAbaAtiva('favicon')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-              abaAtiva === 'favicon' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              abaAtiva === 'favicon' ? 'bg-amber-400 text-slate-950 font-black shadow-2xs' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             <Globe className="w-4 h-4" /> Favicon do Site
@@ -47,209 +49,215 @@ export default function PaginaMarketing() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto">
-        {abaAtiva === 'banners' && (
-          <div className="space-y-6">
-            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-                <Sparkles className="w-4 h-4 text-amber-500" /> Cadastrar Nova Oferta / Banner
-              </h2>
+      {abaAtiva === 'banners' && (
+        <div className="space-y-8 w-full">
+          
+          {/* Formulário de Cadastro sem moldura branca externa */}
+          <form onSubmit={handleSubmit} className="space-y-6 w-full">
+            <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" /> Cadastrar Nova Oferta / Banner
+            </h2>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                        <Tag className="w-3.5 h-3.5 text-amber-500" /> Selo / Badge Superior
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: ⚡ PROMOÇÃO DE SEXTA"
-                        value={form.badge}
-                        onChange={(e) => setForm({ ...form, badge: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Título Principal</label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Desconto Especial no "
-                        value={form.titulo}
-                        onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+              <div className="lg:col-span-2 space-y-4 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Texto em Destaque (Dourado)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5 text-amber-500" /> Selo / Badge Superior
+                    </label>
                     <input
                       type="text"
-                      placeholder="Ex: Combo Açaí + Massa"
-                      value={form.destaqueTitulo}
-                      onChange={(e) => setForm({ ...form, destaqueTitulo: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      placeholder="Ex: ⚡ PROMOÇÃO DE SEXTA"
+                      value={form.badge}
+                      onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-amber-500 shadow-2xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Descrição / Regras da Promoção</label>
-                    <textarea
-                      placeholder="Ex: Na compra de um Açaí de 1L ganhe 1 adicional grátis..."
-                      value={form.descricao}
-                      onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none h-20 resize-none"
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Título Principal</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Desconto Especial no"
+                      value={form.titulo}
+                      onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-amber-500 shadow-2xs"
+                      required
                     />
                   </div>
                 </div>
 
-                {/* Upload e Prévia */}
-                <div className="space-y-3">
-                  <label className="block text-xs font-semibold text-gray-700">Imagem da Promoção</label>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Texto em Destaque (Dourado)</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Combo Açaí + Massa"
+                    value={form.destaqueTitulo}
+                    onChange={(e) => setForm({ ...form, destaqueTitulo: e.target.value })}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-amber-500 shadow-2xs"
+                  />
+                </div>
 
-                  <div className="flex bg-gray-100 p-1 rounded-lg text-xs font-medium">
-                    <button
-                      type="button"
-                      onClick={() => setTipoUpload('arquivo')}
-                      className={`flex-1 py-1 rounded-md text-center transition-all ${
-                        tipoUpload === 'arquivo' ? 'bg-white shadow text-gray-800' : 'text-gray-500'
-                      }`}
-                    >
-                      Dispositivo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTipoUpload('url')}
-                      className={`flex-1 py-1 rounded-md text-center transition-all ${
-                        tipoUpload === 'url' ? 'bg-white shadow text-gray-800' : 'text-gray-500'
-                      }`}
-                    >
-                      Link / URL
-                    </button>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição / Regras da Promoção</label>
+                  <textarea
+                    placeholder="Ex: Na compra de um Açaí de 1L ganhe 1 adicional grátis..."
+                    value={form.descricao}
+                    onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-amber-500 h-24 resize-none shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Upload e Prévia */}
+              <div className="space-y-3 w-full">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Imagem da Promoção</label>
+
+                <div className="flex bg-slate-200/70 p-1 rounded-xl text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setTipoUpload('arquivo')}
+                    className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
+                      tipoUpload === 'arquivo' ? 'bg-white shadow-xs text-slate-900 font-bold' : 'text-slate-600'
+                    }`}
+                  >
+                    Dispositivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoUpload('url')}
+                    className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${
+                      tipoUpload === 'url' ? 'bg-white shadow-xs text-slate-900 font-bold' : 'text-slate-600'
+                    }`}
+                  >
+                    Link / URL
+                  </button>
+                </div>
+
+                {tipoUpload === 'arquivo' ? (
+                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-amber-400 transition-colors bg-white relative cursor-pointer shadow-2xs">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                    <p className="text-xs font-medium text-slate-600">Clique para escolher a foto</p>
+                    <p className="text-[10px] text-slate-400">PNG ou JPG (Recomendado: 400x300 px)</p>
                   </div>
-
-                  {tipoUpload === 'arquivo' ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-amber-400 transition-colors bg-gray-50 relative">
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2 border border-slate-300 rounded-xl px-3.5 py-2.5 bg-white shadow-2xs">
+                      <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        type="text"
+                        placeholder="https://sua-imagem.jpg"
+                        value={form.imagemUrl}
+                        onChange={handleUrlChange}
+                        className="w-full text-xs bg-transparent focus:outline-none"
                       />
-                      <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                      <p className="text-xs font-medium text-gray-600">Clique para escolher a foto</p>
-                      <p className="text-[10px] text-gray-400">PNG ou JPG (Recomendado: 400x300 px)</p>
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white">
-                        <LinkIcon className="w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="https://sua-imagem.jpg"
-                          value={form.imagemUrl}
-                          onChange={handleUrlChange}
-                          className="w-full text-xs focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  </div>
+                )}
 
-                  {previaImagem && (
-                    <div className="mt-2">
-                      <p className="text-[10px] text-gray-500 mb-1 font-semibold">Pré-visualização:</p>
-                      <div className="relative rounded-lg overflow-hidden border border-gray-200 h-28 bg-gray-900">
-                        <img src={previaImagem} alt="Prévia" className="w-full h-full object-cover opacity-80" />
-                        <div className="absolute inset-0 flex flex-col justify-end p-2 bg-gradient-to-t from-black/80 to-transparent text-white">
-                          <span className="text-[9px] bg-amber-500 text-black px-1.5 py-0.5 rounded font-bold w-max">{form.badge}</span>
-                          <p className="text-xs font-bold line-clamp-1">{form.titulo} <span className="text-amber-400">{form.destaqueTitulo}</span></p>
-                        </div>
+                {previaImagem && (
+                  <div className="mt-2">
+                    <p className="text-[10px] text-slate-500 mb-1 font-bold uppercase">Pré-visualização:</p>
+                    <div className="relative rounded-xl overflow-hidden border border-slate-200 h-32 bg-slate-900 shadow-xs">
+                      <img src={previaImagem} alt="Prévia" className="w-full h-full object-cover opacity-80" />
+                      <div className="absolute inset-0 flex flex-col justify-end p-3 bg-gradient-to-t from-black/80 to-transparent text-white">
+                        <span className="text-[9px] bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded font-bold w-max">{form.badge}</span>
+                        <p className="text-xs font-bold line-clamp-1">{form.titulo} <span className="text-amber-400">{form.destaqueTitulo}</span></p>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
+            </div>
 
-              <div className="flex justify-end border-t border-gray-100 pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs px-6 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50"
-                >
-                  <Plus className="w-4 h-4" /> {loading ? 'Enviando...' : 'Publicar Oferta no Carrossel'}
-                </button>
-              </div>
-            </form>
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> {loading ? 'Enviando...' : 'Publicar Oferta no Carrossel'}
+              </button>
+            </div>
+          </form>
 
-            {/* Lista de Promoções */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-              <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Promoções na Loja</h2>
+          {/* Divisor subtil */}
+          <hr className="border-slate-200/80 my-6" />
 
-              {banners.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-8">Nenhuma promoção ativa no momento.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {banners.map((b) => (
-                    <div key={b._id} className="p-3 border border-gray-200 rounded-xl flex items-center gap-3 bg-white hover:border-amber-300 transition-colors shadow-sm">
-                      <img src={b.imagemUrl} alt={b.titulo} className="w-24 h-18 object-cover rounded-lg border bg-gray-100" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md">{b.badge || 'PROMOÇÃO'}</span>
-                        <h3 className="font-bold text-xs text-gray-800 mt-1 truncate">
-                          {b.titulo} <span className="text-amber-500">{b.destaqueTitulo}</span>
-                        </h3>
-                        <p className="text-[11px] text-gray-500 line-clamp-1">{b.descricao}</p>
-                        
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => toggleAtivo(b._id, b.ativo)}
-                            className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-medium border ${
-                              b.ativo ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'
-                            }`}
-                          >
-                            {b.ativo ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                            {b.ativo ? 'Visível' : 'Oculto'}
-                          </button>
-                          <button
-                            onClick={() => deletarBanner(b._id)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+          {/* Lista de Promoções Existentes sem moldura externa */}
+          <div className="space-y-4 w-full">
+            <h2 className="text-sm font-black text-slate-900">Promoções na Loja</h2>
+
+            {banners.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-4">Nenhuma promoção ativa no momento.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                {banners.map((b) => (
+                  <div key={b._id} className="p-3.5 border border-slate-200/80 rounded-xl flex items-center gap-3.5 bg-white hover:border-amber-300 transition-colors shadow-2xs w-full">
+                    <img src={b.imagemUrl} alt={b.titulo} className="w-24 h-20 object-cover rounded-lg border border-slate-200 bg-slate-50 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md">{b.badge || 'PROMOÇÃO'}</span>
+                      <h3 className="font-bold text-xs text-slate-900 mt-1 truncate">
+                        {b.titulo} <span className="text-amber-600">{b.destaqueTitulo}</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-500 line-clamp-1">{b.descricao}</p>
+                      
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleAtivo(b._id, b.ativo)}
+                          className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-md font-bold border cursor-pointer transition ${
+                            b.ativo ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-600 border-slate-300'
+                          }`}
+                        >
+                          {b.ativo ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                          {b.ativo ? 'Visível' : 'Oculto'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deletarBanner(b._id)}
+                          className="p-1 text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {abaAtiva === 'favicon' && (
+        <div className="space-y-6 w-full">
+          <div className="border-b border-slate-200/80 pb-3">
+            <h2 className="text-sm font-black text-slate-900">Favicon da Loja</h2>
+            <p className="text-xs text-slate-500">Ícone exibido na aba do navegador e no atalho de aplicativo do celular</p>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-white rounded-2xl border border-slate-200/80 shadow-2xs w-full">
+            <div className="w-20 h-20 bg-amber-950 rounded-2xl flex items-center justify-center p-2 shadow-sm shrink-0">
+              <img src="/favicon.ico" alt="Favicon" className="w-12 h-12 object-contain" />
+            </div>
+            <div className="space-y-2 text-center md:text-left w-full">
+              <h3 className="font-bold text-xs text-slate-900">Favicon Atual</h3>
+              <p className="text-[11px] text-slate-500">Tamanho recomendado: **200x200 px** (Formato PNG ou ICO).</p>
+              <button type="button" className="flex items-center gap-1.5 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-xs">
+                <Upload className="w-3.5 h-3.5" /> Selecionar Novo Favicon
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {abaAtiva === 'favicon' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-            <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-base font-bold text-gray-900">Favicon da Loja</h2>
-              <p className="text-xs text-gray-500">Ícone exibido na aba do navegador e no atalho de aplicativo do celular</p>
-            </div>
-
-            <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              <div className="w-20 h-20 bg-amber-950 rounded-2xl flex items-center justify-center p-2 shadow-md">
-                <img src="/favicon.ico" alt="Favicon" className="w-12 h-12 object-contain" />
-              </div>
-              <div className="space-y-2 text-center md:text-left">
-                <h3 className="font-bold text-xs text-gray-800">Favicon Atual</h3>
-                <p className="text-[11px] text-gray-500">Tamanho recomendado: **200x200 px** (Formato PNG ou ICO).</p>
-                <button className="flex items-center gap-1.5 bg-gray-800 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors">
-                  <Upload className="w-3.5 h-3.5" /> Selecionar Novo Favicon
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

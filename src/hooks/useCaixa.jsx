@@ -22,11 +22,11 @@ export const useCaixa = () => {
   const [tipoRetiradaPdv, setTipoRetiradaPdv] = useState('retirada'); // 'retirada' ou 'entrega'
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
 
-  // 🎯 Efeito para travar a forma de pagamento em 'app_online' quando o canal for aplicativo
+  // 🎯 Efeito para travar a forma de pagamento em 'ifood_pix' ou 'app_online' quando o canal for aplicativo
   useEffect(() => {
     if (canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food' || canalPdv.includes('ifood') || canalPdv.includes('99')) {
-      setPagamentoPdv('app_online');
-    } else if (pagamentoPdv === 'app_online') {
+      setPagamentoPdv('ifood_pix');
+    } else if (pagamentoPdv === 'ifood_pix' || pagamentoPdv === 'app_online') {
       setPagamentoPdv('dinheiro');
     }
   }, [canalPdv]);
@@ -39,7 +39,6 @@ export const useCaixa = () => {
 
   // 🧮 Função auxiliar avançada para calcular taxas de comissão, subsídios e repasse líquido de cada pedido
   const calcularValoresPedido = (p) => {
-    // 1. Se o pedido já trouxer o repasse líquido direto do webhook do iFood, usa ele!
     if (p.repasseLiquido !== undefined && p.repasseLiquido !== null && p.repasseLiquido > 0) {
       return {
         totalBruto: Number(p.totalBruto || p.total || 0),
@@ -54,19 +53,14 @@ export const useCaixa = () => {
     let comissaoApp = 0;
 
     if (canal.includes('ifood')) {
-      // Regra iFood: 26.2% + R$ 1,50 sobre o subtotal
       const taxaPorcentagem = (totalBruto * 26.2) / 100;
       const taxaFixa = totalBruto > 0 ? 1.50 : 0;
       comissaoApp = taxaPorcentagem + taxaFixa;
     } else if (canal.includes('99') || canal.includes('99food')) {
-      // Regra 99Food: 12.1%
       comissaoApp = (totalBruto * 12.1) / 100;
     }
 
-    // Abatimento de incentivos/cupons bancados pelo iFood (subsídio que eles te devolvem)
     const incentivosIfood = Number(p.incentivosIfood || p.descontoIfood || 0);
-    
-    // Repasse líquido real = (Valor do pedido + Subsídio da plataforma) - Comissão
     let repasseLiquido = Math.max(0, (totalBruto + incentivosIfood) - comissaoApp);
     
     if (p.totalLiquidoRepasse) {
@@ -88,8 +82,12 @@ export const useCaixa = () => {
 
   const totalGeral = faturamentoVendas + Number(fundoCaixa || 0);
   
+  // 🎯 Total Pix separa apenas o Pix físico/presencial de balcão, ignorando pagamentos de app (ifood_pix / app_online)
   const totalPix = pedidosValidos
-    .filter(p => (p.forma_pagamento || p.pagamento || '').toLowerCase() === 'pix')
+    .filter(p => {
+      const pag = (p.forma_pagamento || p.pagamento || '').toLowerCase();
+      return pag === 'pix' && !pag.includes('ifood') && !pag.includes('app');
+    })
     .reduce((acc, p) => acc + Number(p.total || 0), 0);
 
   const totalCartao = pedidosValidos
@@ -136,7 +134,7 @@ export const useCaixa = () => {
       return acc + repasseLiquido;
     }, 0);
 
-  // 99Food (tratando letras maiúsculas/minúsculas e variações)
+  // 99Food
   const total99Food = pedidosValidos
     .filter(p => {
       const canal = (p.canal || '').toLowerCase();
@@ -175,7 +173,6 @@ export const useCaixa = () => {
 
       setProdutos(dataProdutos || []);
       
-      // 🎯 Filtro rigoroso para isolar apenas os pedidos da data atual (hora local)
       const hojeStrLocal = new Date().toLocaleDateString('pt-BR');
 
       const pedidosHoje = (dataPedidos || []).filter(p => {
@@ -204,7 +201,6 @@ export const useCaixa = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Abertura do Caixa enviando requisição para o BANCO DE DADOS
   const abrirCaixa = async (e) => {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
@@ -234,7 +230,6 @@ export const useCaixa = () => {
     }
   };
 
-  // Fechamento do Caixa com verificação de comandas/pedidos em aberto
   const fecharCaixaSistema = async () => {
     const comandasAbertas = pedidos.filter(p => {
       const st = (p.status || 'pendente').toLowerCase();
@@ -315,14 +310,12 @@ export const useCaixa = () => {
     }
   };
 
-  // Função auxiliar para limpar completamente o carrinho do PDV
   const limparCarrinhoPdv = () => {
     setCarrinhoPdv([]);
   };
 
   const totalCarrinhoPdv = carrinhoPdv.reduce((acc, i) => acc + (Number(i.preco) * i.quantidade), 0);
   
-  // 🎯 Cálculo dinâmico de taxa e repasse no PDV (Venda Manual)
   let taxaComissaoPdv = 0;
   if (canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv.includes('ifood')) {
     taxaComissaoPdv = (totalCarrinhoPdv * 26.2 / 100) + (totalCarrinhoPdv > 0 ? 1.50 : 0);
@@ -354,19 +347,21 @@ export const useCaixa = () => {
       if (canalPdv === 'ifood_parceiro') nomeClientePadrao = 'Cliente iFood (Parceiro)';
       if (canalPdv === '99food') nomeClientePadrao = 'Cliente 99Food';
 
-      // 🎯 REGRA EXATA: Se for iFood ou 99Food, o valor financeiro do pedido gravado no caixa é o Repasse Líquido
       const ehApp = canalPdv.includes('ifood') || canalPdv.includes('99') || canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food';
       const valorFinalCaixa = ehApp ? repasseLiquidoPdv : totalCarrinhoPdv;
+
+      // Garante que se for app, o pagamento seja salvo como 'ifood_pix'
+      const formaPgtoFinal = ehApp ? 'ifood_pix' : pagamentoPdv;
 
       const novoPedido = {
         cliente_nome: clientePdv.trim() || nomeClientePadrao,
         itens: carrinhoPdv,
         totalBruto: totalCarrinhoPdv,
-        total: valorFinalCaixa, // 🎯 Salva o líquido oficial ou o total do balcão
+        total: valorFinalCaixa,
         comissaoApp: taxaComissaoPdv,
         repasseLiquido: repasseLiquidoPdv,
-        forma_pagamento: pagamentoPdv,
-        pagamento: pagamentoPdv,
+        forma_pagamento: formaPgtoFinal,
+        pagamento: formaPgtoFinal,
         status: statusInicial,
         canal: canalPdv,
         tipo: tipoRetiradaPdv,
