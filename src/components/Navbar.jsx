@@ -33,9 +33,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [configLoja, setConfigLoja] = useState({
-    horarioAbertura: '08:00',
-    horarioFechamento: '23:30',
-    diasFuncionamento: {}
+    horariosDias: {}
   });
 
   useEffect(() => {
@@ -94,23 +92,43 @@ export const Navbar = () => {
 
   const calcularStatusAutomatico = () => {
     const agora = new Date();
-    const diasSemanaMap = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const diaAtualStr = diasSemanaMap[agora.getDay()];
-    const diasFuncionamento = configLoja.diasFuncionamento || {};
     
-    if (diasFuncionamento[diaAtualStr] === false) return false;
+    // Puxa do novo formato de horários por dia da semana
+    const horariosDias = configLoja.horariosDias || {};
+    const infoHoje = horariosDias[diaAtualStr];
+
+    // Se o dia não estiver cadastrado ou estiver marcado como fechado/inativo
+    if (!infoHoje || !infoHoje.ativo) return false;
 
     const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
-    const [hAb, mAb] = (configLoja.horarioAbertura || '08:00').split(':').map(Number);
+    
+    const [hAb, mAb] = (infoHoje.abertura || '18:00').split(':').map(Number);
     const minAbertura = hAb * 60 + mAb;
 
-    const [hFech, mFech] = (configLoja.horarioFechamento || '23:30').split(':').map(Number);
+    const [hFech, mFech] = (infoHoje.fechamento || '22:00').split(':').map(Number);
     const minFechamento = hFech * 60 + mFech;
 
+    // Retorna true se estiver dentro do horário de atendimento configurado para hoje
     return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
   };
 
   const lojaAberta = calcularStatusAutomatico();
+
+  // Pega o horário formatado para exibir no badge da navbar de acordo com o dia de hoje
+  const getHorarioExibicaoHoje = () => {
+    const agora = new Date();
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diaAtualStr = diasSemanaMap[agora.getDay()];
+    const horariosDias = configLoja.horariosDias || {};
+    const infoHoje = horariosDias[diaAtualStr];
+
+    if (infoHoje && infoHoje.ativo) {
+      return `${infoHoje.abertura} às ${infoHoje.fechamento}`;
+    }
+    return 'Fechado hoje';
+  };
 
   useEffect(() => {
     if (isEntregador) return;
@@ -173,7 +191,7 @@ export const Navbar = () => {
   if (isLoggedIn && isEntregador) {
     return (
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 py-3 h-16 md:h-20 flex items-center justify-between">
+        <div className="w-full px-4 md:px-8 py-3 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-amber-50 p-1 rounded-full border border-amber-300 shadow-xs flex items-center justify-center shrink-0">
               <img src="/lo.jpg" alt="Tay Mix" className="w-10 h-10 rounded-full object-cover" />
@@ -200,8 +218,8 @@ export const Navbar = () => {
   }
 
   return (
-    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs transition-all">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-x-4 gap-y-2.5">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs transition-all w-full">
+      <div className="w-full px-4 md:px-8 py-2.5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-x-4 gap-y-2.5">
         
         {/* Esquerda: Logo, Menu Hamburguer e Status */}
         <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
@@ -228,7 +246,7 @@ export const Navbar = () => {
                   tay <span className="text-amber-500">mix</span>
                 </span>
                 <span className="text-[10px] lg:text-xs text-amber-600 font-extrabold tracking-wider uppercase mt-0.5">
-                  açaí &bull; massas
+                  açaí • massas
                 </span>
               </div>
             </Link>
@@ -246,7 +264,7 @@ export const Navbar = () => {
             </span>
             <span className="text-slate-300">|</span>
             <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
-              <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+              <Clock className="w-3 h-3 text-slate-400" /> {getHorarioExibicaoHoje()}
             </span>
           </div>
 
@@ -297,7 +315,7 @@ export const Navbar = () => {
           </span>
           <span className="text-slate-300">|</span>
           <span className="text-slate-600 flex items-center gap-1 font-semibold text-[11px]">
-            <Clock className="w-3 h-3 text-slate-400" /> {configLoja.horarioAbertura} às {configLoja.horarioFechamento}
+            <Clock className="w-3 h-3 text-slate-400" /> {getHorarioExibicaoHoje()}
           </span>
         </div>
 
@@ -406,7 +424,7 @@ export const Navbar = () => {
 
       {/* Menu Mobile */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg">
+        <div className="lg:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 text-sm text-slate-700 font-bold shadow-lg w-full">
           <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-amber-600 transition">
             cardápio
           </Link>

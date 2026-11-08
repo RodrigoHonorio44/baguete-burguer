@@ -6,30 +6,27 @@ import { Navbar } from './components/Navbar';
 import { CartDrawer } from './components/CartDrawer';
 import { AppRoutes } from './routes/AppRoutes';
 import { Footer } from './components/Footer';
-import { WhatsAppButton } from './components/WhatsAppButton'; // Importação do botão do WhatsApp
+import { WhatsAppButton } from './components/WhatsAppButton';
 
 export default function App() {
   return (
     <BrowserRouter>
       <CartProvider>
-        {/* Container Principal */}
-        <div className="min-h-screen bg-white text-slate-800 flex flex-col justify-between relative">
-          <div>
+        {/* Container Principal com largura 100% fluida (w-full) */}
+        <div className="min-h-screen w-full bg-white text-slate-800 flex flex-col justify-between relative overflow-x-hidden">
+          <div className="w-full">
             <Navbar />
-            <main>
+            <main className="w-full">
               <AppRoutes />
             </main>
           </div>
-          <CartDrawer />
           
-          {/* Botão Flutuante do WhatsApp */}
+          <CartDrawer />
           <WhatsAppButton />
-
-          {/* Footer no modo claro */}
           <Footer />
         </div>
         
-        {/* Configuração global do Toast adaptada para o modo claro */}
+        {/* Configuração global do Toast */}
         <Toaster
           position="top-right"
           toastOptions={{

@@ -37,15 +37,24 @@ export const useCaixa = () => {
     return status !== 'recusado' && status !== 'cancelado';
   });
 
-  // 🧮 Função auxiliar para calcular taxas de comissão e repasse líquido de cada pedido
+  // 🧮 Função auxiliar avançada para calcular taxas de comissão, subsídios e repasse líquido de cada pedido
   const calcularValoresPedido = (p) => {
+    // 1. Se o pedido já trouxer o repasse líquido direto do webhook do iFood, usa ele!
+    if (p.repasseLiquido !== undefined && p.repasseLiquido !== null && p.repasseLiquido > 0) {
+      return {
+        totalBruto: Number(p.totalBruto || p.total || 0),
+        comissaoApp: Number(p.comissaoApp || 0),
+        repasseLiquido: Number(p.repasseLiquido)
+      };
+    }
+
     const totalBruto = Number(p.totalBruto || p.total || 0);
     const canal = (p.canal || '').toLowerCase();
 
     let comissaoApp = 0;
 
     if (canal.includes('ifood')) {
-      // Regra iFood: 26.2% + R$ 1,50
+      // Regra iFood: 26.2% + R$ 1,50 sobre o subtotal
       const taxaPorcentagem = (totalBruto * 26.2) / 100;
       const taxaFixa = totalBruto > 0 ? 1.50 : 0;
       comissaoApp = taxaPorcentagem + taxaFixa;
@@ -54,7 +63,15 @@ export const useCaixa = () => {
       comissaoApp = (totalBruto * 12.1) / 100;
     }
 
-    const repasseLiquido = Math.max(0, totalBruto - comissaoApp);
+    // Abatimento de incentivos/cupons bancados pelo iFood (subsídio que eles te devolvem)
+    const incentivosIfood = Number(p.incentivosIfood || p.descontoIfood || 0);
+    
+    // Repasse líquido real = (Valor do pedido + Subsídio da plataforma) - Comissão
+    let repasseLiquido = Math.max(0, (totalBruto + incentivosIfood) - comissaoApp);
+    
+    if (p.totalLiquidoRepasse) {
+      repasseLiquido = Number(p.totalLiquidoRepasse);
+    }
 
     return {
       totalBruto,
@@ -345,7 +362,7 @@ export const useCaixa = () => {
         cliente_nome: clientePdv.trim() || nomeClientePadrao,
         itens: carrinhoPdv,
         totalBruto: totalCarrinhoPdv,
-        total: valorFinalCaixa, // 🎯 Salva o líquido oficial (ex: R$ 16,95) ou o total do balcão (ex: R$ 25,00)
+        total: valorFinalCaixa, // 🎯 Salva o líquido oficial ou o total do balcão
         comissaoApp: taxaComissaoPdv,
         repasseLiquido: repasseLiquidoPdv,
         forma_pagamento: pagamentoPdv,

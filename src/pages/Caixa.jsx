@@ -76,7 +76,7 @@ export const Caixa = () => {
       // 1. Atualiza o status do pedido para 'preparo' no banco de dados
       await alterarStatus(pedido._id, 'preparo');
 
-      // 2. 🖨️ Dispara a impressão automática direto no backend (sem abrir janela de impressão)
+      // 2. 🖨️ Dispara a impressão automática direto no backend
       try {
         if (api.imprimirPedido) {
           await api.imprimirPedido(pedido._id || pedido.id);
@@ -86,7 +86,6 @@ export const Caixa = () => {
         toast.success('Pedido aceito e enviado para a impressora!');
       } catch (printErr) {
         console.error('Erro ao acionar impressora automática:', printErr);
-        // Fallback para impressão via front-end caso a rota do backend não exista
         dispararImpressao(pedido);
       }
     } catch (err) {
@@ -150,7 +149,7 @@ export const Caixa = () => {
         </div>
       </div>
 
-      {/* Alerta de Pedidos do App com Layout Otimizado e Sonoro */}
+      {/* Alerta de Pedidos Pendentes com Som */}
       {pedidosPendentesApp.length > 0 && (
         <div className="mb-8 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-2 border-amber-400 rounded-2xl p-6 shadow-xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-amber-200/80 mb-5 gap-2">
@@ -159,19 +158,16 @@ export const Caixa = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-orange-600"></span>
               </span>
-              🔔 {pedidosPendentesApp.length} NOVO(S) PEDIDO(S) DO APP CHEGANDO!
+              🔔 {pedidosPendentesApp.length} NOVO(S) PEDIDO(S) CHEGANDO!
             </div>
             <span className="text-xs font-bold text-amber-900 bg-amber-200/70 px-3.5 py-1.5 rounded-full border border-amber-300">
-              ⚡ Aceite no caixa para mandar para a cozinha e imprimir
+              ⚡ Aceite para mandar para a cozinha e imprimir
             </span>
-
           </div>
 
           <div className="space-y-4">
             {pedidosPendentesApp.map(p => (
               <div key={p._id} className="bg-white p-5 rounded-xl border border-amber-200/80 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 shadow-sm hover:shadow-md transition">
-                
-                {/* Lado esquerdo: ID, Cliente, Canal e Itens */}
                 <div className="flex items-start gap-4 w-full lg:w-auto">
                   <div className="bg-amber-100 text-amber-900 font-mono font-black px-3.5 py-2.5 rounded-xl text-base tracking-wider border border-amber-200 shadow-2xs">
                     #{p._id ? p._id.slice(-4) : '0000'}
@@ -179,21 +175,25 @@ export const Caixa = () => {
                   
                   <div className="space-y-1">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <h4 className="font-extrabold text-slate-800 text-base">{p.cliente_nome || 'Cliente App'}</h4>
-                      <span className="text-[11px] bg-red-100 text-red-700 px-2.5 py-0.5 rounded-lg uppercase font-black tracking-wide border border-red-200">
-                        {p.canal || 'App Delivery'}
+                      <h4 className="font-extrabold text-slate-800 text-base">{p.cliente_nome || 'Cliente'}</h4>
+                      <span className="text-[11px] bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-lg uppercase font-black tracking-wide border border-rose-200">
+                        {p.canal || 'Delivery'}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-2">
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-2 flex-wrap">
                       <span>📦 {p.itens?.length || 0} ite(ns)</span>
                       <span>•</span>
-                      <span>Total: <strong className="text-emerald-600 font-extrabold text-sm">{formatarMoeda(p.total)}</strong></span>
-                      <span className="text-slate-400 font-normal">({p.forma_pagamento || 'app_online'})</span>
+                      <span>Total Bruto: <strong className="text-slate-700">{formatarMoeda(p.totalBruto || p.total)}</strong></span>
+                      {p.repasseLiquido && (
+                        <>
+                          <span>•</span>
+                          <span>Repasse Líquido: <strong className="text-emerald-600 font-extrabold">{formatarMoeda(p.repasseLiquido)}</strong></span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
 
-                {/* Lado direito: Botões de Ação largos e destacados */}
                 <div className="flex items-center gap-3 w-full lg:w-auto justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                   <button
                     onClick={() => recusarPedidoCaixa(p._id)}
@@ -208,7 +208,6 @@ export const Caixa = () => {
                     <ChefHat size={16} /> Aceitar e Mandar Cozinha
                   </button>
                 </div>
-
               </div>
             ))}
           </div>
@@ -335,10 +334,10 @@ export const Caixa = () => {
                 <tr>
                   <th className="py-3 px-4">ID</th>
                   <th className="py-3 px-4">Horário</th>
-                  <th className="py-3 px-4">Cliente / Tipo</th>
+                  <th className="py-3 px-4">Cliente / Canal</th>
                   <th className="py-3 px-4">Pagamento</th>
                   <th className="py-3 px-4">Status Atual</th>
-                  <th className="py-3 px-4 text-right">Valor</th>
+                  <th className="py-3 px-4 text-right">Valor Líq. / Bruto</th>
                   <th className="py-3 px-4 text-center">Ações / Despacho</th>
                 </tr>
               </thead>
@@ -348,6 +347,7 @@ export const Caixa = () => {
                   const isFinalizado = statusAtual === 'concluido' || statusAtual === 'entregue';
                   const isRecusado = statusAtual === 'recusado' || statusAtual === 'cancelado';
                   const isBalcaoRetirada = p.tipo === 'retirada' || p.canal === 'presencial';
+                  const isIfoodParceiro = (p.canal || '').includes('parceiro') || (p.tipo || '').includes('parceira');
 
                   return (
                     <tr key={p._id || index} className="hover:bg-slate-50/80 transition">
@@ -356,7 +356,7 @@ export const Caixa = () => {
                       <td className="py-3 px-4">
                         <div className="font-semibold text-xs text-slate-800">{p.cliente_nome || 'Cliente'}</div>
                         <div className="text-[11px] text-slate-500">
-                          {isBalcaoRetirada ? '🏪 Balcão (Retirada)' : '🛵 Delivery / Motoboy'}
+                          {isBalcaoRetirada ? '🏪 Balcão (Retirada)' : isIfoodParceiro ? '🛵 iFood (Entrega Parceira)' : '🛵 Delivery Próprio'}
                         </div>
                       </td>
                       <td className="py-3 px-4"><span className="text-[10px] px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 rounded uppercase font-semibold">{p.forma_pagamento || p.pagamento || 'não inf.'}</span></td>
@@ -371,8 +371,15 @@ export const Caixa = () => {
                           {statusAtual === 'pronto' && isBalcaoRetirada ? 'Pronto (Retirada)' : statusAtual === 'pronto' ? 'Pronto na Cozinha' : statusAtual}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600">
-                        {isRecusado ? '-' : formatarMoeda(p.total)}
+                      <td className="py-3 px-4 text-right">
+                        {isRecusado ? '-' : (
+                          <div>
+                            <div className="font-bold text-emerald-600">{formatarMoeda(p.repasseLiquido || p.total)}</div>
+                            {p.totalBruto && p.totalBruto !== (p.repasseLiquido || p.total) && (
+                              <div className="text-[10px] text-slate-400">Bruto: {formatarMoeda(p.totalBruto)}</div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
@@ -403,7 +410,13 @@ export const Caixa = () => {
                             </button>
                           )}
 
-                          {statusAtual === 'pronto' && !isBalcaoRetirada && (
+                          {statusAtual === 'pronto' && !isBalcaoRetirada && isIfoodParceiro && (
+                            <span className="text-[11px] text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                              Aguardando Motoboy iFood
+                            </span>
+                          )}
+
+                          {statusAtual === 'pronto' && !isBalcaoRetirada && !isIfoodParceiro && (
                             <button
                               onClick={() => alterarStatus(p._id, 'enviado')}
                               title="Enviar com o Motoboy"
@@ -554,7 +567,8 @@ export const Caixa = () => {
           </div>
         );
       })()}
-{/* Componente Modular do PDV */}
+
+      {/* Componente Modular do PDV */}
       <ModalPdv
         modalPdvAberto={modalPdvAberto}
         setModalPdvAberto={setModalPdvAberto}
