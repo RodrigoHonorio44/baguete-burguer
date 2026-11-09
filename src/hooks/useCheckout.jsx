@@ -25,6 +25,7 @@ export const useCheckout = () => {
     rua: '',
     numero: '',
     bairro: '',
+    referencia: '', // <--- Adicionado suporte à referência
     observacoes: '',
     forma_pagamento: 'dinheiro',
     troco_para: '',
@@ -46,15 +47,20 @@ export const useCheckout = () => {
     try {
       const userData = JSON.parse(savedUser);
       setUserDataId(userData.id || userData._id || '');
-      setUserDateEmail(userData.email || '');
+      setUserDataEmail(userData.email || '');
+
+      const nomeCompleto = userData.nome 
+        ? `${userData.nome} ${userData.sobrenome || ''}`.trim() 
+        : (userData.cliente_nome || '');
 
       setForm(prev => ({
         ...prev,
-        cliente_nome: userData.nome || '',
+        cliente_nome: nomeCompleto,
         telefone: userData.telefone || '',
         rua: userData.endereco?.rua || userData.rua || '',
         numero: userData.endereco?.numero || userData.numero || '',
         bairro: userData.endereco?.bairro || userData.bairro || '',
+        referencia: userData.endereco?.referencia || userData.referencia || '', // <--- Mapeia a referência do usuário
         latitude: userData.endereco?.latitude || userData.latitude || '',
         longitude: userData.endereco?.longitude || userData.longitude || ''
       }));
@@ -333,7 +339,7 @@ export const useCheckout = () => {
     loadingCancelamento,
     taxaEntrega,
     pedidoMinimo,
-    lojaAberta, // Exportado para desativar o botão visualmente na tela de Checkout
+    lojaAberta,
     navigate,
     handleChange,
     capturarLocalizacao,
@@ -343,3 +349,5 @@ export const useCheckout = () => {
     handleSubmit,
   };
 };
+
+export default useCheckout;

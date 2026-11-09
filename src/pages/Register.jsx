@@ -143,6 +143,21 @@ export const Register = () => {
           </div>
         </div>
 
+        {/* APELIDO DO ENDEREÇO (EX: CASA, TRABALHO) */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Apelido do Endereço (Ex: Casa, Trabalho)
+          </label>
+          <input
+            type="text"
+            name="apelido"
+            value={form.apelido || 'Casa'}
+            onChange={handleChange}
+            placeholder="Casa"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition"
+          />
+        </div>
+
         {/* SEÇÃO DO MAPA INTERATIVO COM AUTOPREENCHIMENTO */}
         <div className="space-y-2 pt-2">
           <div className="flex justify-between items-center">
@@ -168,7 +183,7 @@ export const Register = () => {
               style={{ width: '100%', height: '100%' }}
             >
               <TileLayer
-                attribution='&copy; OpenStreetMap contributors'
+                attribution='© OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <Marker position={coordsMapa} />

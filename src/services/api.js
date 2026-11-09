@@ -35,9 +35,11 @@ export const api = {
       senha: userData.senha,
       role: userData.role || 'cliente',
       endereco: {
+        apelido: userData.endereco?.apelido || userData.apelido || 'Casa',
         rua: userData.rua ? userData.rua.toLowerCase() : '',
         numero: userData.numero ? String(userData.numero) : '0',
         bairro: userData.bairro ? userData.bairro.toLowerCase() : '',
+        referencia: userData.endereco?.referencia || userData.referencia || '', // <--- AGORA REPASSA A REFERÊNCIA CORRETAMENTE
         latitude: userData.latitude || null,
         longitude: userData.longitude || null
       }

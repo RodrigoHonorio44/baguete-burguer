@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { api } from '../services/api';
@@ -15,11 +15,13 @@ export const useRegister = () => {
   // Coordenadas padrão iniciais (Maricá, RJ)
   const [coordsMapa, setCoordsMapa] = useState([-22.9194, -42.8186]);
 
+  // ESTADO INICIAL COMPLETO COM 'referencia' E 'apelido'
   const [form, setForm] = useState({
     nome: '',
     sobrenome: '',
     telefone: '',
     senha: '',
+    apelido: 'Casa',
     rua: '',
     numero: '',
     bairro: '',
@@ -28,9 +30,8 @@ export const useRegister = () => {
     longitude: '',
   });
 
-  // Função para sanitizar entradas e bloquear caracteres maliciosos (anti-hacker básico)
   const sanitizarTexto = (texto) => {
-    return texto.replace(/[<>]/g, '');
+    return texto ? texto.replace(/[<>]/g, '') : '';
   };
 
   const handleChange = (e) => {
@@ -42,10 +43,16 @@ export const useRegister = () => {
       return;
     }
 
-    setForm((prev) => ({ ...prev, [name]: sanitizarTexto(value) }));
+    const valorSanitizado = sanitizarTexto(value);
+    
+    // LOG PARA TESTAR SE O CAMPO DE REFERÊNCIA ESTÁ CAPTURANDO O TEXTO
+    if (name === 'referencia') {
+      console.log('Digitando na Referência:', valorSanitizado);
+    }
+
+    setForm((prev) => ({ ...prev, [name]: valorSanitizado }));
   };
 
-  // Função que busca o endereço através da Latitude e Longitude (Geocodificação Reversa)
   const buscarEnderecoPorCoordenadas = async (lat, lng) => {
     setBuscandoEndereco(true);
     try {
@@ -71,17 +78,26 @@ export const useRegister = () => {
           rua: sanitizarTexto(ruaEncontrada),
           numero: numeroEncontrado ? sanitizarTexto(numeroEncontrado) : prev.numero,
           bairro: sanitizarTexto(bairroEncontrado),
-          latitude: lat,
-          longitude: lng,
+          referencia: prev.referencia, // Mantém o que foi digitado na referência
+          latitude: Number(lat),
+          longitude: Number(lng),
         }));
 
-        toast.success('Endereço atualizado pelo mapa!');
+        toast.success('Endereço e GPS atualizados pelo mapa!');
       } else {
-        setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+        setForm((prev) => ({ 
+          ...prev, 
+          latitude: Number(lat), 
+          longitude: Number(lng) 
+        }));
       }
     } catch (error) {
       console.error('Erro ao buscar endereço:', error);
-      setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+      setForm((prev) => ({ 
+        ...prev, 
+        latitude: Number(lat), 
+        longitude: Number(lng) 
+      }));
     } finally {
       setBuscandoEndereco(false);
     }
@@ -132,31 +148,45 @@ export const useRegister = () => {
     setLoading(true);
 
     try {
-      const nomeCompleto = `${form.nome} ${form.sobrenome}`;
-      
-      const data = await api.register({
-        nome: nomeCompleto,
+      const latFinal = form.latitude !== '' && form.latitude !== null ? Number(form.latitude) : Number(coordsMapa[0]);
+      const lngFinal = form.longitude !== '' && form.longitude !== null ? Number(form.longitude) : Number(coordsMapa[1]);
+
+      // Envia o payload completo incluindo explicitamente a referencia
+      const payload = {
+        nome: form.nome.trim(),
+        sobrenome: form.sobrenome.trim(),
         telefone: form.telefone,
         senha: form.senha,
-        rua: form.rua,
-        numero: form.numero,
-        bairro: form.bairro,
-        referencia: form.referencia,
-        latitude: form.latitude,
-        longitude: form.longitude,
-        role: 'cliente'
-      });
+        role: 'cliente',
+        rua: form.rua || 'Rua não informada',
+        numero: form.numero || 'S/N',
+        bairro: form.bairro || 'Centro',
+        referencia: form.referencia ? form.referencia.trim() : '',
+        latitude: latFinal,
+        longitude: lngFinal,
+        apelido: form.apelido || 'Casa',
+        endereco: {
+          apelido: form.apelido || 'Casa',
+          rua: form.rua || 'Rua não informada',
+          numero: form.numero || 'S/N',
+          bairro: form.bairro || 'Centro',
+          referencia: form.referencia ? form.referencia.trim() : '',
+          latitude: latFinal,
+          longitude: lngFinal
+        }
+      };
+
+      // 👀 LOG EXATO DO PAYLOAD ANTES DE ENVIAR PARA A API
+      //console.log('🚀 PAYLOAD COMPLETO ENVIADO PARA A API:', payload);
+
+      const data = await api.register(payload);
 
       const userData = data.user || {
-        nome: nomeCompleto,
+        nome: `${form.nome} ${form.sobrenome}`.trim(),
         telefone: form.telefone,
-        rua: form.rua,
-        numero: form.numero,
-        bairro: form.bairro,
-        referencia: form.referencia,
-        latitude: form.latitude,
-        longitude: form.longitude,
-        role: 'cliente'
+        role: 'cliente',
+        endereco: payload.endereco,
+        enderecos: [payload.endereco]
       };
 
       localStorage.setItem('token', data.token || userData.id || 'ativo');
@@ -188,3 +218,5 @@ export const useRegister = () => {
     lidarComNovaLocalizacao,
   };
 };
+
+export default useRegister;
