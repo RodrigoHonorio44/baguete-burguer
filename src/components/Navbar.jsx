@@ -33,7 +33,8 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [configLoja, setConfigLoja] = useState({
-    horariosDias: {}
+    horariosDias: {},
+    isOnline: true
   });
 
   useEffect(() => {
@@ -91,15 +92,16 @@ export const Navbar = () => {
   }, []);
 
   const calcularStatusAutomatico = () => {
+    // Se houver uma chave explícita de controle manual e ela for false, respeita o fechamento manual
+    if (configLoja.isOnline === false) return false;
+
     const agora = new Date();
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const diaAtualStr = diasSemanaMap[agora.getDay()];
     
-    // Puxa do novo formato de horários por dia da semana
     const horariosDias = configLoja.horariosDias || {};
     const infoHoje = horariosDias[diaAtualStr];
 
-    // Se o dia não estiver cadastrado ou estiver marcado como fechado/inativo
     if (!infoHoje || !infoHoje.ativo) return false;
 
     const horaAtualMinutos = agora.getHours() * 60 + agora.getMinutes();
@@ -110,13 +112,11 @@ export const Navbar = () => {
     const [hFech, mFech] = (infoHoje.fechamento || '22:00').split(':').map(Number);
     const minFechamento = hFech * 60 + mFech;
 
-    // Retorna true se estiver dentro do horário de atendimento configurado para hoje
     return horaAtualMinutos >= minAbertura && horaAtualMinutos <= minFechamento;
   };
 
   const lojaAberta = calcularStatusAutomatico();
 
-  // Pega o horário formatado para exibir no badge da navbar de acordo com o dia de hoje
   const getHorarioExibicaoHoje = () => {
     const agora = new Date();
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];

@@ -72,11 +72,20 @@ export default function ConfiguracoesLojaPage() {
     if (dados.isOnline !== undefined) setIsOnline(dados.isOnline);
   };
 
-  const handleSalvarGeral = async () => {
+  const handleSalvarGeral = async (horariosNovos) => {
     setLoading(true);
+    
+    const horariosParaSalvar = (horariosNovos && !horariosNovos.nativeEvent) ? horariosNovos : horariosDias;
+
     const config = {
-      lojaNome, endereco, posicaoLoja, faixasRaio, zonasProibidas,
-      isOnline, horariosDias, pedidoMinimo: Number(pedidoMinimo) || 0
+      lojaNome, 
+      endereco, 
+      posicaoLoja, 
+      faixasRaio, 
+      zonasProibidas,
+      isOnline, 
+      horariosDias: horariosParaSalvar, 
+      pedidoMinimo: Number(pedidoMinimo) || 0
     };
 
     try {
@@ -86,6 +95,11 @@ export default function ConfiguracoesLojaPage() {
         await api.updateConfiguracoes(config);
       }
       localStorage.setItem('configuracoes_loja', JSON.stringify(config));
+      
+      if (horariosNovos && !horariosNovos.nativeEvent) {
+        setHorariosDias(horariosNovos);
+      }
+
       toast.success('Configurações salvas com sucesso!');
     } catch (error) {
       toast.error('Erro ao salvar alterações no servidor.');
@@ -150,7 +164,6 @@ export default function ConfiguracoesLojaPage() {
 
   return (
     <div className="flex-1 w-full bg-[#f8f9fa] text-slate-800 flex flex-col min-h-full">
-      {/* Layout principal unificado preenchendo 100% */}
       <div className="flex flex-col lg:flex-row w-full flex-1 items-stretch">
         
         {/* Menu Lateral Esquerdo Fixo */}
@@ -165,6 +178,7 @@ export default function ConfiguracoesLojaPage() {
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => setAbaAtiva(item.id)}
                 className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all cursor-pointer text-xs font-bold w-full text-left ${
                   isSelected
@@ -179,7 +193,7 @@ export default function ConfiguracoesLojaPage() {
           })}
         </div>
 
-        {/* Área de Conteúdo Principal à Direita ocupando largura total sem max-w restrito */}
+        {/* Área de Conteúdo Principal à Direita */}
         <div className="flex-1 w-full p-6 lg:p-8 space-y-6 bg-[#f8f9fa]">
           
           {abaAtiva === 'marketing' && <PaginaMarketing />}
@@ -189,7 +203,9 @@ export default function ConfiguracoesLojaPage() {
               lojaNome={lojaNome} setLojaNome={setLojaNome}
               endereco={endereco} setEndereco={setEndereco}
               pedidoMinimo={pedidoMinimo} setPedidoMinimo={setPedidoMinimo}
-              onSalvar={handleSalvarGeral} loading={loading}
+              onSalvar={() => handleSalvarGeral()} 
+              loading={loading}
+              posicaoLoja={posicaoLoja} setPosicaoLoja={setPosicaoLoja}
             />
           )}
 
@@ -199,7 +215,7 @@ export default function ConfiguracoesLojaPage() {
               atualizarHorarioDia={atualizarHorarioDia}
               isOnline={isOnline}
               handleToggleLojaStatus={handleToggleLojaStatus}
-              onSalvar={handleSalvarGeral}
+              onSalvar={(horariosNovos) => handleSalvarGeral(horariosNovos)}
               loading={loading}
               listaDias={listaDias}
             />
@@ -210,7 +226,8 @@ export default function ConfiguracoesLojaPage() {
               faixasRaio={faixasRaio} setFaixasRaio={setFaixasRaio}
               zonasProibidas={zonasProibidas} setZonasProibidas={setZonasProibidas}
               posicaoLoja={posicaoLoja} setPosicaoLoja={setPosicaoLoja}
-              onSalvar={handleSalvarGeral} loading={loading}
+              onSalvar={() => handleSalvarGeral()} 
+              loading={loading}
             />
           )}
 

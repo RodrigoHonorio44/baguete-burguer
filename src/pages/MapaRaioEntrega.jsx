@@ -88,7 +88,19 @@ export function MapaRaioEntrega({
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-6 w-full">
-      <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">Gestão de Raios e Zonas de Entrega</h2>
+      
+      {/* Cabeçalho com o botão de Salvar bem acessível perto das configurações */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-3">
+        <h2 className="text-sm font-black text-slate-900">Gestão de Raios e Zonas de Entrega</h2>
+        <button
+          type="button"
+          onClick={onSalvar}
+          disabled={loading}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs text-xs disabled:opacity-50"
+        >
+          <Save size={16} /> {loading ? 'Salvando...' : 'Salvar Alterações'}
+        </button>
+      </div>
 
       <div className="space-y-3 w-full">
         <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wider">Faixas de Raio Independentes</h3>
@@ -250,16 +262,6 @@ export function MapaRaioEntrega({
         </div>
       </div>
 
-      <div className="pt-4 border-t border-slate-100 flex justify-end w-full">
-        <button
-          type="button"
-          onClick={onSalvar}
-          disabled={loading}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-xs text-xs"
-        >
-          <Save size={16} /> {loading ? 'Salvando...' : 'Salvar Alterações'}
-        </button>
-      </div>
     </div>
   );
 }

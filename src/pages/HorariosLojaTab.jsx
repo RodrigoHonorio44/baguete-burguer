@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Power, Clock, Edit3, X, Trash2, Plus } from 'lucide-react';
+import { Power, Clock, Edit3, X } from 'lucide-react';
 
 export default function HorariosLojaTab({ 
   horariosDias, 
@@ -25,17 +25,40 @@ export default function HorariosLojaTab({
   };
 
   const handleSalvarModal = () => {
+    // Cria uma cópia profunda dos horários atuais para manipularmos com segurança
+    const novosHorarios = JSON.parse(JSON.stringify(horariosDias));
+
     Object.keys(diasSelecionados).forEach((key) => {
       if (diasSelecionados[key]) {
-        atualizarHorarioDia(key, 'ativo', !fechadoTodo);
-        if (!fechadoTodo) {
-          atualizarHorarioDia(key, 'abertura', horaInicio);
-          atualizarHorarioDia(key, 'fechamento', horaTermino);
+        if (fechadoTodo) {
+          // Garante que o dia fique explicitamente desativado e zerado
+          novosHorarios[key] = { ativo: false, abertura: '00:00', fechamento: '00:00' };
+        } else {
+          // Ativa o dia com os novos horários
+          novosHorarios[key] = { ativo: true, abertura: horaInicio, fechamento: horaTermino };
         }
       }
     });
+
+    // Atualiza cada dia individualmente usando a prop do pai para sincronizar os estados
+    Object.keys(novosHorarios).forEach((key) => {
+      atualizarHorarioDia(key, 'ativo', novosHorarios[key].ativo);
+      atualizarHorarioDia(key, 'abertura', novosHorarios[key].abertura);
+      atualizarHorarioDia(key, 'fechamento', novosHorarios[key].fechamento);
+    });
+
     setModalAberto(false);
-    onSalvar();
+    
+    // Reseta as seleções do modal
+    setDiasSelecionados({
+      segunda: false, terca: false, quarta: false, quinta: false, sexta: false, sabado: false, domingo: false
+    });
+    setFechadoTodo(false);
+
+    // Dispara o salvamento enviando o objeto atualizado diretamente para evitar atraso de estado
+    if (onSalvar) {
+      onSalvar(novosHorarios);
+    }
   };
 
   return (
@@ -127,7 +150,7 @@ export default function HorariosLojaTab({
                             : 'bg-slate-50/50 text-transparent border border-slate-100'
                         }`}
                       >
-                        {estaAbertoNestaHora && horaNum === horaAberturaNum ? `${dia.abertura} - ${dia.fechamento}` : ''}
+                        {estaAbertoNestaHora && horaNum === horaAberturaNum ? `${dia.abertura}\n${dia.fechamento}` : ''}
                       </div>
                     );
                   })}
@@ -224,9 +247,10 @@ export default function HorariosLojaTab({
               <button
                 type="button"
                 onClick={handleSalvarModal}
-                className="px-6 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 cursor-pointer shadow-xs transition"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 cursor-pointer shadow-xs transition disabled:opacity-50"
               >
-                Salvar
+                {loading ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>
