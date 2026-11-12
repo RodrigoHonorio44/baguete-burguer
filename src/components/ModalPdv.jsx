@@ -308,6 +308,7 @@ export const ModalPdv = ({
                 <option value="dinheiro">Dinheiro</option>
                 <option value="pix">PIX</option>
                 <option value="ifood_pix">iFood Pix (Online)</option>
+                <option value="99_pix">99Food Pix (Online)</option>
                 <option value="cartao_debito">Cartão de Débito</option>
                 <option value="cartao_credito">Cartão de Crédito</option>
               </select>

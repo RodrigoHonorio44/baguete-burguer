@@ -22,11 +22,18 @@ export const useCaixa = () => {
   const [tipoRetiradaPdv, setTipoRetiradaPdv] = useState('retirada'); // 'retirada' ou 'entrega'
   const [valorRecebidoPdv, setValorRecebidoPdv] = useState('');
 
-  // 🎯 Efeito para travar a forma de pagamento em 'ifood_pix' ou 'app_online' quando o canal for aplicativo
+  // 🎯 Efeito para travar a forma de pagamento em 'ifood_pix', '99_pix' ou 'app_online' quando o canal for aplicativo
   useEffect(() => {
-    if (canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food' || canalPdv.includes('ifood') || canalPdv.includes('99')) {
-      setPagamentoPdv('ifood_pix');
-    } else if (pagamentoPdv === 'ifood_pix' || pagamentoPdv === 'app_online') {
+    const canalLower = (canalPdv || '').toLowerCase();
+    const ehAplicativo = canalLower.includes('ifood') || canalLower.includes('99') || canalLower.includes('99food');
+
+    if (ehAplicativo) {
+      if (canalLower.includes('99') || canalLower.includes('99food')) {
+        setPagamentoPdv('99_pix');
+      } else {
+        setPagamentoPdv('ifood_pix');
+      }
+    } else if (pagamentoPdv === 'ifood_pix' || pagamentoPdv === '99_pix' || pagamentoPdv === 'app_online') {
       setPagamentoPdv('dinheiro');
     }
   }, [canalPdv]);
@@ -82,11 +89,11 @@ export const useCaixa = () => {
 
   const totalGeral = faturamentoVendas + Number(fundoCaixa || 0);
   
-  // 🎯 Total Pix separa apenas o Pix físico/presencial de balcão, ignorando pagamentos de app (ifood_pix / app_online)
+  // 🎯 Total Pix separa apenas o Pix físico/presencial de balcão, ignorando pagamentos de app
   const totalPix = pedidosValidos
     .filter(p => {
       const pag = (p.forma_pagamento || p.pagamento || '').toLowerCase();
-      return pag === 'pix' && !pag.includes('ifood') && !pag.includes('app');
+      return pag === 'pix' && !pag.includes('ifood') && !pag.includes('99') && !pag.includes('app');
     })
     .reduce((acc, p) => acc + Number(p.total || 0), 0);
 
@@ -347,11 +354,23 @@ export const useCaixa = () => {
       if (canalPdv === 'ifood_parceiro') nomeClientePadrao = 'Cliente iFood (Parceiro)';
       if (canalPdv === '99food') nomeClientePadrao = 'Cliente 99Food';
 
-      const ehApp = canalPdv.includes('ifood') || canalPdv.includes('99') || canalPdv === 'ifood_loja' || canalPdv === 'ifood_parceiro' || canalPdv === '99food';
+      const canalLower = (canalPdv || '').toLowerCase();
+      const ehApp = canalLower.includes('ifood') || canalLower.includes('99') || canalLower.includes('99food');
       const valorFinalCaixa = ehApp ? repasseLiquidoPdv : totalCarrinhoPdv;
 
-      // Garante que se for app, o pagamento seja salvo como 'ifood_pix'
-      const formaPgtoFinal = ehApp ? 'ifood_pix' : pagamentoPdv;
+      // Define a forma de pagamento e o canal exatos para evitar mistura de marcas
+      let formaPgtoFinal = pagamentoPdv;
+      let canalFinal = canalPdv;
+
+      if (ehApp) {
+        if (canalLower.includes('99') || canalLower.includes('99food')) {
+          formaPgtoFinal = '99_pix';
+          canalFinal = '99food';
+        } else {
+          formaPgtoFinal = 'ifood_pix';
+          canalFinal = 'ifood_loja';
+        }
+      }
 
       const novoPedido = {
         cliente_nome: clientePdv.trim() || nomeClientePadrao,
@@ -363,7 +382,7 @@ export const useCaixa = () => {
         forma_pagamento: formaPgtoFinal,
         pagamento: formaPgtoFinal,
         status: statusInicial,
-        canal: canalPdv,
+        canal: canalFinal,
         tipo: tipoRetiradaPdv,
         rua: tipoRetiradaPdv === 'retirada' ? 'Retirada no Balcão' : 'Delivery',
         criadoEm: new Date().toISOString()
