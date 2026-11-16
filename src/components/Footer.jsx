@@ -85,7 +85,7 @@ export const Footer = () => {
         {/* Coluna 1: Marca */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-center md:justify-start gap-2">
-            <img src="/logoaçai8.png" alt="Tay Mix" className="w-7 h-7 rounded-full object-cover border border-amber-400" />
+            <img src="/logoacai10.png" alt="Tay Mix" className="w-7 h-7 rounded-full object-cover border border-amber-400" />
             <span className="font-black text-base text-slate-900 tracking-tight">
               Tay <span className="text-amber-500">Mix</span>
             </span>

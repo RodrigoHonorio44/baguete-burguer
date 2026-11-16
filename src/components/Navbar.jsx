@@ -236,7 +236,7 @@ export const Navbar = () => {
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <div className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-sm flex items-center justify-center shrink-0">
                 <img
-                  src="/lo.jpg"
+                  src="/logoacai10.png"
                   alt="Tay Mix Açaí & Massas"
                   className="w-12 h-12 lg:w-14 lg:h-14 rounded-full object-cover transition-transform group-hover:scale-105 shadow-xs"
                 />
