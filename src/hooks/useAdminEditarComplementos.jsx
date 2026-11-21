@@ -9,6 +9,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([
     'açaí / garrafas',
     'açaí / copos',
+    'sorvete',
     'hambúrgueres / baguetes',
     'bebidas',
     'porções / acompanhamentos'
@@ -27,6 +28,14 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
   const [novoPrecoItem, setNovoPrecoItem] = useState('0.00');
   const [novoFotoItem, setNovoFotoItem] = useState('');
 
+  // Estados para reaproveitar / anexar grupo já criado em outra categoria
+  const [grupoOrigemClonarId, setGrupoOrigemClonarId] = useState('');
+  const [categoriaDestinoClonar, setCategoriaDestinoClonar] = useState('sorvete');
+  const [nomeGrupoClonar, setNomeGrupoClonar] = useState('');
+  const [minimoClonar, setMinimoClonar] = useState(0);
+  const [maximoClonar, setMaximoClonar] = useState(2);
+  const [clonandoGrupo, setClonandoGrupo] = useState(false);
+
   const [editandoGrupoId, setEditandoGrupoId] = useState(null);
   const [grupoNomeEdit, setGrupoNomeEdit] = useState('');
   const [grupoMinEdit, setGrupoMinEdit] = useState(0);
@@ -39,6 +48,8 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
 
   const [adicionandoNoGrupoId, setAdicionandoNoGrupoId] = useState(null);
   const [novoItemForm, setNovoItemForm] = useState({ nome: '', preco: '0.00', foto: '' });
+
+  const extrairId = (obj) => obj?._id?.$oid || obj?._id || obj?.id || '';
 
   // URL base padronizada para produção
   const getApiBaseUrl = () => {
@@ -56,8 +67,6 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       const urlClean = getApiBaseUrl();
       const url = params.toString() ? `${urlClean}/complementos/grupos?${params.toString()}` : `${urlClean}/complementos/grupos`;
 
-      console.log('🔍 Buscando grupos de complementos para URL:', url);
-
       const res = await fetch(url, {
         headers: {
           ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
@@ -65,9 +74,8 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       });
       const data = await res.json();
       const listaGrupos = Array.isArray(data) ? data : (data.data || []);
-      
-      // Se tivermos um produtoId, filtramos rigorosamente para garantir que apareçam apenas os globais OU os do produto específico
-      const gruposFiltrados = produtoId 
+
+      const gruposFiltrados = produtoId
         ? listaGrupos.filter(g => !g.produtoId || g.produtoId === produtoId || g.produtoId?.$oid === produtoId)
         : listaGrupos;
 
@@ -80,9 +88,13 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
           return Array.from(combinadas);
         });
 
+        const primeiroId = extrairId(gruposFiltrados[0]);
         if (!grupoSelecionadoId) {
-          const primeiroId = gruposFiltrados[0]._id?.$oid || gruposFiltrados[0]._id;
           setGrupoSelecionadoId(primeiroId);
+        }
+        if (!grupoOrigemClonarId) {
+          setGrupoOrigemClonarId(primeiroId);
+          setNomeGrupoClonar(String(gruposFiltrados[0].nome || '').toLowerCase());
         }
       }
     } catch (err) {
@@ -106,6 +118,84 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     }
   };
 
+  const handleSelecionarGrupoClonar = (id) => {
+    setGrupoOrigemClonarId(id);
+    const encontrado = gruposComItens.find(g => extrairId(g) === id);
+    if (encontrado) {
+      setNomeGrupoClonar(String(encontrado.nome || '').toLowerCase());
+      setMinimoClonar(Number(encontrado.minimo ?? 0));
+      setMaximoClonar(Number(encontrado.maximo ?? 2));
+    }
+  };
+
+  const handlePrepararClonagemCard = (grupo) => {
+    const id = extrairId(grupo);
+    setGrupoOrigemClonarId(id);
+    setNomeGrupoClonar(String(grupo.nome || '').toLowerCase());
+    setMinimoClonar(Number(grupo.minimo ?? 0));
+    setMaximoClonar(Number(grupo.maximo ?? 2));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.success(`Grupo "${grupo.nome}" pronto para anexar em outra categoria.`);
+  };
+
+  const handleAnexarGrupoEmCategoria = async (e) => {
+    e.preventDefault();
+    const grupoOrigem = gruposComItens.find(g => extrairId(g) === grupoOrigemClonarId);
+    if (!grupoOrigem) {
+      toast.error('Selecione um grupo já criado para reaproveitar.');
+      return;
+    }
+
+    const nomeFinal = (nomeGrupoClonar || grupoOrigem.nome || '').trim().toLowerCase();
+    const categoriaFinal = (categoriaDestinoClonar || '').trim().toLowerCase();
+    if (!nomeFinal || !categoriaFinal) {
+      toast.error('Informe o nome do grupo e a categoria destino.');
+      return;
+    }
+
+    setClonandoGrupo(true);
+    try {
+      const resGrupo = await api.criarGrupoComplemento({
+        produtoId: produtoId || null,
+        categoria: categoriaFinal,
+        nome: nomeFinal,
+        minimo: Number(minimoClonar),
+        maximo: Number(maximoClonar)
+      });
+
+      const novoGrupoId =
+        extrairId(resGrupo) ||
+        extrairId(resGrupo?.data) ||
+        extrairId(resGrupo?.grupo) ||
+        extrairId(resGrupo?.data?.grupo) ||
+        resGrupo?.insertedId ||
+        resGrupo?.data?.insertedId;
+
+      const itensOrigem = Array.isArray(grupoOrigem.itens) ? grupoOrigem.itens : [];
+      if (novoGrupoId) {
+        for (const item of itensOrigem) {
+          const fotoItem = item.foto || item.imagem || item.img || item.url || '';
+          await api.criarItemComplemento({
+            grupoId: novoGrupoId,
+            nome: String(item.nome || '').trim().toLowerCase(),
+            preco: Number(item.preco ?? 0),
+            foto: fotoItem,
+            imagem: fotoItem,
+            disponivel: item.disponivel !== undefined ? Boolean(item.disponivel) : true
+          });
+        }
+      }
+
+      toast.success(`Grupo "${nomeFinal}" anexado em "${categoriaFinal}" com ${itensOrigem.length} item(ns)!`);
+      await carregarDados();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao anexar grupo na categoria.');
+    } finally {
+      setClonandoGrupo(false);
+    }
+  };
+
   const handleCriarGrupo = async (e) => {
     e.preventDefault();
     const categoriaFinal = isCriandoNovaCategoria
@@ -121,12 +211,10 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
       const payload = {
         produtoId: produtoId || null,
         categoria: categoriaFinal,
-        nome: novoNomeGrupo.trim(),
+        nome: novoNomeGrupo.trim().toLowerCase(),
         minimo: Number(novoMinimo),
         maximo: Number(novoMaximo)
       };
-
-      console.log('📦 Criando grupo de complemento com payload:', payload);
 
       await api.criarGrupoComplemento(payload);
 
@@ -159,7 +247,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     try {
       await api.criarItemComplemento({
         grupoId: grupoSelecionadoId,
-        nome: novoNomeItem.trim(),
+        nome: novoNomeItem.trim().toLowerCase(),
         preco: precoNum,
         foto: novoFotoItem,
         imagem: novoFotoItem,
@@ -186,7 +274,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
           ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
         },
         body: JSON.stringify({
-          nome: grupoNomeEdit.trim(),
+          nome: grupoNomeEdit.trim().toLowerCase(),
           minimo: parseInt(grupoMinEdit) || 0,
           maximo: parseInt(grupoMaxEdit) || 1,
         })
@@ -217,7 +305,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     try {
       await api.atualizarItemComplemento(itemId, {
         grupoId: grupoIdAtual,
-        nome: itemNomeEdit.trim(),
+        nome: itemNomeEdit.trim().toLowerCase(),
         preco: precoFinal,
         foto: itemFotoEdit,
         imagem: itemFotoEdit,
@@ -266,7 +354,7 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     try {
       await api.criarItemComplemento({
         grupoId,
-        nome: novoItemForm.nome.trim(),
+        nome: novoItemForm.nome.trim().toLowerCase(),
         preco: precoNum,
         foto: novoItemForm.foto,
         imagem: novoItemForm.foto,
@@ -305,6 +393,19 @@ export const useAdminEditarComplementos = (produtoId, categoriaId) => {
     setNovoPrecoItem,
     novoFotoItem,
     setNovoFotoItem,
+    grupoOrigemClonarId,
+    categoriaDestinoClonar,
+    setCategoriaDestinoClonar,
+    nomeGrupoClonar,
+    setNomeGrupoClonar,
+    minimoClonar,
+    setMinimoClonar,
+    maximoClonar,
+    setMaximoClonar,
+    clonandoGrupo,
+    handleSelecionarGrupoClonar,
+    handlePrepararClonagemCard,
+    handleAnexarGrupoEmCategoria,
     editandoGrupoId,
     setEditandoGrupoId,
     grupoNomeEdit,

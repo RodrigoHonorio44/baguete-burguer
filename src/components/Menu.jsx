@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ProductCardExpandable } from './ProductCardExpandable';
 import { ShoppingBag, Utensils, GlassWater, Sparkles, CupSoda } from 'lucide-react';
+import { montarListaOrdenada } from '../utils/ordemCategorias';
 
 export const Menu = () => {
   const [products, setProducts] = useState([]);
@@ -9,11 +10,14 @@ export const Menu = () => {
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [pedidoMinimo, setPedidoMinimo] = useState(20);
+  const [ordemCategoriasSalva, setOrdemCategoriasSalva] = useState([]);
+
+  const normalizarCat = (cat) => String(cat || '').trim().toLowerCase();
 
   // Helper para formatar o nome da categoria com acentuação e ícones visuais
   const formatCategoryName = (cat) => {
     if (!cat) return '';
-    const lower = cat.toLowerCase();
+    const lower = normalizarCat(cat);
     if (lower === 'todos') return 'Todos';
     if (lower === 'acai' || lower === 'açaí') return 'Açaí';
     if (lower === 'massas' || lower === 'massa') return 'Massas';
@@ -22,7 +26,7 @@ export const Menu = () => {
 
   // Helper para retornar ícones adequados de acordo com a categoria
   const getCategoryIcon = (cat) => {
-    const lower = cat.toLowerCase();
+    const lower = normalizarCat(cat);
     if (lower === 'todos') return <Sparkles className="w-4 h-4" />;
     if (lower.includes('açaí') || lower.includes('acai')) return <GlassWater className="w-4 h-4" />;
     if (lower.includes('massa') || lower.includes('pasta')) return <Utensils className="w-4 h-4" />;
@@ -34,7 +38,7 @@ export const Menu = () => {
     // 1. Carrega os produtos do cardápio
     api.getProdutos()
       .then((data) => {
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {
@@ -43,7 +47,7 @@ export const Menu = () => {
         setLoading(false);
       });
 
-    // 2. Carrega a configuração do pedido mínimo
+    // 2. Carrega a configuração do pedido mínimo e ordem de categorias definida pelo admin
     const carregarConfig = async () => {
       try {
         const configSalva = localStorage.getItem('configuracoes_loja');
@@ -51,6 +55,9 @@ export const Menu = () => {
           const parsed = JSON.parse(configSalva);
           if (parsed.pedidoMinimo !== undefined) {
             setPedidoMinimo(Number(parsed.pedidoMinimo));
+          }
+          if (Array.isArray(parsed.ordemCategorias)) {
+            setOrdemCategoriasSalva(parsed.ordemCategorias);
           }
         }
 
@@ -61,11 +68,16 @@ export const Menu = () => {
           dadosServer = await api.getConfiguracoes();
         }
 
-        if (dadosServer && dadosServer.pedidoMinimo !== undefined) {
-          setPedidoMinimo(Number(dadosServer.pedidoMinimo));
+        if (dadosServer) {
+          if (dadosServer.pedidoMinimo !== undefined) {
+            setPedidoMinimo(Number(dadosServer.pedidoMinimo));
+          }
+          if (Array.isArray(dadosServer.ordemCategorias)) {
+            setOrdemCategoriasSalva(dadosServer.ordemCategorias);
+          }
         }
       } catch (err) {
-        console.error('Erro ao carregar pedido mínimo:', err);
+        console.error('Erro ao carregar configurações:', err);
       }
     };
 
@@ -100,27 +112,45 @@ export const Menu = () => {
     }
   };
 
-  const categories = ['todos', ...new Set(products.map((p) => p.categoria || p.category).filter(Boolean))];
+  // Preserva o rótulo original da categoria, mas ordena conforme a escolha do administrador
+  const categoriasBrutas = Array.from(
+    new Map(
+      products
+        .map((p) => p.categoria || p.category)
+        .filter(Boolean)
+        .map((cat) => [normalizarCat(cat), cat])
+    ).values()
+  );
 
-  const groupedProducts = categories
-    .filter((cat) => cat !== 'todos')
-    .reduce((acc, cat) => {
-      acc[cat] = products.filter((p) => (p.categoria || p.category) === cat);
-      return acc;
-    }, {});
+  const chavesOrdenadas = montarListaOrdenada(
+    categoriasBrutas.map(normalizarCat),
+    ordemCategoriasSalva
+  );
+
+  const categoriasOrdenadas = chavesOrdenadas
+    .map((chave) => categoriasBrutas.find((c) => normalizarCat(c) === chave))
+    .filter(Boolean);
+
+  const categories = ['todos', ...categoriasOrdenadas];
+
+  const groupedProducts = categoriasOrdenadas.reduce((acc, cat) => {
+    acc[cat] = products.filter(
+      (p) => normalizarCat(p.categoria || p.category) === normalizarCat(cat)
+    );
+    return acc;
+  }, {});
 
   return (
     <div className="w-full bg-slate-50/50 text-slate-800 pb-16">
       {/* Topo do cardápio colado no banner */}
       <div className="max-w-6xl mx-auto px-4 pt-8 text-center">
         <section className="mb-6">
-          
           {/* Banner de Aviso de Pedido Mínimo */}
           {pedidoMinimo > 0 && (
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-900 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold mb-4 shadow-xs">
               <ShoppingBag className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                Entregas em Maricá &bull; Pedido mínimo para delivery: <strong>R$ {pedidoMinimo.toFixed(2)}</strong>
+                Entregas em Maricá • Pedido mínimo para delivery: <strong>R$ {pedidoMinimo.toFixed(2)}</strong>
               </span>
             </div>
           )}
@@ -137,12 +167,12 @@ export const Menu = () => {
       {/* Container de Categorias Estilo iFood */}
       <div className="sticky top-0 z-25 bg-white/95 backdrop-blur-md py-3 px-4 mb-8 border-y border-slate-200/80 shadow-xs">
         <div className="max-w-6xl mx-auto">
-          <div 
+          <div
             className="flex items-center gap-2.5 overflow-x-auto scrollbar-none scroll-smooth py-1"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {categories.map((cat) => {
-              const isSelected = selectedCategory === cat;
+              const isSelected = normalizarCat(selectedCategory) === normalizarCat(cat);
               return (
                 <button
                   key={cat}
@@ -178,9 +208,9 @@ export const Menu = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {catProducts.map((product, index) => (
-                      <ProductCardExpandable 
-                        key={product.id || product._id ? `${product.id || product._id}-${index}` : index} 
-                        product={product} 
+                      <ProductCardExpandable
+                        key={product.id || product._id ? `${product.id || product._id}-${index}` : index}
+                        product={product}
                         onToggleDisponibilidade={handleToggleDisponibilidade}
                       />
                     ))}
@@ -192,11 +222,11 @@ export const Menu = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             {products
-              .filter((p) => (p.categoria || p.category) === selectedCategory)
+              .filter((p) => normalizarCat(p.categoria || p.category) === normalizarCat(selectedCategory))
               .map((product, index) => (
-                <ProductCardExpandable 
-                  key={product.id || product._id ? `${product.id || product._id}-${index}` : index} 
-                  product={product} 
+                <ProductCardExpandable
+                  key={product.id || product._id ? `${product.id || product._id}-${index}` : index}
+                  product={product}
                   onToggleDisponibilidade={handleToggleDisponibilidade}
                 />
               ))}

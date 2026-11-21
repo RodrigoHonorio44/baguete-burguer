@@ -1,24 +1,109 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Plus, Trash2, Edit2, Package, RefreshCw, Image as ImageIcon, Eye, EyeOff, Layers, Sliders, CheckSquare, Square } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Package,
+  RefreshCw,
+  Image as ImageIcon,
+  Eye,
+  EyeOff,
+  Layers,
+  Sliders,
+  CheckSquare,
+  Square,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminEditarComplementos from '../components/AdminEditarComplementos';
 import { EstoqueInputForm, EstoqueBadgeCard } from '../components/EstoqueControl';
 
+const CHAVE_ORDEM_CATEGORIAS = 'cardapio_ordem_categorias_v1';
+
+const normalizarCat = (cat) => String(cat || '').trim().toLowerCase();
+
+const lerOrdemLocal = () => {
+  try {
+    const raw = localStorage.getItem(CHAVE_ORDEM_CATEGORIAS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(normalizarCat).filter((c) => c && c !== 'todos');
+      }
+    }
+    const cfg = JSON.parse(localStorage.getItem('configuracoes_loja') || '{}');
+    if (Array.isArray(cfg.ordemCategorias) && cfg.ordemCategorias.length > 0) {
+      return cfg.ordemCategorias.map(normalizarCat).filter((c) => c && c !== 'todos');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+};
+
+const salvarOrdemLocal = (ordem) => {
+  const limpa = Array.from(
+    new Set((ordem || []).map(normalizarCat).filter((c) => c && c !== 'todos'))
+  );
+  try {
+    localStorage.setItem(CHAVE_ORDEM_CATEGORIAS, JSON.stringify(limpa));
+    const atualCfg = JSON.parse(localStorage.getItem('configuracoes_loja') || '{}');
+    localStorage.setItem(
+      'configuracoes_loja',
+      JSON.stringify({ ...atualCfg, ordemCategorias: limpa })
+    );
+  } catch (err) {
+    console.error('Erro ao salvar ordem das categorias:', err);
+  }
+  return limpa;
+};
+
+const montarListaOrdenada = (categoriasExistentes = [], ordemSalva = []) => {
+  const ordemBase = (ordemSalva && ordemSalva.length > 0 ? ordemSalva : lerOrdemLocal())
+    .map(normalizarCat)
+    .filter((c) => c && c !== 'todos');
+
+  const unicas = Array.from(
+    new Set(
+      (categoriasExistentes || [])
+        .map(normalizarCat)
+        .filter((c) => c && c !== 'todos')
+    )
+  );
+
+  const naOrdem = ordemBase.filter((c) => unicas.includes(c));
+  const novas = unicas.filter((c) => !ordemBase.includes(c));
+  return [...naOrdem, ...novas];
+};
+
 export const AdminProdutos = () => {
   const [produtos, setProdutos] = useState([]);
-  const [gruposDisponiveis, setGruposDisponiveis] = useState([]); // 👈 Lista de grupos para vincular
+  const [gruposDisponiveis, setGruposDisponiveis] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [filtroCategoriaCardapio, setFiltroCategoriaCardapio] = useState('todos');
+  const [buscaCardapio, setBuscaCardapio] = useState('');
+
   const [gerenciadorGlobalAberto, setGerenciadorGlobalAberto] = useState(false);
+  const [ordenadorCategoriasAberto, setOrdenadorCategoriasAberto] = useState(false);
+  const [ordemCategorias, setOrdemCategorias] = useState(() => lerOrdemLocal());
   const [produtoComplementoAtivoId, setProdutoComplementoAtivoId] = useState(null);
 
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([
     'açaí / garrafas',
+    'açaí / copos',
+    'sorvete',
     'hambúrgueres / baguetes',
     'bebidas',
     'porções / acompanhamentos',
-    'sobremesas'
+    'sobremesas',
+    'combos',
+    'nhoques & lasanhas',
   ]);
 
   const [isCriandoNovaCategoria, setIsCriandoNovaCategoria] = useState(false);
@@ -33,7 +118,7 @@ export const AdminProdutos = () => {
     imagem: '',
     disponivel: true,
     estoque: '',
-    gruposComplementosIds: [], // 👈 IDs dos grupos selecionados para este produto
+    gruposComplementosIds: [],
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -92,18 +177,25 @@ export const AdminProdutos = () => {
     try {
       const [dataProdutos, dataGrupos] = await Promise.all([
         api.getProdutos(),
-        fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos').then(res => res.json()).catch(() => [])
+        fetch('https://api-hamburgueria.rodhonsystem.com.br/api/complementos/grupos')
+          .then((res) => res.json())
+          .catch(() => []),
       ]);
 
-      setProdutos(dataProdutos);
-      
-      const listaGrupos = Array.isArray(dataGrupos) ? dataGrupos : (dataGrupos.data || dataGrupos.grupos || []);
+      const listaProdutos = Array.isArray(dataProdutos) ? dataProdutos : [];
+      setProdutos(listaProdutos);
+
+      const listaGrupos = Array.isArray(dataGrupos)
+        ? dataGrupos
+        : dataGrupos.data || dataGrupos.grupos || [];
       setGruposDisponiveis(listaGrupos);
 
-      if (Array.isArray(dataProdutos)) {
-        const catsDoBanco = dataProdutos.map(p => p.categoria || p.category).filter(Boolean);
+      if (listaProdutos.length > 0) {
+        const catsDoBanco = listaProdutos
+          .map((p) => normalizarCat(p.categoria || p.category))
+          .filter(Boolean);
         setCategoriasDisponiveis((prev) => {
-          const combinadas = new Set([...prev, ...catsDoBanco]);
+          const combinadas = new Set([...prev.map(normalizarCat), ...catsDoBanco]);
           return Array.from(combinadas);
         });
       }
@@ -118,6 +210,37 @@ export const AdminProdutos = () => {
   useEffect(() => {
     carregarDadosIniciais();
   }, []);
+
+  const todasCategoriasSemTodos = montarListaOrdenada(
+    [
+      ...categoriasDisponiveis,
+      ...produtos.map((p) => p.categoria || p.category),
+    ],
+    ordemCategorias
+  );
+
+  const handleMoverCategoria = (cat, direcao) => {
+    const alvo = normalizarCat(cat);
+    const idx = todasCategoriasSemTodos.indexOf(alvo);
+    if (idx === -1) return;
+
+    const novoIdx = direcao === 'cima' ? idx - 1 : idx + 1;
+    if (novoIdx < 0 || novoIdx >= todasCategoriasSemTodos.length) return;
+
+    const copia = [...todasCategoriasSemTodos];
+    const [removida] = copia.splice(idx, 1);
+    copia.splice(novoIdx, 0, removida);
+
+    const salva = salvarOrdemLocal(copia);
+    setOrdemCategorias(salva);
+    toast.success('ordem das categorias atualizada!');
+  };
+
+  const handleResetarOrdemCategorias = () => {
+    const limpa = salvarOrdemLocal([]);
+    setOrdemCategorias(limpa);
+    toast.success('ordem restaurada para o padrão!');
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -137,7 +260,7 @@ export const AdminProdutos = () => {
   const handleToggleGrupoVinculado = (grupoId) => {
     const atuais = form.gruposComplementosIds || [];
     if (atuais.includes(grupoId)) {
-      setForm({ ...form, gruposComplementosIds: atuais.filter(id => id !== grupoId) });
+      setForm({ ...form, gruposComplementosIds: atuais.filter((id) => id !== grupoId) });
     } else {
       setForm({ ...form, gruposComplementosIds: [...atuais, grupoId] });
     }
@@ -150,7 +273,7 @@ export const AdminProdutos = () => {
     }
 
     if (window.confirm(`Deseja remover a categoria "${form.categoria}" da lista?`)) {
-      const novasCategorias = categoriasDisponiveis.filter(cat => cat !== form.categoria);
+      const novasCategorias = categoriasDisponiveis.filter((cat) => cat !== form.categoria);
       setCategoriasDisponiveis(novasCategorias);
       setForm({ ...form, categoria: novasCategorias[0] || '' });
       toast.success('Categoria removida das opções!');
@@ -176,7 +299,7 @@ export const AdminProdutos = () => {
 
     const categoriaFinal = isCriandoNovaCategoria
       ? novaCategoriaInput.trim().toLowerCase()
-      : form.categoria;
+      : normalizarCat(form.categoria);
 
     if (!categoriaFinal) {
       toast.error('por favor, informe ou selecione uma categoria.');
@@ -192,7 +315,7 @@ export const AdminProdutos = () => {
       precoOriginal: form.precoOriginal ? parseFloat(form.precoOriginal) : 0,
       estoque: qtdEstoque,
       disponivel: qtdEstoque > 0 ? form.disponivel : false,
-      gruposComplementosIds: form.gruposComplementosIds, // 👈 Envia os IDs selecionados
+      gruposComplementosIds: form.gruposComplementosIds,
     };
 
     const acao = editandoId
@@ -202,7 +325,17 @@ export const AdminProdutos = () => {
     toast.promise(acao, {
       loading: editandoId ? 'a atualizar produto...' : 'a cadastrar produto...',
       success: () => {
-        setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '', gruposComplementosIds: [] });
+        setForm({
+          nome: '',
+          descricao: '',
+          preco: '',
+          precoOriginal: '',
+          categoria: categoriasDisponiveis[0] || 'açaí / garrafas',
+          imagem: '',
+          disponivel: true,
+          estoque: '',
+          gruposComplementosIds: [],
+        });
         setEditandoId(null);
         setProdutoComplementoAtivoId(null);
         setIsCriandoNovaCategoria(false);
@@ -219,10 +352,10 @@ export const AdminProdutos = () => {
     setEditandoId(pId);
     setProdutoComplementoAtivoId(pId);
 
-    const catProd = prod.categoria || prod.category || 'açaí / garrafas';
-    
+    const catProd = normalizarCat(prod.categoria || prod.category) || 'açaí / garrafas';
+
     if (!categoriasDisponiveis.includes(catProd)) {
-      setCategoriasDisponiveis(prev => [...prev, catProd]);
+      setCategoriasDisponiveis((prev) => [...prev, catProd]);
     }
 
     setIsCriandoNovaCategoria(false);
@@ -235,7 +368,7 @@ export const AdminProdutos = () => {
       imagem: prod.imagem || prod.image || '',
       disponivel: prod.disponivel !== undefined ? prod.disponivel : true,
       estoque: prod.estoque !== undefined ? prod.estoque : '',
-      gruposComplementosIds: prod.gruposComplementosIds || prod.complementosIds || [], // 👈 Carrega os grupos salvos
+      gruposComplementosIds: prod.gruposComplementosIds || prod.complementosIds || [],
     });
     toast('modo de edição ativado', { icon: '✏️' });
   };
@@ -284,9 +417,35 @@ export const AdminProdutos = () => {
     setProdutoComplementoAtivoId(null);
     setIsCriandoNovaCategoria(false);
     setNovaCategoriaInput('');
-    setForm({ nome: '', descricao: '', preco: '', precoOriginal: '', categoria: categoriasDisponiveis[0] || 'açaí / garrafas', imagem: '', disponivel: true, estoque: '', gruposComplementosIds: [] });
+    setForm({
+      nome: '',
+      descricao: '',
+      preco: '',
+      precoOriginal: '',
+      categoria: categoriasDisponiveis[0] || 'açaí / garrafas',
+      imagem: '',
+      disponivel: true,
+      estoque: '',
+      gruposComplementosIds: [],
+    });
     toast('edição cancelada', { icon: 'ℹ️' });
   };
+
+  const abasCategoriasCardapio = ['todos', ...todasCategoriasSemTodos];
+
+  const produtosFiltrados = produtos.filter((prod) => {
+    const catProd = normalizarCat(prod.categoria || prod.category);
+    const bateCategoria =
+      filtroCategoriaCardapio === 'todos' || catProd === filtroCategoriaCardapio;
+
+    const termo = buscaCardapio.trim().toLowerCase();
+    const nomeProd = String(prod.nome || prod.name || '').toLowerCase();
+    const descProd = String(prod.descricao || prod.description || '').toLowerCase();
+    const bateBusca =
+      !termo || nomeProd.includes(termo) || descProd.includes(termo) || catProd.includes(termo);
+
+    return bateCategoria && bateBusca;
+  });
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -302,8 +461,9 @@ export const AdminProdutos = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-end">
           <button
+            type="button"
             onClick={() => {
               setGerenciadorGlobalAberto(!gerenciadorGlobalAberto);
               setProdutoComplementoAtivoId(null);
@@ -315,6 +475,20 @@ export const AdminProdutos = () => {
           </button>
 
           <button
+            type="button"
+            onClick={() => setOrdenadorCategoriasAberto(!ordenadorCategoriasAberto)}
+            className={`px-4 py-2.5 font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs cursor-pointer transition border ${
+              ordenadorCategoriasAberto
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+            }`}
+          >
+            <ArrowUpDown className="w-4 h-4" />
+            {ordenadorCategoriasAberto ? 'Fechar Ordem' : 'Ordenar Categorias'}
+          </button>
+
+          <button
+            type="button"
             onClick={carregarDadosIniciais}
             className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer shadow-xs"
             title="Atualizar lista"
@@ -323,6 +497,72 @@ export const AdminProdutos = () => {
           </button>
         </div>
       </div>
+
+      {/* Painel Admin para Ordenar Categorias do Cardápio */}
+      {ordenadorCategoriasAberto && (
+        <div className="mb-8 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div>
+              <h2 className="text-sm font-extrabold text-slate-900">
+                Ordem das Categorias no Cardápio (Admin)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Mova as categorias com as setas para definir a ordem em que aparecem para o cliente.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleResetarOrdemCategorias}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Resetar
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrdenadorCategoriasAberto(false)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer transition"
+                title="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {todasCategoriasSemTodos.map((cat, idx) => (
+              <div
+                key={cat}
+                className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs"
+              >
+                <span className="font-bold text-slate-800 capitalize truncate pr-2">
+                  {idx + 1}. {cat}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMoverCategoria(cat, 'cima')}
+                    className="p-1 bg-white rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                    title="Subir"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === todasCategoriasSemTodos.length - 1}
+                    onClick={() => handleMoverCategoria(cat, 'baixo')}
+                    className="p-1 bg-white rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                    title="Descer"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {gerenciadorGlobalAberto && (
         <div className="mb-8">
@@ -447,7 +687,7 @@ export const AdminProdutos = () => {
               </div>
             </div>
 
-            {/* 👇 SELETOR DE VÍNCULO DE GRUPOS DE COMPLEMENTOS */}
+            {/* SELETOR DE VÍNCULO DE GRUPOS DE COMPLEMENTOS */}
             <div className="p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-2xl shadow-2xs">
               <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-amber-600" />
@@ -463,7 +703,7 @@ export const AdminProdutos = () => {
                 </p>
               ) : (
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {gruposDisponiveis.map(grupo => {
+                  {gruposDisponiveis.map((grupo) => {
                     const gId = grupo._id || grupo.id;
                     const selecionado = (form.gruposComplementosIds || []).includes(gId);
 
@@ -472,14 +712,18 @@ export const AdminProdutos = () => {
                         key={gId}
                         onClick={() => handleToggleGrupoVinculado(gId)}
                         className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
-                          selecionado 
-                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-2xs' 
+                          selecionado
+                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-2xs'
                             : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate pr-2">
                           <span className="capitalize truncate">{grupo.nome}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase ${selecionado ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-500'}`}>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded uppercase ${
+                              selecionado ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
                             {grupo.categoria}
                           </span>
                         </div>
@@ -515,7 +759,7 @@ export const AdminProdutos = () => {
                 onChange={handleFileChange}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-700 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
               />
-              
+
               {form.imagem && (
                 <div className="mt-3 relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-2xs">
                   <img src={form.imagem} alt="Preview" className="w-full h-full object-cover" />
@@ -545,32 +789,89 @@ export const AdminProdutos = () => {
           </form>
         </div>
 
-        {/* Tabela / Lista de Produtos Cadastrados */}
+        {/* Tabela / Lista de Produtos Cadastrados com Filtro por Categoria */}
         <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-800">
-              Itens no Cardápio ({produtos.length})
+              Itens no Cardápio ({produtosFiltrados.length}
+              {filtroCategoriaCardapio !== 'todos' || buscaCardapio.trim() ? ` / ${produtos.length}` : ''})
             </h2>
             <span className="text-xs text-slate-500 font-medium">Cardápio Ativo</span>
           </div>
 
+          {/* Barra de filtro por categoria + busca */}
+          <div className="mb-4 space-y-2.5">
+            <div className="flex flex-wrap gap-1.5">
+              {abasCategoriasCardapio.map((cat) => {
+                const ativa = filtroCategoriaCardapio === cat;
+                const qtdNaCat =
+                  cat === 'todos'
+                    ? produtos.length
+                    : produtos.filter(
+                        (p) => normalizarCat(p.categoria || p.category) === cat
+                      ).length;
+
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFiltroCategoriaCardapio(cat)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition cursor-pointer border ${
+                      ativa
+                        ? 'bg-amber-500 text-slate-950 border-amber-500'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {cat === 'todos' ? 'todos' : cat} ({qtdNaCat})
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={buscaCardapio}
+                onChange={(e) => setBuscaCardapio(e.target.value)}
+                placeholder="Buscar item no cardápio..."
+                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none focus:border-amber-500"
+              />
+              {(filtroCategoriaCardapio !== 'todos' || buscaCardapio.trim()) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroCategoriaCardapio('todos');
+                    setBuscaCardapio('');
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer transition"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+
           {loading ? (
             <p className="text-slate-500 text-sm py-8 text-center">A carregar produtos do banco...</p>
-          ) : produtos.length === 0 ? (
+          ) : produtosFiltrados.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-slate-200 rounded-xl">
               <Package className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-              <p className="text-slate-500 text-sm">Nenhum produto cadastrado no banco de dados.</p>
+              <p className="text-slate-500 text-sm">
+                {produtos.length === 0
+                  ? 'Nenhum produto cadastrado no banco de dados.'
+                  : 'Nenhum item encontrado para essa categoria/busca.'}
+              </p>
             </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {produtos.map((prod) => {
+              {produtosFiltrados.map((prod) => {
                 const id = prod._id || prod.id;
                 const preco = Number(prod.preco || prod.price || 0);
                 const precoOriginal = Number(prod.precoOriginal || prod.precoAntigo || 0);
                 const imagemProd = prod.imagem || prod.image;
                 const estoqueAtual = Number(prod.estoque || 0);
                 const gruposVinculados = prod.gruposComplementosIds || prod.complementosIds || [];
-                
+
                 const disponivel = prod.disponivel !== false && estoqueAtual > 0;
 
                 return (
@@ -581,7 +882,11 @@ export const AdminProdutos = () => {
                     }`}
                   >
                     {imagemProd ? (
-                      <img src={imagemProd} alt={prod.nome} className="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
+                      <img
+                        src={imagemProd}
+                        alt={prod.nome}
+                        className="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                      />
                     ) : (
                       <div className="w-14 h-14 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0">
                         <ImageIcon className="w-6 h-6" />
@@ -590,7 +895,9 @@ export const AdminProdutos = () => {
 
                     <div className="flex-1 pr-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-slate-800 text-sm capitalize">{prod.nome || prod.name}</span>
+                        <span className="font-bold text-slate-800 text-sm capitalize">
+                          {prod.nome || prod.name}
+                        </span>
                         <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold uppercase border border-amber-200">
                           {prod.categoria || prod.category || 'açaí / garrafas'}
                         </span>
@@ -598,7 +905,7 @@ export const AdminProdutos = () => {
                         <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold border border-emerald-200">
                           {gruposVinculados.length} grupo(s) vinculado(s)
                         </span>
-                        
+
                         <EstoqueBadgeCard estoque={prod.estoque} />
 
                         {!disponivel && (
@@ -611,23 +918,26 @@ export const AdminProdutos = () => {
                       <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                         {prod.descricao || prod.description || 'Sem descrição'}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 mt-0.5">
                         {precoOriginal > preco && (
                           <span className="text-xs text-slate-400 line-through">
                             R$ {precoOriginal.toFixed(2)}
                           </span>
                         )}
-                        <span className="text-xs font-extrabold text-emerald-600">R$ {preco.toFixed(2)}</span>
+                        <span className="text-xs font-extrabold text-emerald-600">
+                          R$ {preco.toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <button
+                        type="button"
                         onClick={() => handleToggleDisponibilidadeRapida(prod)}
                         className={`p-2 rounded-lg transition cursor-pointer border shadow-2xs ${
-                          disponivel 
-                            ? 'bg-white text-emerald-600 border-slate-200 hover:bg-emerald-50' 
+                          disponivel
+                            ? 'bg-white text-emerald-600 border-slate-200 hover:bg-emerald-50'
                             : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                         }`}
                         title={disponivel ? 'Marcar como esgotado' : 'Marcar como disponível'}
@@ -636,14 +946,16 @@ export const AdminProdutos = () => {
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleEdit(prod)}
                         className="p-2 text-slate-700 hover:bg-slate-200 bg-white border border-slate-200 rounded-lg transition cursor-pointer shadow-2xs"
                         title="Editar produto"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      
+
                       <button
+                        type="button"
                         onClick={() => handleDelete(id)}
                         className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition cursor-pointer shadow-2xs"
                         title="Excluir do banco"

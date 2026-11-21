@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Save, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Eye, EyeOff, AlertCircle, Copy } from 'lucide-react';
 import { api } from '../services/api';
+
+const CATEGORIAS_DISPONIVEIS = [
+  'açaí / garrafas',
+  'açaí / copos',
+  'sorvete',
+  'hambúrgueres / baguetes',
+  'bebidas',
+  'porções / acompanhamentos'
+];
 
 export const AdminComplementos = ({ onFechar }) => {
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [clonando, setClonando] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
   // Estados para criação de Grupo
@@ -18,12 +28,27 @@ export const AdminComplementos = ({ onFechar }) => {
   const [novoNomeItem, setNovoNomeItem] = useState('');
   const [novoPrecoItem, setNovoPrecoItem] = useState('0,00');
 
+  // Estados para Clonar / Reaproveitar Grupo Existente
+  const [grupoOrigemClonarId, setGrupoOrigemClonarId] = useState('');
+  const [categoriaDestinoClonar, setCategoriaDestinoClonar] = useState('sorvete');
+  const [nomeClonado, setNomeClonado] = useState('');
+  const [minimoClonar, setMinimoClonar] = useState(0);
+  const [maximoClonar, setMaximoClonar] = useState(2);
+
   // Estados de Edição inline
   const [editandoGrupoId, setEditandoGrupoId] = useState(null);
   const [edicaoGrupoData, setEdicaoGrupoData] = useState({ nome: '', minimo: 0, maximo: 1 });
 
   const [editandoItemId, setEditandoItemId] = useState(null);
   const [edicaoItemData, setEdicaoItemData] = useState({ nome: '', preco: 0 });
+
+  const getId = (obj) => {
+    if (!obj) return '';
+    if (typeof obj._id === 'object' && obj._id !== null) {
+      return obj._id.$oid || obj._id.toString();
+    }
+    return obj._id || obj.id || '';
+  };
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -37,11 +62,13 @@ export const AdminComplementos = ({ onFechar }) => {
       if (res.data) {
         const lista = Array.isArray(res.data) ? res.data : [];
         setGrupos(lista);
-        if (lista.length > 0 && !grupoSelecionadoId) {
-          const primeiroId = typeof lista[0]._id === 'object' && lista[0]._id !== null
-            ? (lista[0]._id.$oid || lista[0]._id.toString())
-            : (lista[0]._id || lista[0].id);
-          setGrupoSelecionadoId(primeiroId);
+        if (lista.length > 0) {
+          const primeiroId = getId(lista[0]);
+          if (!grupoSelecionadoId) setGrupoSelecionadoId(primeiroId);
+          if (!grupoOrigemClonarId) {
+            setGrupoOrigemClonarId(primeiroId);
+            setNomeClonado(lista[0].nome || '');
+          }
         }
       }
     } catch (err) {
@@ -55,6 +82,86 @@ export const AdminComplementos = ({ onFechar }) => {
   useEffect(() => {
     carregarDados();
   }, []);
+
+  const handleSelecionarGrupoOrigem = (id) => {
+    setGrupoOrigemClonarId(id);
+    const encontrado = grupos.find((g) => getId(g) === id);
+    if (encontrado) {
+      setNomeClonado(encontrado.nome || '');
+      setMinimoClonar(Number(encontrado.minimo || 0));
+      setMaximoClonar(Number(encontrado.maximo || 1));
+    }
+  };
+
+  const handlePrepararClonagemRapida = (grupo) => {
+    const id = getId(grupo);
+    setGrupoOrigemClonarId(id);
+    setNomeClonado(grupo.nome || '');
+    setMinimoClonar(Number(grupo.minimo || 0));
+    setMaximoClonar(Number(grupo.maximo || 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`Grupo "${grupo.nome}" carregado para clonar!`);
+  };
+
+  const handleClonarGrupo = async (e) => {
+    e.preventDefault();
+    const grupoOrigem = grupos.find((g) => getId(g) === grupoOrigemClonarId);
+
+    if (!grupoOrigem) {
+      showToast('Selecione um grupo existente para reaproveitar.');
+      return;
+    }
+
+    const nomeFinal = (nomeClonado || grupoOrigem.nome || '').trim().toLowerCase();
+    if (!nomeFinal) {
+      showToast('Informe o nome do grupo na nova categoria.');
+      return;
+    }
+
+    setClonando(true);
+    try {
+      // 1. Cria o novo grupo na categoria alvo com o mínimo e máximo configurados
+      const payloadGrupo = {
+        categoria: categoriaDestinoClonar.trim().toLowerCase(),
+        nome: nomeFinal,
+        minimo: Number(minimoClonar),
+        maximo: Number(maximoClonar)
+      };
+
+      const resGrupo = await api.post('/complementos/grupos', payloadGrupo);
+      const novoGrupoId =
+        getId(resGrupo?.data) ||
+        getId(resGrupo?.data?.grupo) ||
+        resGrupo?.data?.insertedId;
+
+      if (!novoGrupoId) {
+        showToast('Grupo criado, mas não foi possível obter o ID para copiar os itens.');
+        carregarDados();
+        return;
+      }
+
+      // 2. Copia todos os itens do grupo original para o novo grupo
+      const itensOrigem = Array.isArray(grupoOrigem.itens) ? grupoOrigem.itens : [];
+      for (const item of itensOrigem) {
+        await api.post('/complementos/itens', {
+          grupoId: novoGrupoId,
+          nome: String(item.nome || '').trim().toLowerCase(),
+          preco: Number(item.preco || 0),
+          disponivel: item.disponivel !== undefined ? Boolean(item.disponivel) : true
+        });
+      }
+
+      showToast(
+        `Grupo "${nomeFinal}" anexado em "${categoriaDestinoClonar}" com ${itensOrigem.length} item(ns)!`
+      );
+      carregarDados();
+    } catch (err) {
+      console.error('Erro ao clonar grupo:', err);
+      showToast('Erro ao reaproveitar grupo para outra categoria.');
+    } finally {
+      setClonando(false);
+    }
+  };
 
   const handleCriarGrupo = async (e) => {
     e.preventDefault();
@@ -145,17 +252,14 @@ export const AdminComplementos = ({ onFechar }) => {
   };
 
   const handleToggleItemDisponivel = async (item) => {
-    const itemId = typeof item._id === 'object' && item._id !== null 
-      ? (item._id.$oid || item._id.toString()) 
-      : (item._id || item.id);
-
+    const itemId = getId(item);
     const statusAtual = item.disponivel !== undefined ? Boolean(item.disponivel) : true;
     const novoStatus = !statusAtual;
 
     try {
       const payload = {
         grupoId: item.grupoId,
-        nome: item.nome,
+        nome: String(item.nome || '').trim().toLowerCase(),
         preco: Number(item.preco || 0),
         disponivel: novoStatus
       };
@@ -175,7 +279,11 @@ export const AdminComplementos = ({ onFechar }) => {
 
   const handleSalvarEdicaoGrupo = async (grupoId) => {
     try {
-      const res = await api.put(`/complementos/grupos/${grupoId}`, edicaoGrupoData);
+      const payload = {
+        ...edicaoGrupoData,
+        nome: String(edicaoGrupoData.nome || '').trim().toLowerCase()
+      };
+      const res = await api.put(`/complementos/grupos/${grupoId}`, payload);
       if (res.status === 200) {
         showToast('Grupo atualizado com sucesso!');
         setEditandoGrupoId(null);
@@ -188,7 +296,11 @@ export const AdminComplementos = ({ onFechar }) => {
 
   const handleSalvarEdicaoItem = async (itemId) => {
     try {
-      const res = await api.put(`/complementos/itens/${itemId}`, edicaoItemData);
+      const payload = {
+        ...edicaoItemData,
+        nome: String(edicaoItemData.nome || '').trim().toLowerCase()
+      };
+      const res = await api.put(`/complementos/itens/${itemId}`, payload);
       if (res.status === 200) {
         showToast('Item atualizado com sucesso!');
         setEditandoItemId(null);
@@ -211,7 +323,7 @@ export const AdminComplementos = ({ onFechar }) => {
       <div className="flex justify-between items-center pb-4 mb-6 border-b border-slate-200">
         <div>
           <h2 className="text-lg font-extrabold text-slate-900">Gerenciar e Editar Categorias e Adicionais Cadastrados</h2>
-          <p className="text-xs text-slate-500">Crie novos grupos de opcionais, edite regras ou adicione itens ao cardápio.</p>
+          <p className="text-xs text-slate-500">Crie novos grupos, adicione itens ou reaproveite grupos prontos em outras categorias.</p>
         </div>
         {onFechar && (
           <button
@@ -224,24 +336,25 @@ export const AdminComplementos = ({ onFechar }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/70">
+      {/* BLOCO DE AÇÕES: 1. CRIAR | 2. ADICIONAR ITEM | 3. CLONAR / REAPROVEITAR GRUPO */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 bg-amber-50/50 p-5 rounded-2xl border border-amber-200/70">
+        {/* 1. Criar Novo Grupo */}
         <form onSubmit={handleCriarGrupo} className="space-y-4">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Plus size={16} className="text-amber-600" />
-            1. Criar Novo Grupo / Categoria de Opcionais
+            1. Criar Novo Grupo
           </h3>
-          
+
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Pertence à Categoria do Cardápio:</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Categoria Alvo:</label>
             <select
               value={novaCategoria}
               onChange={(e) => setNovaCategoria(e.target.value)}
               className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500"
             >
-              <option value="açaí / garrafas">açaí / garrafas</option>
-              <option value="hambúrgueres / baguetes">hambúrgueres / baguetes</option>
-              <option value="bebidas">bebidas</option>
-              <option value="porções / acompanhamentos">porções / acompanhamentos</option>
+              {CATEGORIAS_DISPONIVEIS.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
           </div>
 
@@ -249,7 +362,7 @@ export const AdminComplementos = ({ onFechar }) => {
             <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Novo Grupo:</label>
             <input
               type="text"
-              placeholder="Ex: selecione os acompanhamentos, escolha a calda"
+              placeholder="Ex: escolha sua calda"
               value={novoNomeGrupo}
               onChange={(e) => setNovoNomeGrupo(e.target.value)}
               className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500"
@@ -258,7 +371,7 @@ export const AdminComplementos = ({ onFechar }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Escolha Mínima:</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Mínimo:</label>
               <input
                 type="number"
                 min="0"
@@ -268,7 +381,7 @@ export const AdminComplementos = ({ onFechar }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Escolha Máxima:</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Máximo:</label>
               <input
                 type="number"
                 min="1"
@@ -287,10 +400,11 @@ export const AdminComplementos = ({ onFechar }) => {
           </button>
         </form>
 
+        {/* 2. Adicionar Item */}
         <form onSubmit={handleCriarItem} className="space-y-4">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <Plus size={16} className="text-emerald-600" />
-            2. Adicionar Item/Adicional ao Grupo
+            2. Adicionar Item ao Grupo
           </h3>
 
           <div>
@@ -301,20 +415,22 @@ export const AdminComplementos = ({ onFechar }) => {
               className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-amber-500"
             >
               <option value="">Selecione um grupo...</option>
-              {grupos.map(g => {
-                const gId = typeof g._id === 'object' && g._id !== null ? (g._id.$oid || g._id.toString()) : (g._id || g.id);
+              {grupos.map((g) => {
+                const gId = getId(g);
                 return (
-                  <option key={gId} value={gId}>{g.nome} ({g.categoria})</option>
+                  <option key={gId} value={gId}>
+                    {g.nome} ({g.categoria})
+                  </option>
                 );
               })}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Item/Ingrediente:</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Item:</label>
             <input
               type="text"
-              placeholder="Ex: morango, chocolate, leite em pó"
+              placeholder="Ex: calda de chocolate"
               value={novoNomeItem}
               onChange={(e) => setNovoNomeItem(e.target.value)}
               className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none"
@@ -322,7 +438,7 @@ export const AdminComplementos = ({ onFechar }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Adicional (R$):</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Preço (R$):</label>
             <input
               type="text"
               placeholder="0,00"
@@ -334,13 +450,100 @@ export const AdminComplementos = ({ onFechar }) => {
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl shadow-xs transition cursor-pointer mt-6"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl shadow-xs transition cursor-pointer"
           >
             + Incluir Item no Grupo
           </button>
         </form>
+
+        {/* 3. Reaproveitar / Clonar Grupo Pronto */}
+        <form onSubmit={handleClonarGrupo} className="space-y-4 bg-indigo-50/70 p-4 rounded-xl border border-indigo-200/80">
+          <h3 className="text-sm font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+            <Copy size={16} className="text-indigo-600" />
+            3. Reaproveitar Grupo Pronto
+          </h3>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Copiar Itens do Grupo:</label>
+            <select
+              value={grupoOrigemClonarId}
+              onChange={(e) => handleSelecionarGrupoOrigem(e.target.value)}
+              className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-slate-800 outline-none focus:border-indigo-500"
+            >
+              <option value="">Escolha um grupo já criado...</option>
+              {grupos.map((g) => {
+                const gId = getId(g);
+                const qtd = Array.isArray(g.itens) ? g.itens.length : 0;
+                return (
+                  <option key={gId} value={gId}>
+                    {g.nome} ({g.categoria} • {qtd} itens)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Anexar na Categoria:</label>
+              <select
+                value={categoriaDestinoClonar}
+                onChange={(e) => setCategoriaDestinoClonar(e.target.value)}
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 text-slate-800 outline-none focus:border-indigo-500"
+              >
+                {CATEGORIAS_DISPONIVEIS.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Nome na Nova Categoria:</label>
+              <input
+                type="text"
+                value={nomeClonado}
+                onChange={(e) => setNomeClonado(e.target.value)}
+                placeholder="Ex: escolha sua calda"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 text-slate-800 outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Novo Mínimo:</label>
+              <input
+                type="number"
+                min="0"
+                value={minimoClonar}
+                onChange={(e) => setMinimoClonar(e.target.value)}
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Novo Máximo:</label>
+              <input
+                type="number"
+                min="1"
+                value={maximoClonar}
+                onChange={(e) => setMaximoClonar(e.target.value)}
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={clonando}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold text-xs py-3 rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <Copy size={14} />
+            {clonando ? 'Copiando itens...' : 'Anexar Grupo e Copiar Itens'}
+          </button>
+        </form>
       </div>
 
+      {/* LISTAGEM DE GRUPOS CADASTRADOS */}
       <div className="space-y-6">
         <h3 className="text-base font-extrabold text-slate-900 border-b pb-2">Grupos Cadastrados</h3>
 
@@ -349,8 +552,8 @@ export const AdminComplementos = ({ onFechar }) => {
         ) : grupos.length === 0 ? (
           <p className="text-xs text-slate-400 py-4 text-center italic">Nenhum grupo cadastrado até o momento.</p>
         ) : (
-          grupos.map(grupo => {
-            const grupoId = typeof grupo._id === 'object' && grupo._id !== null ? (grupo._id.$oid || grupo._id.toString()) : (grupo._id || grupo.id);
+          grupos.map((grupo) => {
+            const grupoId = getId(grupo);
             const isEditingGroup = editandoGrupoId === grupoId;
 
             return (
@@ -397,7 +600,9 @@ export const AdminComplementos = ({ onFechar }) => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-extrabold text-sm text-slate-900">{grupo.nome}</h4>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">{grupo.categoria || 'geral'}</span>
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
+                          {grupo.categoria || 'geral'}
+                        </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         Mín: {grupo.minimo || 0} | Máx: {grupo.maximo || 1}
@@ -406,7 +611,15 @@ export const AdminComplementos = ({ onFechar }) => {
                   )}
 
                   {!isEditingGroup && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handlePrepararClonagemRapida(grupo)}
+                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                        title="Reaproveitar este grupo em outra categoria"
+                      >
+                        <Copy size={12} /> Usar em outra categoria
+                      </button>
                       <button
                         onClick={() => {
                           setEditandoGrupoId(grupoId);
@@ -428,13 +641,18 @@ export const AdminComplementos = ({ onFechar }) => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pl-2">
-                  {(grupo.itens || []).map(item => {
-                    const itemId = typeof item._id === 'object' && item._id !== null ? (item._id.$oid || item._id.toString()) : (item._id || item.id);
+                  {(grupo.itens || []).map((item) => {
+                    const itemId = getId(item);
                     const isEditingItem = editandoItemId === itemId;
                     const isDisponivel = item.disponivel !== undefined ? Boolean(item.disponivel) : true;
 
                     return (
-                      <div key={itemId} className={`p-3 rounded-xl border flex flex-col justify-between gap-2 transition ${isDisponivel ? 'bg-white border-slate-200' : 'bg-rose-50/40 border-rose-200 opacity-75'}`}>
+                      <div
+                        key={itemId}
+                        className={`p-3 rounded-xl border flex flex-col justify-between gap-2 transition ${
+                          isDisponivel ? 'bg-white border-slate-200' : 'bg-rose-50/40 border-rose-200 opacity-75'
+                        }`}
+                      >
                         {isEditingItem ? (
                           <div className="space-y-2">
                             <input
@@ -451,8 +669,12 @@ export const AdminComplementos = ({ onFechar }) => {
                               className="w-full text-xs bg-white border rounded-lg px-2 py-1 outline-none"
                             />
                             <div className="flex justify-end gap-1">
-                              <button onClick={() => handleSalvarEdicaoItem(itemId)} className="bg-emerald-600 text-white px-2 py-1 rounded text-xs">Salvar</button>
-                              <button onClick={() => setEditandoItemId(null)} className="bg-slate-300 px-2 py-1 rounded text-xs">Cancelar</button>
+                              <button onClick={() => handleSalvarEdicaoItem(itemId)} className="bg-emerald-600 text-white px-2 py-1 rounded text-xs">
+                                Salvar
+                              </button>
+                              <button onClick={() => setEditandoItemId(null)} className="bg-slate-300 px-2 py-1 rounded text-xs">
+                                Cancelar
+                              </button>
                             </div>
                           </div>
                         ) : (
@@ -464,7 +686,11 @@ export const AdminComplementos = ({ onFechar }) => {
                                   {Number(item.preco || 0) > 0 ? `+ R$ ${Number(item.preco).toFixed(2)}` : 'Grátis'}
                                 </span>
                               </div>
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isDisponivel ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                              <span
+                                className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                  isDisponivel ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                }`}
+                              >
                                 {isDisponivel ? 'Disponível' : 'Esgotado'}
                               </span>
                             </div>
@@ -474,11 +700,11 @@ export const AdminComplementos = ({ onFechar }) => {
                                 type="button"
                                 onClick={() => handleToggleItemDisponivel(item)}
                                 className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer ${
-                                  isDisponivel 
-                                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200' 
+                                  isDisponivel
+                                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
                                     : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                                 }`}
-                                title={isDisponivel ? "Marcar como Esgotado" : "Tornar Disponível"}
+                                title={isDisponivel ? 'Marcar como Esgotado' : 'Tornar Disponível'}
                               >
                                 {isDisponivel ? <EyeOff size={12} /> : <Eye size={12} />}
                                 {isDisponivel ? 'Esgotar' : 'Ativar'}
