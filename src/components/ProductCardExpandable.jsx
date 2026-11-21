@@ -66,6 +66,32 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
             } catch (e) {}
           }
 
+          // Ordena os grupos conforme a sequência salva no produto (gruposComplementosIds / complementosIds)
+          const ordemIds = Array.isArray(product?.gruposComplementosIds)
+            ? product.gruposComplementosIds
+            : Array.isArray(product?.complementosIds)
+              ? product.complementosIds
+              : [];
+
+          if (Array.isArray(gruposArray) && ordemIds.length > 0) {
+            const extrairIdGrupo = (g) =>
+              typeof g?._id === 'object' && g?._id !== null
+                ? String(g._id.$oid || g._id.toString())
+                : String(g?._id || g?.id || '');
+
+            const mapaPosicao = new Map(
+              ordemIds.map((itemId, index) => [String(itemId), index])
+            );
+
+            gruposArray = [...gruposArray].sort((a, b) => {
+              const idA = extrairIdGrupo(a);
+              const idB = extrairIdGrupo(b);
+              const posA = mapaPosicao.has(idA) ? mapaPosicao.get(idA) : Number.MAX_SAFE_INTEGER;
+              const posB = mapaPosicao.has(idB) ? mapaPosicao.get(idB) : Number.MAX_SAFE_INTEGER;
+              return posA - posB;
+            });
+          }
+
           setGruposComplementos(Array.isArray(gruposArray) ? gruposArray : []);
 
           const abertosIniciais = {};
@@ -84,7 +110,7 @@ export const ProductCardExpandable = ({ product, onToggleDisponibilidade }) => {
       };
       carregarComplementos();
     }
-  }, [isExpanded, id]);
+  }, [isExpanded, id, product]);
 
   const toggleGrupoAccordion = (gId) => {
     setGruposAbertos(prev => ({

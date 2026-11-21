@@ -266,6 +266,22 @@ export const AdminProdutos = () => {
     }
   };
 
+  const handleMoverGrupoVinculado = (grupoId, direcao, e) => {
+    e.stopPropagation();
+
+    const atuais = [...(form.gruposComplementosIds || [])];
+    const idx = atuais.indexOf(grupoId);
+    if (idx === -1) return;
+
+    const novoIdx = direcao === 'cima' ? idx - 1 : idx + 1;
+    if (novoIdx < 0 || novoIdx >= atuais.length) return;
+
+    const [removido] = atuais.splice(idx, 1);
+    atuais.splice(novoIdx, 0, removido);
+
+    setForm({ ...form, gruposComplementosIds: atuais });
+  };
+
   const handleExcluirCategoriaSelecionada = () => {
     if (!form.categoria) {
       toast.error('Selecione uma categoria válida para excluir.');
@@ -687,14 +703,14 @@ export const AdminProdutos = () => {
               </div>
             </div>
 
-            {/* SELETOR DE VÍNCULO DE GRUPOS DE COMPLEMENTOS */}
+            {/* SELETOR DE VÍNCULO E ORDEM DE GRUPOS DE COMPLEMENTOS */}
             <div className="p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-2xl shadow-2xs">
               <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-amber-600" />
-                Vincular Grupos de Complementos:
+                Vincular e Ordenar Grupos de Complementos:
               </label>
               <p className="text-[11px] text-slate-600 mb-2.5">
-                Marque apenas os grupos que devem aparecer quando o cliente abrir este item no cardápio.
+                Marque os grupos e use as setas nos selecionados para definir a sequência no cardápio.
               </p>
 
               {gruposDisponiveis.length === 0 ? (
@@ -702,39 +718,85 @@ export const AdminProdutos = () => {
                   Nenhum grupo criado ainda. Clique em "Criar/Gerenciar Grupos" acima.
                 </p>
               ) : (
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {gruposDisponiveis.map((grupo) => {
-                    const gId = grupo._id || grupo.id;
-                    const selecionado = (form.gruposComplementosIds || []).includes(gId);
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {(() => {
+                    const selecionadosIds = form.gruposComplementosIds || [];
 
-                    return (
-                      <div
-                        key={gId}
-                        onClick={() => handleToggleGrupoVinculado(gId)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
-                          selecionado
-                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-2xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 truncate pr-2">
-                          <span className="capitalize truncate">{grupo.nome}</span>
-                          <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded uppercase ${
-                              selecionado ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-500'
-                            }`}
-                          >
-                            {grupo.categoria}
-                          </span>
-                        </div>
-                        {selecionado ? (
-                          <CheckSquare className="w-4 h-4 text-slate-950 shrink-0" />
-                        ) : (
-                          <Square className="w-4 h-4 text-slate-400 shrink-0" />
-                        )}
-                      </div>
+                    const gruposSelecionadosOrdenados = selecionadosIds
+                      .map((id) => gruposDisponiveis.find((g) => (g._id || g.id) === id))
+                      .filter(Boolean);
+
+                    const gruposNaoSelecionados = gruposDisponiveis.filter(
+                      (g) => !selecionadosIds.includes(g._id || g.id)
                     );
-                  })}
+
+                    const listaRender = [...gruposSelecionadosOrdenados, ...gruposNaoSelecionados];
+
+                    return listaRender.map((grupo) => {
+                      const gId = grupo._id || grupo.id;
+                      const posSelecionado = selecionadosIds.indexOf(gId);
+                      const selecionado = posSelecionado !== -1;
+
+                      return (
+                        <div
+                          key={gId}
+                          onClick={() => handleToggleGrupoVinculado(gId)}
+                          className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
+                            selecionado
+                              ? 'bg-amber-500 text-slate-950 font-bold border-amber-600 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {selecionado && (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 shrink-0">
+                                {posSelecionado + 1}º
+                              </span>
+                            )}
+                            <span className="capitalize truncate">{grupo.nome}</span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded uppercase shrink-0 ${
+                                selecionado ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-500'
+                              }`}
+                            >
+                              {grupo.categoria}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {selecionado && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={posSelecionado === 0}
+                                  onClick={(e) => handleMoverGrupoVinculado(gId, 'cima', e)}
+                                  className="p-1 bg-amber-300/90 hover:bg-amber-200 text-slate-950 rounded-lg border border-amber-600/40 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                  title="Subir na sequência"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={posSelecionado === selecionadosIds.length - 1}
+                                  onClick={(e) => handleMoverGrupoVinculado(gId, 'baixo', e)}
+                                  className="p-1 bg-amber-300/90 hover:bg-amber-200 text-slate-950 rounded-lg border border-amber-600/40 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                  title="Descer na sequência"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+
+                            {selecionado ? (
+                              <CheckSquare className="w-4 h-4 text-slate-950 ml-0.5" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-400" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
