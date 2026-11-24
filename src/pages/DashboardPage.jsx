@@ -9,7 +9,8 @@ import {
   Award, 
   Calendar,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Wallet
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -19,17 +20,23 @@ export default function DashboardPage() {
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
+  // Rateio mensal estimado de despesas da operação (luz + gás + internet)
+  const [rateioMensal, setRateioMensal] = useState(0);
+
   // Estados de Paginação para os Carros-Chefe
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 7;
 
   // Estados dos Dados das Métricas mapeados com a estrutura da API
   const [resumo, setResumo] = useState({
-    faturamentoTotal: 0,
+    faturamentoTotal: 0,       // Repasse líquido total
+    faturamentoBrutoTotal: 0,  // Entrada bruta total
+    custoDiretoTotal: 0,       // Capital de giro / custo direto dos insumos vendidos
+    lucroAposCustoDireto: 0,   // Repasse líquido - custo direto
     totalPedidos: 0,
     ticketMedio: 0,
     lucroEstimado: 0,
-    
+
     // Formas de Pagamento
     pagamentos: {
       pix: 0,
@@ -91,11 +98,20 @@ export default function DashboardPage() {
             });
           }
 
+          const repasseLiquidoTotal = Number(data.faturamentoTotal || 0);
+          const custoDireto = Number(data.custoDiretoTotal || 0);
+          const lucroAposCusto = data.lucroAposCustoDireto !== undefined
+            ? Number(data.lucroAposCustoDireto)
+            : Number(data.lucroEstimado ?? (repasseLiquidoTotal - custoDireto));
+
           setResumo({
-            faturamentoTotal: Number(data.faturamentoTotal || 0),
+            faturamentoTotal: repasseLiquidoTotal,
+            faturamentoBrutoTotal: Number(data.faturamentoBrutoTotal ?? repasseLiquidoTotal),
+            custoDiretoTotal: custoDireto,
+            lucroAposCustoDireto: lucroAposCusto,
             totalPedidos: Number(data.totalPedidos || 0),
             ticketMedio: Number(data.ticketMedio || 0),
-            lucroEstimado: Number(data.lucroEstimado || 0),
+            lucroEstimado: Number(data.lucroEstimado || lucroAposCusto),
             pagamentos: {
               pix: Number(data.formasPagamento?.pix || 0),
               cartao: Number(data.formasPagamento?.cartao || 0),
@@ -110,6 +126,7 @@ export default function DashboardPage() {
               nome: item.nome,
               qtd: Number(item.quantidade || item.qtd || 0),
               faturamento: Number(item.faturamentoTotal || item.faturamento || 0),
+              repasseLiquido: Number(item.repasseLiquido ?? (item.faturamentoTotal || item.faturamento || 0)),
               lucro: Number(item.lucroGerado || item.lucro || 0)
             })) : []
           });
@@ -123,6 +140,17 @@ export default function DashboardPage() {
 
     buscarDadosDashboard();
   }, [periodo, mesSelecionado, anoSelecionado]);
+
+  // Rateio proporcional ao período selecionado para não distorcer dias ou semanas
+  const valorRateioMensal = Math.max(0, Number(rateioMensal || 0));
+  const rateioPeriodo =
+    periodo === 'hoje' ? valorRateioMensal / 30 :
+    periodo === 'semana' ? (valorRateioMensal / 30) * 7 :
+    periodo === 'ano' ? valorRateioMensal * 12 :
+    valorRateioMensal;
+
+  // Lucro líquido real para divisão entre sócios após custo direto dos insumos e rateio (luz/gás/internet)
+  const lucroLiquidoSocios = resumo.lucroAposCustoDireto - rateioPeriodo;
 
   // Lógica de cálculo da Paginação
   const indiceUltimoItem = paginaAtual * itensPorPagina;
@@ -149,7 +177,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100 text-gray-800 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Cabeçalho com Filtros de Período Flexíveis */}
+        {/* Cabeçalho com Filtros de Período e Rateio de Despesas */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
@@ -157,12 +185,12 @@ export default function DashboardPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Dashboard de Vendas</h1>
-              <p className="text-xs text-gray-500">Visão geral financeira, canais de entrega e produtos mais rentáveis</p>
+              <p className="text-xs text-gray-500">Repasse líquido, capital de giro de insumos, rateio (luz/gás/internet) e lucro para sócios</p>
             </div>
           </div>
 
-          {/* Seletor do Período */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor do Período + Rateio Mensal */}
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setPeriodo('hoje')}
@@ -194,6 +222,23 @@ export default function DashboardPage() {
               >
                 Ano Completo
               </button>
+            </div>
+
+            {/* Campo de Rateio Mensal (Luz + Gás + Internet) */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-300 rounded-xl px-3 py-1.5 text-xs">
+              <label htmlFor="rateioMensal" className="font-semibold text-gray-600 whitespace-nowrap">
+                Rateio Mensal (R$):
+              </label>
+              <input
+                id="rateioMensal"
+                type="number"
+                min="0"
+                step="1"
+                value={rateioMensal}
+                onChange={(e) => setRateioMensal(e.target.value)}
+                className="w-20 bg-white border border-gray-200 rounded-lg px-2 py-1 text-right font-bold text-gray-800 focus:outline-none focus:border-amber-500"
+                title="Fatia mensal de luz, gás e internet referente à operação"
+              />
             </div>
 
             {/* Selects Adicionais caso escolha Mês Específico ou Ano Completo */}
@@ -228,46 +273,54 @@ export default function DashboardPage() {
         {/* CARDS PRINCIPAIS (KPIs) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* Card: Faturamento Total */}
+          {/* Card 1: Repasse Líquido Real */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-2">
             <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
-              <span>Faturamento Total</span>
+              <span>Repasse Líquido</span>
               <DollarSign className="w-4 h-4 text-emerald-500" />
             </div>
             <p className="text-2xl font-black text-gray-900">R$ {resumo.faturamentoTotal.toFixed(2)}</p>
             <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-0.5">
-              <ArrowUpRight className="w-3 h-3" /> Entrada total bruta
+              <ArrowUpRight className="w-3 h-3" /> Bruto: R$ {resumo.faturamentoBrutoTotal.toFixed(2)}
             </span>
           </div>
 
-          {/* Card: Lucro Estimado */}
+          {/* Card 2: Capital de Giro (Insumos / Reposição) */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-2">
             <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
-              <span>Lucro Estimado</span>
-              <TrendingUp className="w-4 h-4 text-amber-500" />
+              <span>Capital de Giro (Insumos)</span>
+              <Wallet className="w-4 h-4 text-blue-500" />
             </div>
-            <p className="text-2xl font-black text-amber-600">R$ {resumo.lucroEstimado.toFixed(2)}</p>
-            <span className="text-[10px] text-gray-400 font-medium">Margem líquida das vendas</span>
+            <p className="text-2xl font-black text-blue-700">R$ {resumo.custoDiretoTotal.toFixed(2)}</p>
+            <span className="text-[10px] text-gray-400 font-medium">Reservar para recomprar insumos</span>
           </div>
 
-          {/* Card: Quantidade de Pedidos */}
+          {/* Card 3: Lucro Líquido p/ Sócios */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-2">
+            <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
+              <span>Lucro p/ Sócios</span>
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className={`text-2xl font-black ${lucroLiquidoSocios >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+              R$ {lucroLiquidoSocios.toFixed(2)}
+            </p>
+            <span className="text-[10px] text-gray-400 font-medium">
+              Após insumos e rateio (R$ {rateioPeriodo.toFixed(2)})
+            </span>
+          </div>
+
+          {/* Card 4: Pedidos & Ticket Médio */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-2">
             <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
               <span>Total de Pedidos</span>
-              <ShoppingBag className="w-4 h-4 text-blue-500" />
+              <ShoppingBag className="w-4 h-4 text-purple-500" />
             </div>
-            <p className="text-2xl font-black text-gray-900">{resumo.totalPedidos} <span className="text-xs font-normal text-gray-400">pedidos</span></p>
-            <span className="text-[10px] text-gray-400 font-medium">Vendas finalizadas</span>
-          </div>
-
-          {/* Card: Ticket Médio */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-2">
-            <div className="flex items-center justify-between text-gray-500 text-xs font-semibold">
-              <span>Ticket Médio</span>
-              <Calendar className="w-4 h-4 text-purple-500" />
-            </div>
-            <p className="text-2xl font-black text-gray-900">R$ {resumo.ticketMedio.toFixed(2)}</p>
-            <span className="text-[10px] text-gray-400 font-medium">Média por cliente</span>
+            <p className="text-2xl font-black text-gray-900">
+              {resumo.totalPedidos} <span className="text-xs font-normal text-gray-400">pedidos</span>
+            </p>
+            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+              <Calendar className="w-3 h-3" /> Ticket médio: R$ {resumo.ticketMedio.toFixed(2)}
+            </span>
           </div>
 
         </div>
@@ -278,7 +331,7 @@ export default function DashboardPage() {
           {/* Vendas por Forma de Pagamento */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
             <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-amber-500" /> Formas de Pagamento
+              <CreditCard className="w-4 h-4 text-amber-500" /> Formas de Pagamento (Líquido)
             </h2>
 
             <div className="space-y-3">
@@ -329,7 +382,7 @@ export default function DashboardPage() {
           {/* Vendas por Canal (Loja Própria, iFood, 99Food) */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
             <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-amber-500" /> Vendas por Plataforma / Canal
+              <Layers className="w-4 h-4 text-amber-500" /> Vendas por Plataforma / Canal (Líquido)
             </h2>
 
             <div className="space-y-3">
@@ -355,7 +408,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">iFood</p>
-                    <p className="text-[10px] text-gray-500">Plataforma de parceiro</p>
+                    <p className="text-[10px] text-gray-500">Repasse líquido após taxas</p>
                   </div>
                 </div>
                 <span className="font-bold text-sm text-gray-900">R$ {resumo.canais.ifood.toFixed(2)}</span>
@@ -369,7 +422,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">99Food</p>
-                    <p className="text-[10px] text-gray-500">Plataforma de parceiro</p>
+                    <p className="text-[10px] text-gray-500">Repasse líquido após taxas</p>
                   </div>
                 </div>
                 <span className="font-bold text-sm text-gray-900">R$ {resumo.canais.noveNoveFood.toFixed(2)}</span>
@@ -385,7 +438,9 @@ export default function DashboardPage() {
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-500" /> Carros-Chefe (Produtos Mais Vendidos e Lucrativos)
             </h2>
-            <span className="text-xs text-gray-400 font-medium">Rank por volume de saída</span>
+            <span className="text-xs text-gray-400 font-medium">
+              {loading ? 'Atualizando...' : 'Rank por volume de saída'}
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -398,8 +453,9 @@ export default function DashboardPage() {
                     <tr className="bg-gray-50 text-gray-500 font-semibold border-b">
                       <th className="p-3 rounded-l-lg">Posição & Produto</th>
                       <th className="p-3">Qtd. Vendida</th>
-                      <th className="p-3">Faturamento Total</th>
-                      <th className="p-3 rounded-r-lg">Lucro Gerado</th>
+                      <th className="p-3">Faturamento Bruto</th>
+                      <th className="p-3">Repasse Líquido</th>
+                      <th className="p-3 rounded-r-lg">Lucro Após Insumo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -419,7 +475,10 @@ export default function DashboardPage() {
                           </td>
                           <td className="p-3 font-bold text-gray-700">{prod.qtd} un</td>
                           <td className="p-3 font-semibold text-gray-800">R$ {Number(prod.faturamento || 0).toFixed(2)}</td>
-                          <td className="p-3 font-bold text-emerald-600">R$ {Number(prod.lucro || 0).toFixed(2)}</td>
+                          <td className="p-3 font-semibold text-blue-700">R$ {Number(prod.repasseLiquido || 0).toFixed(2)}</td>
+                          <td className={`p-3 font-bold ${Number(prod.lucro || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            R$ {Number(prod.lucro || 0).toFixed(2)}
+                          </td>
                         </tr>
                       );
                     })}
